@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>工作E · v20260831-r45</title>
+<title>工作E · v20260831-r46</title>
 <style>
 :root{
   --bg:#f5f7fb; --surface:#ffffff; --surface-2:#f0f3f9; --text:#1f2733; --text-2:#5b6675; --text-3:#6f7989;
@@ -759,6 +759,11 @@ form[data-form="imp-grade"] input:not([type=hidden]):not([type=checkbox]):not(.b
 form[data-form="progress"] .bk-range-wrap{flex:1;min-width:0}
 form[data-form="progress"] .bk-range-trigger{height:38px;border-radius:99px}
 form[data-form="progress"] input:not([type=hidden]):not([type=checkbox]){height:38px;box-sizing:border-box;border-radius:99px;padding:0 14px}
+/* 学情跟进-登记记录：班级/学生/日期/类型/内容 圆角99（高度沿用基础 38）；
+   用 form 选择器兜底，避免 id 选择器（#rec_modal_*_wrap）在 mobile 媒体查询下被覆盖 */
+form[data-form="rec"] .bk-range-trigger{height:38px;border-radius:99px}
+form[data-form="rec"] input:not([type=hidden]):not([type=checkbox]):not(.bk-trigger-input){height:38px;box-sizing:border-box;border-radius:99px;padding:0 14px}
+form[data-form="rec"] input[type="date"]{min-height:38px;font-size:13px}
 
 /* 胶囊组合：输入框 + 右侧确认按钮视觉合成一个 pill（学生详情「违纪-输入-确认」用） */
 .combo-pill{display:flex;align-items:stretch;border:1px solid var(--border);border-radius:99px;overflow:hidden;background:var(--surface);height:36px;box-sizing:border-box}
@@ -5293,10 +5298,10 @@ function modalRec(){
   <div class="field row" style="margin-bottom:12px">
     <div class="field" style="flex:1;margin-bottom:0">${selHtml('rec_modal_cls',clsName,bkOpts(classes.map(c=>({k:c.id,l:c.name,pick:'recModalClsPick'})),defCls))}<input type="hidden" name="cls" value="${esc(clsName)}"></div>
     <div class="field" style="flex:1;margin-bottom:0"><span id="rec_modal_stu_slot">${recModalStuHtml(defCls)}</span></div>
-    <div class="field" style="flex:1;margin-bottom:0"><input type="date" name="date" value="${todayISO()}" style="height:38px;border-radius:99px"></div></div>
+    <div class="field" style="flex:1;margin-bottom:0"><input type="date" name="date" value="${todayISO()}"></div></div>
   <div class="field row" style="margin-bottom:12px">
     <div style="flex:none;width:80px">${selHtml('rec_modal_type',defTypeLbl||'类型',bkOpts(recTypeItems(),defKind))}<input type="hidden" name="type" value="${esc(defTypeLbl)}"></div>
-    <div class="field" style="flex:1;margin-bottom:0"><input type="text" name="note" placeholder="内容 / 说明（可选）" style="height:38px;border-radius:99px"></div></div>
+    <div class="field" style="flex:1;margin-bottom:0"><input type="text" name="note" placeholder="内容 / 说明（可选）"></div></div>
   <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">保存</button></div></form>`);}
 function recModalClsPick(v){const c=S.classes.find(x=>x.id===v);const wrap=document.getElementById('rec_modal_cls_wrap');if(wrap){const t=wrap.querySelector('.bk-trigger-text');if(t)t.textContent=c?c.name:'选择班级';}const hid=document.querySelector('[data-form="rec"] input[name="cls"]');if(hid)hid.value=c?c.name:'';const slot=document.getElementById('rec_modal_stu_slot');if(slot)slot.innerHTML=recModalStuHtml(v);const sh=document.querySelector('[data-form="rec"] input[name="stu"]');if(sh)sh.value='';closeAllBkPops();}
 function recModalStuPick(v){const s=stu(v);const inp=document.querySelector('[data-form="rec"] input[name="stu"]');if(inp)inp.value=s?s.name:'';closeAllBkPops();}
@@ -5662,7 +5667,7 @@ document.body.addEventListener('click',e=>{
   else if(a==='plan-add-modal'){modalPlanAdd();}
   else if(a==='plan-edit'){modalPlanAdd(id);}
   else if(a==='plan-del'){const p=S.plan.find(x=>x.id===id);if(p){_pendingPlanDel=id;confirmModal('删除教学任务','确定删除「'+esc(p.title)+'」？删除后其余任务顺序会自动重排。','do-plan-del','danger');}}
-  else if(a==='do-plan-del'){S.plan=S.plan.filter(x=>x.id!==_pendingPlanDel);S.plan.forEach((p,k)=>p.order=k+1);save();planRender();toast('已删除');}
+  else if(a==='do-plan-del'){S.plan=S.plan.filter(x=>x.id!==_pendingPlanDel);S.plan.forEach((p,k)=>p.order=k+1);_pendingPlanDel='';save();closeModal();planRender();toast('已删除');}
   else if(a==='exp-plan'){exportPlan();}
   else if(a==='edit-sem'){modalSemester(id);}
   else if(a==='del-sem'){S.semesters=S.semesters.filter(y=>y.id!==id);save();viewReload('settings');toast('学期已删除');}
