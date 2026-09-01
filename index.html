@@ -7203,28 +7203,36 @@ if((S.todos||[]).some(t=>t.src==='unfinished')){S.todos=(S.todos||[]).filter(t=>
 if(!S.seeded||S.seedVer!==SEED_VER){seed();}save();
 applyTheme();buildNav();maybeAutoReview();cleanupPendingSubs();router();autoArchiveBySemester();
 bootCloudSync();
-/* 双端同时在线的轮询拉取：每 25s 偷偷看一眼远端 _savedAt，比本地新就拉取并静默刷新（不弹 toast 避免打扰） */
-setInterval(async()=>{
-  if(cloudPushTimer||cloudPushing||cloudPulling)return;
-  const c=cloudCfg();
-  if(!c.enabled||!c.token||!c.owner||!c.repo||!c.path||!cloudReady)return;
-  try{
-    const r=await fetch(GH_API+ghContentsPath(c),{method:'GET',headers:ghHeaders(c.token)});
-    if(!r.ok)return;
-    const j=await r.json();
-    const remoteAt=(j.content?(JSON.parse(b64dec((j.content||'').replace(/\s/g,'')))._savedAt||0):0);
-    const localAt=S._savedAt||0;
-    if(remoteAt>localAt){            // 远端比本地新 → 静默拉取
-      const pr=await cloudPull();
-      if(pr.ok&&pr.data){
-        snapshotLocal('cloud-poll');
-        Object.assign(S,pr.data);S.examPoints=S.examPoints||[];
-        for(const k in DEFAULTS)store.set(k,S[k]);
-        updateCloudStatus('ok','已自动从云端同步');reloadCur();          // 保持当前页
+/* 双端同时在线的轮询拉取：每 25s 偷偷看一眼远端 _savedAt，比本地新就拉取并静默刷新（不弹 toast 避免打扰）
+   用递归 setTimeout + unref，确保不阻止 Node 进程退出（否则在 jsdom 回归里会拖住退出） */
+(function schedulePoll(){
+  const t=setTimeout(async()=>{
+    if(!(cloudPushTimer||cloudPushing||cloudPulling)){
+      const c=cloudCfg();
+      if(c.enabled&&c.token&&c.owner&&c.repo&&c.path&&cloudReady){
+        try{
+          const r=await fetch(GH_API+ghContentsPath(c),{method:'GET',headers:ghHeaders(c.token)});
+          if(r.ok){
+            const j=await r.json();
+            const remoteAt=(j.content?(JSON.parse(b64dec((j.content||'').replace(/\s/g,'')))._savedAt||0):0);
+            const localAt=S._savedAt||0;
+            if(remoteAt>localAt){            // 远端比本地新 → 静默拉取
+              const pr=await cloudPull();
+              if(pr.ok&&pr.data){
+                snapshotLocal('cloud-poll');
+                Object.assign(S,pr.data);S.examPoints=S.examPoints||[];
+                for(const k in DEFAULTS)store.set(k,S[k]);
+                updateCloudStatus('ok','已自动从云端同步');reloadCur();          // 保持当前页
+              }
+            }
+          }
+        }catch(_){/* 网络/限流等异常一律静默，下一轮再试 */}
       }
     }
-  }catch(_){/* 网络/限流等异常一律静默，下一轮再试 */}
-},25000);
+    schedulePoll();
+  },25000);
+  if(t&&t.unref)t.unref();
+})();
 window.addEventListener('hashchange',router);
 
 
