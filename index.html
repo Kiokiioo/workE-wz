@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>工作E · v20260901-r62</title>
+<title>工作E · v20260902-r64</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1517,8 +1517,9 @@ function homeFocusStudents(){
   return res.map(r=>({s:r.s,n:r.n}));
 }
 /* 圆环头像：n=满足条件数；1→原色，2→内24原色+外4/30%，3→内20原色+中4/60%+外4/30% */
+/* r64 学生卡片头像改用拼音首字母（与「按首字母分组」保持一致，避免出现「姓汉字头像 + 字母分组标题」的视觉错位） */
 function focusAvatar(s,n){
-  const base=AV[S.students.indexOf(s)%AV.length];const L=esc(s.name[0]);
+  const base=AV[S.students.indexOf(s)%AV.length];const L=esc(stuIndexKey(s.name));
   const core=`<div style="background:${base};width:${n>=3?20:24}px;height:${n>=3?20:24}px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:${n>=3?10:12}px;font-weight:700">${L}</div>`;
   if(n>=3)return `<div class="avatar" data-action="stu-detail" data-id="${s.id}" style="background:${hexA(base,0.3)};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center"><div style="background:${hexA(base,0.6)};width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center">${core}</div></div>`;
   if(n===2)return `<div class="avatar" data-action="stu-detail" data-id="${s.id}" style="background:${hexA(base,0.3)};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center">${core}</div>`;
@@ -2153,7 +2154,7 @@ function stuCardHtml(s){
   const cis=(s.contactItems||[]).filter(x=>!x.processed);
   return `
   <div class="card" data-id="${s.id}" style="border:0;box-shadow:none;padding:6px 8px;margin-bottom:6px;border-radius:8px"><div style="display:flex;gap:11px;align-items:center">
-    <div class="avatar" style="width:24px;height:24px;font-size:11px;background:${AV[S.students.indexOf(s)%AV.length]}" data-action="stu-detail" data-id="${s.id}">${esc(s.name[0])}</div>
+    <div class="avatar" style="width:24px;height:24px;font-size:11px;background:${AV[S.students.indexOf(s)%AV.length]}" data-action="stu-detail" data-id="${s.id}">${esc(stuIndexKey(s.name))}</div>
     <div class="s-name" style="flex:1;font-size:15px" data-action="stu-detail" data-id="${s.id}">${esc(s.name)}</div>
     <button class="stu-cap ${s.concern?'on':''}" data-action="stu-cap" data-id="${s.id}" title="需关注" aria-label="需关注"></button>
     <div style="font-size:12px;color:var(--text-2);white-space:nowrap">${esc(classNameOf(s.classId))}</div>
@@ -2178,7 +2179,7 @@ function stuIndexKey(name){
   if(!ch.match(/[一-龥]/))return '#';
   if(!stuIndexKey._m){
     stuIndexKey._m={};
-    const D='赵Z钱Q孙S李L周Z吴W郑Z王W冯F陈C蒋J韩H杨Y朱Z秦Q沈S许X何H吕L施S张Z孔K曹C严Y华H金J魏W陶T姜J戚Q谢X邹Z喻Y柏B水S窦D章Z云Y苏S潘P葛G奚X范F彭P郎L鲁L韦W昌C马M苗M凤F花H方F俞Y任R袁Y柳L酆F鲍B史S唐T费F岑C薛X雷L贺H倪N汤T滕T殷Y罗L毕B郝H邬W安A常C乐Y于Y时S傅F皮P卞B齐Q康K伍W余Y元Y卜B顾G孟M平P黄H和H穆M萧X尹Y姚Y邵S汪W祁Q毛M禹Y狄D米M贝B明M臧Z计J伏F成C戴D谈T宋S茅M庞P熊X纪J舒S屈Q项X祝Z董D梁L杜D阮R蓝L闵M席X季J麻M强Q贾J路L娄L危W江J童T颜Y郭G梅M盛S林L刁D钟Z徐X邱Q骆L高G夏X蔡C田T樊F胡H凌L霍H万W柯K卢L莫M房F裘Q缪M干G解X应Y宗Z丁D宣X贲B邓D郁Y单S杭H洪H包B诸Z左Z石S崔C吉J钮N龚G程C嵇J邢X滑H裴P陆L荣R翁W荀X羊Y於Y惠H甄Z麹Q家J封F芮R羿Y储C靳J汲J邴B糜M松S井J段D富F巫W乌W焦J巴B弓G牧M隗W山S谷G车C侯H宓M蓬P全Q郗X班B仰Y秋Q仲Z伊Y宫G宁N仇Q栾L暴B甘G钭D厉L戎R祖Z武W符F刘L景J詹Z束S龙L叶Y幸X司S韶S郜G黎L蓟J薄B印Y宿S白B怀H蒲P邰T从C鄂E索S咸X籍J赖L卓Z蔺L屠T蒙M池C乔Q阴Y鬱Y胥X能N苍C双S闻W莘S党D翟Z谭T贡G劳L逄P姬J申S扶F堵D冉R宰Z郦L雍Y却Q璩Q桑S桂G濮P牛N寿S通T边B扈H燕Y冀J浦P尚S农N温W别B庄Z晏Y柴C瞿Q阎Y充C慕M连L茹R习X宦H艾A鱼Y容R向X古G易Y慎S戈G廖L庾Y终Z暨J居J衡H步B都D耿G满M弘H匡K国G文W寇K广G禄L阙Q欧O殳S沃W利L蔚W越Y夔K隆L师S巩G聂N晁C勾G敖A融R冷L訾Z辛X阚K那N简J饶R空K曾Z毋W沙S乜N养Y鞠J须X丰F巢C关G蒯K相X查Z后H荆J红H游Y竺Z权Q逯L盖G益Y桓H公G芳F洋Y静J杰J敏M磊L婷T浩H伟W雪X琳L悦Y斌B雯W丽L娜N娟J涛T峰F勇Y军J刚G辉H霞X波B宇Y飞F丹D莉L倩Q超C兵B俊J佳J晓X萍P凯K颖Y璐L航H鑫X瑞R泽Z涵H轩X彤T梓Z豪H晨C曦X露L萌M萱X睿R嘉J怡Y然R博B森S淼M骏J鸿H志Z鹏P昊H雨Y欣X子Z玉Y银Y铜T铁T岩Y川C海H河H禾H麦M豆D竹Z兰L菊J荷H莲L蓉R薇W菁J菲F茜Q瑶Y琪Q珍Z珠Z玲L珊S雅Y韵Y泰T顺S同T福F喜X庆Q德D才C智Z慧H忠Z孝X仁R义Y礼L信X友Y爱A恩E念N思S忆Y梦M霜S冰B清Q润R淳C源Y泉Q溪X湖H浪L潮C澎P湃P渊Y灏H焱Y煜Y炜W烨Y灿C烁S灵L焕H焰Y煌H炯J熙X熠Y熹X燚Y璋Z瑾J琛C玥Y珏J珂K璧B环H琦Q琴Q瑟S碧B硕S砚Y砥D研Y砂S砾L岳Y岚L岫X峻J岭L巍W峡X州Z岛D岸A帆F舟Z渔Y滨B湄M溯S沁Q沛P沅Y芷Z苒R芊Q芃P茁Z茂M茗M茵Y蕊R蕾L蕴Y芙F蒄G蔼A蔓M藤T蕉J苇W芒M芝Z芋Y苔T莞G荃Q茏L荟H荔L荥X荫Y茯F茚Y';
+    const D='赵Z钱Q孙S李L周Z吴W郑Z王W冯F陈C蒋J韩H杨Y朱Z秦Q沈S许X何H吕L施S张Z孔K曹C严Y华H金J魏W陶T姜J戚Q谢X邹Z喻Y柏B水S窦D章Z云Y苏S潘P葛G奚X范F彭P郎L鲁L韦W昌C马M苗M凤F花H方F俞Y任R袁Y柳L酆F鲍B史S唐T费F岑C薛X雷L贺H倪N汤T滕T殷Y罗L毕B郝H邬W安A常C乐Y于Y时S傅F皮P卞B齐Q康K伍W余Y元Y卜B顾G孟M平P黄H和H穆M萧X肖X尹Y姚Y邵S汪W祁Q毛M禹Y狄D米M贝B明M臧Z计J伏F成C戴D谈T宋S茅M庞P熊X纪J舒S屈Q项X祝Z董D梁L杜D阮R蓝L闵M席X季J麻M强Q贾J路L娄L危W江J童T颜Y郭G梅M盛S林L刁D钟Z徐X邱Q骆L高G夏X蔡C田T樊F胡H凌L霍H万W柯K卢L莫M房F裘Q缪M干G解X应Y宗Z丁D宣X贲B邓D郁Y单S杭H洪H包B诸Z左Z石S崔C吉J钮N龚G程C嵇J邢X滑H裴P陆L荣R翁W荀X羊Y於Y惠H甄Z麹Q家J封F芮R羿Y储C褚C靳J汲J邴B糜M松S井J段D富F巫W乌W焦J巴B弓G牧M隗W山S谷G车C侯H宓M蓬P全Q郗X班B仰Y秋Q仲Z伊Y宫G宁N仇Q栾L暴B甘G钭D厉L戎R祖Z武W符F刘L景J詹Z束S龙L叶Y幸X司S韶S郜G黎L蓟J薄B印Y宿S白B怀H蒲P邰T从C鄂E索S咸X籍J赖L卓Z蔺L屠T蒙M池C乔Q阴Y鬱Y胥X能N苍C双S闻W莘S党D翟Z谭T贡G劳L逄P姬J申S扶F堵D冉R宰Z郦L雍Y却Q璩Q桑S桂G濮P牛N寿S通T边B扈H燕Y冀J浦P尚S农N温W别B庄Z晏Y柴C瞿Q阎Y充C慕M连L茹R习X宦H艾A鱼Y容R向X古G易Y慎S戈G廖L庾Y终Z暨J居J衡H步B都D耿G满M弘H匡K国G文W寇K广G禄L阙Q欧O殳S沃W利L蔚W越Y夔K隆L师S巩G聂N晁C勾G敖A融R冷L訾Z辛X阚K那N简J饶R空K曾Z毋W沙S乜N养Y鞠J须X丰F巢C关G蒯K相X查Z后H荆J红H游Y竺Z权Q逯L盖G益Y桓H公G芳F洋Y阳Y静J杰J敏M磊L婷T浩H伟W雪X琳L悦Y斌B雯W丽L娜N娟J涛T峰F勇Y军J刚G辉H霞X波B宇Y飞F丹D莉L倩Q超C兵B俊J佳J晓X萍P凯K颖Y璐L航H鑫X瑞R泽Z涵H轩X彤T梓Z豪H晨C曦X露L萌M萱X睿R嘉J怡Y然R博B森S淼M骏J鸿H志Z鹏P昊H雨Y欣X子Z玉Y银Y铜T铁T岩Y川C海H河H禾H麦M豆D竹Z兰L菊J荷H莲L蓉R薇W菁J菲F茜Q瑶Y琪Q珍Z珠Z玲L珊S雅Y韵Y泰T顺S同T福F喜X庆Q德D才C智Z慧H忠Z孝X仁R义Y礼L信X友Y爱A恩E念N思S忆Y梦M霜S冰B清Q润R淳C源Y泉Q溪X湖H浪L潮C澎P湃P渊Y灏H焱Y煜Y炜W烨Y灿C烁S灵L焕H焰Y煌H炯J熙X熠Y熹X燚Y璋Z瑾J琛C玥Y珏J珂K璧B环H琦Q琴Q瑟S碧B硕S砚Y砥D研Y砂S砾L岳Y岚L岫X峻J岭L巍W峡X州Z岛D岸A帆F舟Z渔Y滨B湄M溯S沁Q沛P沅Y芷Z苒R芊Q芃P茁Z茂M茗M茵Y蕊R蕾L蕴Y芙F蒄G蔼A蔓M藤T蕉J苇W芒M芝Z芋Y苔T莞G荃Q茏L荟H荔L荥X荫Y茯F茚Y闫Y占Z睡S付F佘S覃Q邝K芦L鄢Y谌C栗L亓Q旷K郄Q佟T赫H鄞Y曲Q迟C隋S邸D门M敬J缑G卫W么Y昝Z雒L笪D';
     for(let i=0;i<D.length;i+=2)stuIndexKey._m[D[i]]=D[i+1];
   }
   if(stuIndexKey._m[ch])return stuIndexKey._m[ch];
@@ -5147,7 +5148,7 @@ function modalProgress(id,pid){const c=course(id);if(!c)return;S._progCourse=id;
   const whenDateV=editRec?(editRec.date||todayISO()):todayISO();
   const defTime=classTimeToday(c.cls);
   const whenTimeV=editRec?(editRec.time||defTime):defTime;
-  const ntV=editRec?(editRec.nextTask||''):(c.nextTask||'');
+  const ntV=editRec?(Array.isArray(editRec.nextTask)?editRec.nextTask.join('\n'):(editRec.nextTask||'')):(c.nextTask||'');
   const extraV=editRec?(editRec.extraDone||[]).join('\n'):'';
   const colSec=(h,b)=>`<div style="border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden"><div onclick="const x=this.nextElementSibling;x.style.display=x.style.display==='none'?'block':'none';this.querySelector('.chev').textContent=x.style.display==='none'?'▸':'▾'" style="padding:10px 12px;background:var(--surface-2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600">${h} <span class="chev"></span></div><div style="display:none;padding:12px">${b}</div></div>`;
   openModal(recTitle,`<form data-form="progress" data-id="${id}">
@@ -5158,7 +5159,7 @@ function modalProgress(id,pid){const c=course(id);if(!c)return;S._progCourse=id;
       <div class="sub" style="margin-top:4px;font-size:12px">默认时间：${esc(defTime)}（当天课表首节课）</div></div>
     <div class="field"><label>今日任务</label><div id="prog_today_wrap" style="max-height:200px;overflow:auto">${planChecks}</div></div>
     <div class="field"><label>超额完成</label><textarea name="extraDone" class="prog-ta" placeholder="每行一项，自动同步">${esc(extraV)}</textarea></div>
-    <div class="field"><label>待完成</label><textarea name="nextTask" class="prog-ta" placeholder="默认：教学任务安排的下一项">${esc(ntV)}</textarea></div>
+    <div class="field"><label>待完成</label><textarea name="nextTask" class="prog-ta" placeholder="每行一项，自动同步">${esc(ntV)}</textarea></div>
     <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">${pid?'保存修改':'保存'}</button></div></form>`);
   setTimeout(()=>{
     const form=document.querySelector('form[data-form="progress"]');if(!form)return;
@@ -5539,23 +5540,23 @@ modal.addEventListener('submit',e=>{
     const when=v('whenDate')||todayISO();const whenTime=v('whenTime')||classTimeToday(c.cls);const cl=resolveClass(c.cls);const subj=(c.subject||'').trim();const editing=!!S._progEditPid;
     // 只追加完成，绝不清除已完成的任务
     coursePlan(c).forEach(p=>{const el=f.elements['pdone_'+p.id];const want=!!(el&&el.checked);if(want&&!p.done){p.done=true;p.doneDate=when;}});
-    const nt=v('nextTask').trim();
+    const nts=v('nextTask').split('\n').map(x=>x.trim()).filter(Boolean);
     const extra=v('extraDone').split('\n').map(x=>x.trim()).filter(Boolean);
     // 插入位置：最近一次完成任务的下一列（在标记完成之后计算）
     const cp=coursePlan(c);const doneCp=cp.filter(p=>p.done);
     const ins=doneCp.length?Math.max(...doneCp.map(p=>p.order)):(cp.length?Math.max(...cp.map(p=>p.order)):0);
-    const bumpN=extra.length+(nt?1:0);
+    const bumpN=extra.length+nts.length;
     if(bumpN){S.plan.forEach(p=>{if((p.classId===cl||p.classId===ALL_CLASS)&&(!subj||(p.subject||'')===subj)&&p.order>ins)p.order+=bumpN;});}
     let ord=ins+1;
     extra.forEach(t=>{S.plan.push({id:uid(),classId:cl,subject:subj,title:t,order:ord++,done:true,doneDate:when,temp:true,tag:'额外'});});
-    if(nt){S.plan.push({id:uid(),classId:cl,subject:subj,title:nt,order:ord++,done:false,temp:true,tag:'新增'});}
+    nts.forEach(t=>{S.plan.push({id:uid(),classId:cl,subject:subj,title:t,order:ord++,done:false,temp:true,tag:'新增'});});
     c.unfinished=v('unfinished').split('\n').map(x=>x.trim()).filter(Boolean);
     const plan=coursePlan(c);const tot=plan.length,dn=plan.filter(p=>p.done).length;
     c.progress=tot?Math.round(dn/tot*100):0;
     const doneTitles=plan.filter(p=>p.done).map(p=>p.title);
     c.nextTask='';
-    if(editing){const ex=(c.progressLog||[]).find(r=>r.id===S._progEditPid);if(ex){ex.date=when;ex.time=whenTime;ex.progress=c.progress;ex.nextTask=nt;ex.doneTasks=doneTitles;ex.unfinished=c.unfinished.slice();ex.extraDone=extra.slice();}toast('已更新该进度记录');}
-    else{c.progressLog=c.progressLog||[];c.progressLog.push({id:uid(),date:when,time:whenTime,progress:c.progress,nextTask:nt,doneTasks:doneTitles,unfinished:c.unfinished.slice(),extraDone:extra.slice()});toast('进度已记录（'+c.progress+'%）');}
+    if(editing){const ex=(c.progressLog||[]).find(r=>r.id===S._progEditPid);if(ex){ex.date=when;ex.time=whenTime;ex.progress=c.progress;ex.nextTask=nts.slice();ex.doneTasks=doneTitles;ex.unfinished=c.unfinished.slice();ex.extraDone=extra.slice();}toast('已更新该进度记录');}
+    else{c.progressLog=c.progressLog||[];c.progressLog.push({id:uid(),date:when,time:whenTime,progress:c.progress,nextTask:nts.slice(),doneTasks:doneTitles,unfinished:c.unfinished.slice(),extraDone:extra.slice()});toast('进度已记录（'+c.progress+'%）');}
     S.todos=S.todos.filter(t=>!(t.src==='unfinished'&&t.courseId===cid));
     save();closeModal();viewReload('courses');}
   else if(form==='semester'){const id=f.dataset.id;const start=v('start'),end=v('end'),nm=v('name').trim();
