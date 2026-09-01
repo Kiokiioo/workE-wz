@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>工作E · v20260831-r52</title>
+<title>工作E · v20260901-r59</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -589,6 +589,14 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 .field textarea{resize:vertical;min-height:80px}
 /* 批量添加学生 textarea：保留外框，跟班级名称输入框同款（边框+底色+圆角） */
 .no-line-ta{border:1px solid var(--border) !important;background:var(--surface) !important;border-radius:10px !important;padding:10px 12px !important}
+/* 班级编辑：学生名单 chip 行（r53）。× 按钮删除单个学生，hover 切红。 */
+.cls-stu-chips{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;max-height:160px;overflow-y:auto;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;margin-bottom:6px}
+.cls-stu-chip{display:inline-flex;align-items:center;gap:2px;background:#fff;border:1px solid var(--border);border-radius:99px;padding:2px 2px 2px 10px;font-size:12px;color:var(--text);line-height:1.4;max-width:200px}
+.cls-stu-chip-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cls-stu-x{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border:none;background:transparent;color:var(--text-2);border-radius:50%;cursor:pointer;font-size:14px;line-height:1;flex:none;padding:0}
+.cls-stu-x:hover{background:var(--danger);color:#fff}
+.cls-stu-empty{font-size:12px;color:var(--text-2);padding:6px 0}
+.cls-stu-count{font-size:12px;color:var(--text-2);font-weight:400;margin-left:4px}
 .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft);outline:none}
 /* 规则页 S 方案：左侧 3px 色条区分加/扣，保持 8px 节奏 */
 .rule-add,.rule-sub{padding:8px;border-left:3px solid transparent;border-radius:8px}
@@ -687,12 +695,16 @@ form[data-form="addrule"] .field input[name="points"]{padding:0 6px;text-align:c
 .ed-done-title{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);font:inherit;font-size:14px;box-sizing:border-box}
 .ed-done-title:focus{outline:none;border-color:var(--primary)}
 .field textarea.prog-ta{min-height:48px}
-/* 记录进度-今日任务：复选框与内容垂直齐平（用 .ex-chk-wrap 自定义 16×16 勾选框，flex 布局确保与文案中心对齐） */
-.prog-cb{display:flex;align-items:center;gap:10px;cursor:pointer;padding:7px 0;border-bottom:1px solid var(--border);font-size:14px;line-height:1.4}
-.prog-cb:last-child{border-bottom:none}
-.prog-cb .ex-chk-wrap{flex:none;width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center}
-.prog-cb .ex-chk-wrap input[type=checkbox]{width:16px;height:16px}
-.prog-cb .prog-cb-txt{flex:1;min-width:0}
+/* 记录进度-今日任务：复选框与内容垂直齐平（用 .ex-chk-wrap 自定义 18×18 勾选框，flex 布局确保与文案中心对齐，与文字清晰错开） */
+/* 选择器 .field .prog-cb 特异性 (0,2,0) > .field label (0,1,1)，用来覆盖全局 .field label 的 display:block + font-size:13px，否则 flex 失效、文字变 13px；align-items:center 让 19px 框与 14px 中文方块字（line-height:1.4 → 19.6px 文本行 box）盒模型自动居中，偏差 ~0.8px，肉眼齐平（原 margin-top:3 / padding-top:1 是按英文 x-height 算的，对中文不适用，文字中点高于框中点 2.2px） */
+.field .prog-cb{display:flex;align-items:center;gap:2px;cursor:pointer;padding:7px 0;border-bottom:1px solid var(--border);font-size:14px;line-height:1.4;width:100%;box-sizing:border-box}
+.field .prog-cb:last-child{border-bottom:none}
+.field .prog-cb .ex-chk-wrap{flex:none;width:19px;height:19px;display:inline-flex;align-items:center;justify-content:center;margin-top:0}
+.field .prog-cb .ex-chk-wrap input[type=checkbox]{appearance:none;-webkit-appearance:none;width:19px;height:19px;padding:0;box-sizing:border-box;border:2.5px solid var(--border);border-radius:4px;background:var(--surface);cursor:pointer;position:relative;flex:none;margin:0;transition:all .15s;outline:none}
+.field .prog-cb .ex-chk-wrap input[type=checkbox]:hover{border-color:var(--primary)}
+.field .prog-cb .ex-chk-wrap input[type=checkbox]:checked{background:var(--primary);border-color:var(--primary)}
+.field .prog-cb .ex-chk-wrap input[type=checkbox]:checked::after{content:'';position:absolute;left:3px;top:1px;width:5px;height:9px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.field .prog-cb .prog-cb-txt{flex:1;min-width:0;padding-top:0;font-size:14px;color:var(--text);font-weight:normal}
 .field.row{display:flex;gap:10px}
 .field.row>*{flex:1}
 .field.row>.field{margin-bottom:0}
@@ -975,7 +987,7 @@ svg{display:block;width:100%}
 .bulk-bar .ex-chk-wrap{flex-shrink:0;width:16px;margin-left:-22px;display:flex;align-items:center}
 .bulk-bar .bulk-count{font-size:12px;color:var(--text-2)}
 .ex-chk-wrap{cursor:pointer}
-.ex-chk-wrap input[type=checkbox]{appearance:none;-webkit-appearance:none;width:16px;height:16px;border:1.5px solid var(--border);border-radius:4px;background:var(--surface);cursor:pointer;position:relative;flex:none;margin:0;transition:all .15s;vertical-align:middle;outline:none}
+.ex-chk-wrap input[type=checkbox]{appearance:none;-webkit-appearance:none;width:16px;height:16px;padding:0;box-sizing:border-box;border:1.5px solid var(--border);border-radius:4px;background:var(--surface);cursor:pointer;position:relative;flex:none;margin:0;transition:all .15s;vertical-align:middle;outline:none}
 .ex-chk-wrap input[type=checkbox]:hover{border-color:var(--primary)}
 .ex-chk-wrap input[type=checkbox]:checked{background:var(--primary);border-color:var(--primary)}
 .ex-chk-wrap input[type=checkbox]:checked::after{content:'';position:absolute;left:3px;top:0;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
@@ -1495,7 +1507,7 @@ function homeFocusStudents(){
   const dSet=new Set(topDeclineStudentIds(5));
   const wSet=new Set(topWeeklyDiffStudentIds(5));
   const cSet=new Set(S.students.filter(s=>s.concern).map(s=>s.id));
-  const todayClasses=new Set(S.timetable.filter(t=>t.day===jsDay()).map(t=>t.classId));
+  const todayClasses=new Set(ttForDay(jsDay()).map(t=>t.classId));
   const res=[];
   S.students.forEach((s,i)=>{
     let n=0;if(dSet.has(s.id))n++;if(wSet.has(s.id))n++;if(cSet.has(s.id))n++;
@@ -1581,7 +1593,7 @@ function tMin(t){const m=/(\d{1,2}):(\d{2})/.exec(t||'');return m?+m[1]*60+ +m[2
 function homeSchedule(){
   if(!S.timetable.length)return emptyState('🗓️','还没有课表，去「教学设置」导入');
   const d=jsDay();
-  const list=S.timetable.filter(t=>t.day===d).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  const list=ttForDay(d).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   if(!list.length)return `<div class="sub">今天（周${WD[d]}）没有排课 🎉</div>`;
   let html='';let prevEnd=null;
   for(const t of list){
@@ -1600,7 +1612,7 @@ function homeSchedule(){
         <div class="tl-head"><span class="tl-subj">${esc(t.subject)}</span><span class="tl-meta">${esc(periodLabel(t))} · ${esc(classNameOf(cid))} · ${esc(t.classroom||'')}</span></div>
         ${done.length?`<div class="tl-meta" style="color:var(--ok)">✓ 今日已完成：${esc(done.join('、'))}</div>`:''}
         ${nt?`<div class="tl-meta" style="color:var(--primary)">▶ 下节课任务：${esc(nt)}</div>`:''}
-        ${uf.length?`<div class="tl-meta" style="color:var(--danger)">⚠ 未完成：${esc(uf.join('、'))}</div>`:''}
+        ${uf.length?`<div class="tl-meta" style="color:var(--danger)">⚠ 待完成：${esc(uf.join('、'))}</div>`:''}
       </div></div>`;
   }
   return `<div class="sched-tl">${html}</div>`;
@@ -1615,7 +1627,7 @@ function classDoneToday(cid){return classPlan(cid).filter(p=>p.done&&p.doneDate=
 function classUnfinished(cid){const cl=cls(cid);if(!cl)return [];
   const arr=[];S.courses.filter(c=>c.cls===cl.name).forEach(c=>(c.unfinished||[]).forEach(t=>arr.push(t)));return arr;}
 /* 首页 hero 4 项统计：教学待办/今日课节/学生待办/沟通（学情跟进-学生 用） */
-function homeTodayClassCount(){const d=jsDay();return S.timetable.filter(t=>t.day===d).length;}
+function homeTodayClassCount(){const d=jsDay();return ttForDay(d).length;}
 function homeStuTodoCount(){let n=0;(S.students||[]).forEach(s=>{(s.todoItems||[]).forEach(x=>{if(!x.processed)n++;});});return n;}
 function homeContactCount(){let n=0;(S.students||[]).forEach(s=>{(s.contactItems||[]).forEach(x=>{if(!x.processed)n++;});});return n;}
 function goStuStudents(){if(location.hash.slice(1)==='students'){stuTab='stu';viewReload('students');}else location.hash='students';}
@@ -1890,7 +1902,6 @@ function viewCourses(){
         </div>
         <div style="display:flex;align-items:baseline;gap:8px;margin-top:3px">
           <div class="sub" style="flex:1;min-width:0;line-height:1.3">${esc(c.cls||'')}</div>
-          ${c.unfinished&&c.unfinished.length?`<div class="sub" style="flex:2;min-width:0;text-align:left;line-height:1.3;color:var(--danger)">⚠ 本节课未完成：${esc(c.unfinished.join('、'))}</div>`:''}
         </div>
       </div>
     </div>
@@ -2004,10 +2015,10 @@ function calHtml(){
 }
 function openDayDetail(iso){const wd=(new Date(iso).getDay()+6)%7+1;
   const dls=S.todos.filter(d=>d.due===iso);
-  const sch=S.timetable.filter(t=>t.day===wd).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  const sch=ttForDay(wd,new Date(iso)).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   const dlHtml=dls.length?dls.map(d=>todoRow(d)).join(''):'<div class="sub">这一天没有待办截止</div>';
   const schHtml=sch.length?sch.map(t=>`<div class="sched-row"><div class="period">${periodLabel(t)}</div>
-    <div style="flex:1"><div style="font-weight:600;font-size:14px">${esc(t.subject)}</div>
+    <div style="flex:1"><div style="font-weight:600;font-size:14px">${esc(t.subject)}${t.biweekly?' <span class="tag" style="background:var(--primary-soft);color:var(--primary);font-size:10px;margin-left:4px">隔周</span>':''}</div>
     <div class="s-meta">${esc(t.time||'')} · ${esc(classNameOf(t.classId))} · ${esc(t.classroom||'')}</div></div></div>`).join(''):'<div class="sub">这一天没有课</div>';
   openModal(iso+' 当日详情',`<div class="section-title"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('📅',16)}当天待办（截止日）</span></div>${dlHtml}
     <div class="section-title" style="margin-top:14px">🗓️ 当天课表</div>${schHtml}
@@ -4620,11 +4631,11 @@ function ttCardsHtml(){const list=ttList();
         <span class="tt-day">周${WD[t.day]}</span><span class="tt-period">${periodLabel(t)}</span>
       </div>
       <div class="tt-subj">${esc(t.subject||'未填科目')}</div>
-      <div class="tt-meta">${esc(t.time||'时间未设')} · ${esc(classNameOf(t.classId))}</div>
+      <div class="tt-meta">${esc(t.time||'时间未设')} · ${esc(classNameOf(t.classId))}${t.biweekly?' <span class="tag" style="background:var(--primary-soft);color:var(--primary);font-size:10px;margin-left:4px">隔周</span>':''}</div>
       <div class="tt-act"><button class="ic-btn-del" type="button" data-action="del-tt" data-id="${t.id}" title="删除" aria-label="删除">${iconSvg('x',10)}</button><button class="ic-btn" type="button" data-action="edit-tt-row" data-id="${t.id}" title="修改" aria-label="修改">${iconSvg('edit',10)}</button></div>
     </div>`;}).join('');}
 function ttRowsHtml(){const list=ttList().map(t=>`
-    <tr><td data-label="星期">周${WD[t.day]}</td><td data-label="节次">${periodLabel(t)}</td><td data-label="时间">${esc(t.time||'')}</td><td data-label="科目">${esc(t.subject)}</td>
+    <tr><td data-label="星期">周${WD[t.day]}</td><td data-label="节次">${periodLabel(t)}${t.biweekly?' <span class="tag" style="background:var(--primary-soft);color:var(--primary);font-size:10px">隔周</span>':''}</td><td data-label="时间">${esc(t.time||'')}</td><td data-label="科目">${esc(t.subject)}</td>
     <td data-label="班级">${esc(classNameOf(t.classId))}</td>
     <td data-label=""><button class="btn sm" data-action="edit-tt-row" data-id="${t.id}">改</button><button class="btn sm danger" data-action="del-tt" data-id="${t.id}">删</button></td></tr>`).join('');
   return list||`<tr><td colspan="6">${emptyState('🗓️','该筛选下还没有课表')}</td></tr>`;}
@@ -4926,6 +4937,32 @@ function addStuNames(cid,raw){const names=(raw||'').split(/[\n,，、\s]+/).map(
   const exist=new Set(S.students.filter(s=>s.classId===cid).map(s=>s.name));let added=0;
   names.forEach(n=>{if(!exist.has(n)){S.students.push({id:uid(),name:n,classId:cid,points:0,concern:false,todoItems:[],contactItems:[]});exist.add(n);added++;}});
   return added;}
+/* 班级编辑（r53）：学生名单 chips 渲染 + 单个删除。
+   - chips 直接读 S.students（cid）渲染；× 立即生效（save + 清该学生成绩/记录，再 rerender）。
+   - 兼容旧的 textarea 批量添加路径（form 提交时 addStuNames 仍工作）。 */
+function clsStuChipsHtml(cid){const list=S.students.filter(s=>s.classId===cid).sort((a,b)=>(a.name||'').localeCompare(b.name||'','zh'));
+  if(!list.length)return '<div class="cls-stu-empty">尚未添加学生</div>';
+  return list.map(s=>`<span class="cls-stu-chip" data-stuid="${s.id}" title="${esc(s.name)}"><span class="cls-stu-chip-nm">${esc(s.name)}</span><button type="button" class="cls-stu-x" onclick="classStuDel('${s.id}',event)" aria-label="删除 ${esc(s.name)}">×</button></span>`).join('');}
+function classStuRender(cid){const wrap=document.getElementById('cls_stu_chips');if(wrap)wrap.innerHTML=clsStuChipsHtml(cid);
+  const cnt=document.getElementById('cls_stu_count');const n=S.students.filter(s=>s.classId===cid).length;if(cnt)cnt.textContent='（已添加 '+n+' 人）';}
+function classStuDel(stuId,ev){if(ev){ev.stopPropagation();ev.preventDefault();}
+  const s=S.students.find(x=>x.id===stuId);if(!s)return;
+  if(!confirm('确定从名单中删除「'+s.name+'」？该学生的成绩/登记记录会一并清除。'))return;
+  const stuName=s.name;
+  // 成绩（按姓名清 e.scores）
+  S.exams.forEach(e=>{if(e.scores&&stuName in e.scores)delete e.scores[stuName];});
+  S.exams=S.exams.filter(e=>Object.keys(e.scores||{}).length>0);
+  // 登记记录（按 studentId 清 violations / homeworks / answers）
+  S.violations=S.violations.filter(v=>v.studentId!==stuId);
+  S.homeworks=S.homeworks.filter(h=>h.studentId!==stuId);
+  S.answers=S.answers.filter(a=>a.studentId!==stuId);
+  // 删学生
+  S.students=S.students.filter(x=>x.id!==stuId);
+  save();
+  // 重新渲染 chips
+  const f=document.querySelector('form[data-form=class]');const cid=f?f.dataset.id:'';
+  if(cid)classStuRender(cid);
+  toast('已删除 '+stuName);}
 function bulkAddStu(cid){const c=cls(cid);if(!c)return;
   openModal('批量添加学生 · '+esc(c.name),`<form data-form="bulk-stu" data-id="${cid}">
   ${field('学生名单（每行一个，或用逗号、空格、顿号分隔）','<textarea name="students" placeholder="张明\\n李华\\n王芳"></textarea>')}
@@ -5092,11 +5129,13 @@ function modalCourse(id,presetCls){const c=course(id)||{};const col=c.color||AV[
     <div class="field" style="flex:1;margin-bottom:0">${crsCombo('subject',subV,'选择或输入科目',subjItems)}</div></div>
   <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">保存</button></div></form>`);}
 function classTimeToday(clsName){const wd=jsDay();const c=S.classes.find(x=>x.name===clsName);
-  const ts=S.timetable.filter(t=>t.day===wd&&c&&t.classId===c.id).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+  const ts=ttForDay(wd).filter(t=>c&&t.classId===c.id).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   if(ts.length){const m=(ts[0].time||'').match(/(\d{1,2}):(\d{2})/);if(m)return String(+m[1]).padStart(2,'0')+':'+m[2];}
   return '10:00';}
 function progTimeOpts(clsId){const times=new Set();(S.timetable||[]).forEach(t=>{if(clsId&&t.classId!==clsId)return;const m=(t.time||'').match(/(\d{1,2}):(\d{2})/);if(m)times.add(String(+m[1]).padStart(2,'0')+':'+m[2]);});let arr=[...times].sort();if(!arr.length){['08:00','08:50','09:40','10:30','11:20','14:00','14:50','15:40','16:30','17:20','19:00','20:00'].forEach(t=>arr.push(t));}return arr.map(t=>({k:t,l:t}));}
 function progWhenTimePick(v){const f=document.querySelector('form[data-form="progress"]');const hid=f&&f.querySelector('input[name="whenTime"]');if(hid)hid.value=v;const w=document.getElementById('prog_whenTime_wrap');const t=w&&w.querySelector('.bk-trigger-text');if(t)t.textContent=v;closeAllBkPops();}
+/* 记录进度-今日任务：实时更新完成进度（按 coursePlan 全量计算，保持与初次渲染一致） */
+function progUpdateProgress(){const form=document.querySelector('form[data-form="progress"]');if(!form)return;const cid=form.dataset.id;const c=course(cid);if(!c)return;const plan=coursePlan(c);const total=plan.length;const doneFromLog=plan.filter(p=>p.done).length;const newlyChecked=form.querySelectorAll('[name^="pdone_"]:checked').length;const done=doneFromLog+newlyChecked;const pct=total?Math.round(done/total*100):0;const bar=document.getElementById('prog_progress_bar');if(bar)bar.innerHTML=`完成进度：<strong style="color:var(--primary);font-size:18px">${pct}%</strong>　已完成 ${done}/${total}。`;}
 function modalProgress(id,pid){const c=course(id);if(!c)return;S._progCourse=id;S._progEditPid=pid||null;const cl=resolveClass(c.cls);
   const editRec=pid?((c.progressLog||[]).find(r=>r.id===pid)||{}):null;
   const recTitle=editRec?'编辑进度记录 · '+c.name:'记录进度 · '+c.name;
@@ -5109,20 +5148,23 @@ function modalProgress(id,pid){const c=course(id);if(!c)return;S._progCourse=id;
   const defTime=classTimeToday(c.cls);
   const whenTimeV=editRec?(editRec.time||defTime):defTime;
   const ntV=editRec?(editRec.nextTask||''):(c.nextTask||'');
-  const unV=editRec?(editRec.unfinished||[]).join('\n'):((c.unfinished||[]).join('\n'));
   const extraV=editRec?(editRec.extraDone||[]).join('\n'):'';
   const colSec=(h,b)=>`<div style="border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden"><div onclick="const x=this.nextElementSibling;x.style.display=x.style.display==='none'?'block':'none';this.querySelector('.chev').textContent=x.style.display==='none'?'▸':'▾'" style="padding:10px 12px;background:var(--surface-2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600">${h} <span class="chev"></span></div><div style="display:none;padding:12px">${b}</div></div>`;
   openModal(recTitle,`<form data-form="progress" data-id="${id}">
     ${pid?`<div class="sub" style="margin-bottom:10px">正在编辑一条已存记录（保存将更新该记录，不新增）。<button type="button" class="btn sm" onclick="modalProgress('${id}')">↩ 返回新记录</button></div>`:''}
-    <div class="sub" style="margin-bottom:10px">完成进度：<strong style="color:var(--primary);font-size:18px">${auto}%</strong>　已完成 ${doneN}/${total}。</div>
+    <div class="sub" id="prog_progress_bar" style="margin-bottom:10px">完成进度：<strong style="color:var(--primary);font-size:18px">${auto}%</strong>　已完成 ${doneN}/${total}。</div>
     <div class="field"><label>完成时间</label>
       <div class="field row" style="margin-top:4px;gap:8px"><input type="date" name="whenDate" value="${whenDateV}" style="flex:1;min-width:0">${selHtml('prog_whenTime', whenTimeV||'选择时间', bkOpts(progTimeOpts(cl).map(t=>({k:t.k,l:t.l,pick:'progWhenTimePick'})), whenTimeV))}<input type="hidden" name="whenTime" value="${whenTimeV}"></div>
       <div class="sub" style="margin-top:4px;font-size:12px">默认时间：${esc(defTime)}（当天课表首节课）</div></div>
-    <div class="field"><label>今日任务</label><div style="max-height:200px;overflow:auto">${planChecks}</div></div>
-    <div class="field"><label>未完成任务</label><textarea name="unfinished" class="prog-ta" placeholder="每行一项，自动同步">${esc(unV)}</textarea></div>
-    <div class="field"><label>额外完成任务</label><textarea name="extraDone" class="prog-ta" placeholder="每行一项，自动同步">${esc(extraV)}</textarea></div>
-    <div class="field"><label>新增任务</label><textarea name="nextTask" class="prog-ta" placeholder="默认：教学任务安排的下一项">${esc(ntV)}</textarea></div>
-    <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">${pid?'保存修改':'保存'}</button></div></form>`);}
+    <div class="field"><label>今日任务</label><div id="prog_today_wrap" style="max-height:200px;overflow:auto">${planChecks}</div></div>
+    <div class="field"><label>超额完成</label><textarea name="extraDone" class="prog-ta" placeholder="每行一项，自动同步">${esc(extraV)}</textarea></div>
+    <div class="field"><label>待完成</label><textarea name="nextTask" class="prog-ta" placeholder="默认：教学任务安排的下一项">${esc(ntV)}</textarea></div>
+    <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">${pid?'保存修改':'保存'}</button></div></form>`);
+  setTimeout(()=>{
+    const form=document.querySelector('form[data-form="progress"]');if(!form)return;
+    // 实时进度（今日任务勾选变化）
+    form.addEventListener('change',e=>{const t=e.target;if(t&&t.name&&t.name.startsWith('pdone_'))progUpdateProgress();});
+  },0);}
 function modalNote(id){const n=id?S.notes.find(x=>x.id===id):{};const curCourse=n.courseId||(S.courses[0]&&S.courses[0].id)||'';
   openModal(id?'编辑笔记':'备课笔记',`<form data-form="note" data-id="${id||''}">
   <div class="field row" style="margin-bottom:8px">
@@ -5249,8 +5291,12 @@ function modalClass(id){const c=cls(id)||{};
   ${field('班级名称','<input name="name" required value="'+esc(c.name||'')+'" placeholder="如 高一(3)班" style="height:38px;border-radius:99px">')}
   <div class="field"><label>导入学生（姓名|积分，支持 xlsx / CSV）</label>
     <button type="button" class="btn sm" onclick="importStuBtn('${id||''}')">📥 导入学生</button></div>
+  <div class="field"><label>学生名单<span class="cls-stu-count" id="cls_stu_count"></span></label>
+    <div class="cls-stu-chips" id="cls_stu_chips"></div>
+    <div class="sub" style="margin-top:0">在下方逐个加名字，或粘贴一列名单后保存。</div></div>
   ${field('批量添加学生','<textarea name="students" class="no-line-ta" placeholder="张明 n&#10;李华，n&#10;王芳、n"></textarea>')}
-  <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">保存</button></div></form>`);}
+  <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">保存</button></div></form>`);
+  if(id)classStuRender(id);else{const wrap=document.getElementById('cls_stu_chips');if(wrap)wrap.innerHTML='<div class="cls-stu-empty">先填写班级名称并保存后可在这里逐个调整名单</div>';const cnt=document.getElementById('cls_stu_count');if(cnt)cnt.textContent='（新建班级）';}}
 function importStuBtn(id){if(id){importClass(id);return;}
   const f=document.querySelector('form[data-form=class]');if(!f)return;const nm=f.elements['name'].value.trim();if(!nm){toast('请先填写班级名称');return;}
   const c={id:uid(),name:nm,stage:f.elements['stage']?f.elements['stage'].value:'',grade:f.elements['grade']?f.elements['grade'].value:'',sem:(curSem()?curSem().id:'')};
@@ -5330,7 +5376,19 @@ function modalExam(subId){const sel=S._gradeSub&&subId?subId:subId;
   <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">保存</button></div></form>`);}
 function examSubjChange(v){const w=document.getElementById('examSubjCustomWrap');if(w)w.style.display=v==='__custom__'?'block':'none';}
 function periodSelectOpts(part,pnum){const parts=[['上午',0],['下午',1],['晚上',2]];let h='';parts.forEach(([label,p])=>{h+=`<optgroup label="${label}">`;for(let n=1;n<=4;n++){const val=p+':'+n;const sel=(p===part&&n===pnum)?'selected':'';h+=`<option value="${val}" ${sel}>${label}第${n}节</option>`;}h+=`</optgroup>`;});return h;}
-function periodLabel(t){const p=t.part!=null?t.part:0;const period=t.period||1;const n=(((period-1)%5)+1);const labels=['上午','下午','晚上'];return labels[p]+'第'+n+'节';}
+function periodLabel(t){const p=t.part!=null?t.part:0;const period=t.period||1;const n=(((period-1)%5)+1);const labels=['上午','下午','晚上'];return labels[p]+n;}
+function parsePeriodLabel(s){
+  const raw=String(s||'').trim();
+  let part=0;
+  if(/晚上/.test(raw))part=2;
+  else if(/下午/.test(raw))part=1;
+  const digits=(raw.match(/\d+/g)||[]).join('');
+  if(!digits)return {part:0,pnum:1,period:1};
+  if(/上午|下午|晚上/.test(raw)){const pnum=Math.max(1,Math.min(5,parseInt(digits,10)||1));return {part,pnum,period:part*5+pnum};}
+  /* 裸数字 1-15：当绝对 period 处理（向后兼容历史导出） */
+  const per=Math.max(1,Math.min(15,parseInt(digits,10)));
+  return {part:Math.floor((per-1)/5),pnum:((per-1)%5)+1,period:per};
+}
 function modalTt(id){const t=id?S.timetable.find(x=>x.id===id):{};
   const semDefault=t.sem||(curSem()?('sem:'+curSem().id):'');
   const clsDefault=id?t.classId:(S._ttLastCls||ALL_CLASS);
@@ -5347,7 +5405,17 @@ function modalTt(id){const t=id?S.timetable.find(x=>x.id===id):{};
     <div class="field row"><div class="field" style="flex:1"><label>节次</label><div style="display:flex;gap:8px">
       <div style="flex:1;min-width:0">${selHtml('ttadd_part',ttAddPartLabel(part),bkOpts(ttAddPartOpts(),String(part)))}<input type="hidden" name="ttpart" value="${esc(part)}"></div>
       <div style="flex:1;min-width:0">${selHtml('ttadd_pnum',ttAddPnumLabel(pnum),bkOpts(ttAddPnumOpts(),String(pnum)))}<input type="hidden" name="ttpnum" value="${esc(pnum)}"></div></div></div></div>
+    <div class="field row" style="margin-bottom:14px;align-items:center;gap:10px">
+      <label style="font-size:13px;color:var(--text);flex:1;margin:0">隔周上课</label>
+      <label class="tg" title="关闭=每周都有，开启=隔周一次"><input type="checkbox" name="ttbiweekly" ${t.biweekly?'checked':''}><span class="tg-track"><span class="tg-thumb"></span></span></label>
+    </div>
     <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">保存</button></div></form>`);}
+/* 隔周上课（r53）：
+   - t.biweekly===true 时，课节只在与基准周同 ISO 奇偶（单/双周）的当天出现
+   - t.biweeklyRefWeek：开启时记下的 ISO 周编号，作为「单/双」锚点 */
+function isoWeekOfYear(date){const d=date instanceof Date?new Date(date.getTime()):new Date();const t=new Date(d.getFullYear(),d.getMonth(),d.getDate());const dayNum=(t.getDay()+6)%7+1;t.setDate(t.getDate()+4-dayNum);const yearStart=new Date(t.getFullYear(),0,1);return Math.ceil((((t-yearStart)/86400000)+1)/7);}
+function ttBiweeklyMatch(t,date){if(!t||!t.biweekly)return true;if(!t.biweeklyRefWeek)return true;return Math.abs(isoWeekOfYear(date)-t.biweeklyRefWeek)%2===0;}
+function ttForDay(d,date){return S.timetable.filter(t=>t.day===d && ttBiweeklyMatch(t,date||new Date()));}
 function ttClsChange(v){const w=document.getElementById('ttClsWrap');if(w)w.style.display=v==='__custom__'?'block':'none';}
 function ttSubjPick(v){const f=document.querySelector('form[data-form="tt"]');const inp=f&&f.querySelector('input[name="ttsubj"]');if(inp)inp.value=v;const p=document.getElementById('ttadd_subj_pop');if(p)p.querySelectorAll('.bk-range-opt').forEach(o=>{const on=o.dataset.v===v;o.style.background=on?'var(--primary-soft)':'';o.style.color=on?'var(--primary)':'';o.style.fontWeight=on?'600':'';});closeAllBkPops();}
 /* 添加课节弹窗：学期/班级/星期/节次(两个选择框) 改用 bk-range 弹层（与课表设置-学期同款） */
@@ -5463,9 +5531,10 @@ modal.addEventListener('submit',e=>{
       let examId=geid;
       if(geid&&geid!=='__all__'){const ev=gradeEventById(geid);examId=ev?(allSubj?ev.id:(ev.exams.find(e=>e.subjectId===subId)||{}).id||'__all__'):'__all__';}
       closeModal();exportGradeFiltered(subId,sem,clsId,examId);}
-  else if(form==='tt'){const id=f.dataset.id;const rawCls=f.elements['ttcls'].value;let clsIds=[];if(rawCls==='__custom__'){const nm=(f.elements['className']?f.elements['className'].value:'').trim();if(!nm){toast('请输入班级名称');return;}const cid=resolveClass(nm);clsIds=[cid];}else if(rawCls===ALL_CLASS){clsIds=S.classes.filter(c=>!c.archived).map(c=>c.id);}else clsIds=[rawCls];let sbj=(f.elements['ttsubj'].value||'').trim();const part=+f.elements['ttpart'].value;const pnum=+f.elements['ttpnum'].value;const period=part*5+pnum;const base={day:+f.elements['day'].value,part,period,time:v('time'),subject:sbj,classroom:v('classroom'),note:v('note'),sem:f.elements['ttsem'].value};
+    else if(form==='imp-plan'){const subjRaw=(v('iplan_subj')||'').trim();S._planSubject=subjRaw;save();closeModal();importPlan(subjRaw);}
+  else if(form==='tt'){const id=f.dataset.id;const rawCls=f.elements['ttcls'].value;let clsIds=[];if(rawCls==='__custom__'){const nm=(f.elements['className']?f.elements['className'].value:'').trim();if(!nm){toast('请输入班级名称');return;}const cid=resolveClass(nm);clsIds=[cid];}else if(rawCls===ALL_CLASS){clsIds=S.classes.filter(c=>!c.archived).map(c=>c.id);}else clsIds=[rawCls];let sbj=(f.elements['ttsubj'].value||'').trim();const part=+f.elements['ttpart'].value;const pnum=+f.elements['ttpnum'].value;const period=part*5+pnum;const biweekly=!!(f.elements['ttbiweekly']&&f.elements['ttbiweekly'].checked);const base={day:+f.elements['day'].value,part,period,time:v('time'),subject:sbj,classroom:v('classroom'),note:v('note'),sem:f.elements['ttsem'].value,biweekly};
     S._ttLastCls=rawCls;S._ttLastSubj=sbj;
-    if(id){const cur=S.timetable.find(x=>x.id===id);Object.assign(cur,Object.assign({},base,{classId:clsIds[0]||''}));}else clsIds.forEach(cid=>S.timetable.push({id:uid(),...base,classId:cid}));save();closeModal();viewReload('settings');toast('已保存');}
+    if(id){const cur=S.timetable.find(x=>x.id===id);Object.assign(cur,Object.assign({},base,{classId:clsIds[0]||''}));if(biweekly&&!cur.biweeklyRefWeek){cur.biweeklyRefWeek=isoWeekOfYear(new Date());}else if(!biweekly){delete cur.biweeklyRefWeek;}}else{const refW=biweekly?isoWeekOfYear(new Date()):null;clsIds.forEach(cid=>S.timetable.push({id:uid(),...base,classId:cid,biweeklyRefWeek:refW}));}save();closeModal();viewReload('settings');toast('已保存');}
   else if(form==='progress'){const cid=f.dataset.id;const c=course(cid);if(!c){toast('课程不存在');return;}
     const when=v('whenDate')||todayISO();const whenTime=v('whenTime')||classTimeToday(c.cls);const cl=resolveClass(c.cls);const subj=(c.subject||'').trim();const editing=!!S._progEditPid;
     // 只追加完成，绝不清除已完成的任务
@@ -5488,7 +5557,6 @@ modal.addEventListener('submit',e=>{
     if(editing){const ex=(c.progressLog||[]).find(r=>r.id===S._progEditPid);if(ex){ex.date=when;ex.time=whenTime;ex.progress=c.progress;ex.nextTask=nt;ex.doneTasks=doneTitles;ex.unfinished=c.unfinished.slice();ex.extraDone=extra.slice();}toast('已更新该进度记录');}
     else{c.progressLog=c.progressLog||[];c.progressLog.push({id:uid(),date:when,time:whenTime,progress:c.progress,nextTask:nt,doneTasks:doneTitles,unfinished:c.unfinished.slice(),extraDone:extra.slice()});toast('进度已记录（'+c.progress+'%）');}
     S.todos=S.todos.filter(t=>!(t.src==='unfinished'&&t.courseId===cid));
-    c.unfinished.forEach(t=>S.todos.unshift({id:uid(),type:'task',title:'【未完成·'+(c.cls||'')+'·'+(c.subject||'')+'】'+t,pri:'中',status:'active',note:'',repeat:null,src:'unfinished',courseId:cid}));
     save();closeModal();viewReload('courses');}
   else if(form==='semester'){const id=f.dataset.id;const start=v('start'),end=v('end'),nm=v('name').trim();
     if(id){const s=S.semesters.find(x=>x.id===id);if(s){s.name=nm||autoSemName(start,end);s.start=start;s.end=end;if(s.current)syncSemSettings();}save();closeModal();viewReload('settings');toast('学期已更新');}
@@ -5671,7 +5739,7 @@ document.body.addEventListener('click',e=>{
   else if(a==='edit-tt'){modalTt();}
   else if(a==='edit-tt-row'){modalTt(id);}
   else if(a==='del-tt'){S.timetable=S.timetable.filter(y=>y.id!==id);save();viewReload('settings');}
-  else if(a==='imp-plan'){importPlan();}
+  else if(a==='imp-plan'){modalImportPlan();}
   else if(a==='plan-add-modal'){modalPlanAdd();}
   else if(a==='plan-edit'){modalPlanAdd(id);}
   else if(a==='plan-del'){const p=S.plan.find(x=>x.id===id);if(p){_pendingPlanDel=id;confirmModal('删除教学任务','确定删除「'+esc(p.title)+'」？删除后其余任务顺序会自动重排。','do-plan-del','danger');}}
@@ -6983,26 +7051,64 @@ function delGradePerm(id){const a=(S.gradeArchives=S.gradeArchives||[]).find(x=>
 /* timetable import-export */
 function dayNum(w){const s=String(w||'').replace(/["'\u201C\u201D]/g,'').replace(/星期|周/g,'').trim();if(/^\d$/.test(s)){const n=+s;return n===0||n===7?7:n;}const m={'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'日':7,'天':7};return m[s];}
 function importTimetable(){pickTable(sheets=>{const rows=(sheets[0].rows||[]).filter(r=>r.length);if(!rows.length){toast('文件为空');return;}
-  const header=rows[0].map(x=>String(x||'').trim()).join(',');const start=(/星期|节次|时间|科目|班级/.test(header))?1:0;let added=0;
-  rows.slice(start).forEach(r=>{const day=dayNum(String(r[0]||''));const period=parseInt(String(r[1]||'').replace(/[^0-9]/g,''))||1;const time=String(r[2]||'').trim();
-    const subject=String(r[3]||'').trim();const cn=String(r[4]||'').trim();const classroom=String(r[5]||'').trim();
-    if(!day||!subject)return;let clsObj=S.classes.find(c=>c.name===cn);if(!clsObj&&cn){clsObj={id:uid(),name:cn};S.classes.push(clsObj);}
-    S.timetable.push({id:uid(),day,period,time,subject,classId:clsObj?clsObj.id:'',classroom});added++;});
+  const h=rows[0].map(x=>String(x||'').trim());
+  const dayIdx=h.findIndex(x=>/星期|周|day/i.test(x));
+  const periodIdx=h.findIndex(x=>/节次|period/i.test(x));
+  const timeIdx=h.findIndex(x=>/时间|time/i.test(x));
+  const subjIdx=h.findIndex(x=>/科目|subject/i.test(x));
+  const clsIdx=h.findIndex(x=>/班级|class/i.test(x));
+  const roomIdx=h.findIndex(x=>/教室|classroom|room/i.test(x));
+  const biIdx=h.findIndex(x=>/隔周|biweek/i.test(x));
+  const hasHeader=h.some(x=>/星期|节次|时间|科目|班级|教室|隔周|day|period|time|subject|class|classroom|biweek/i.test(x));
+  const start=hasHeader?1:0;
+  let added=0;
+  rows.slice(start).forEach(r=>{
+    const day=dayNum(String(r[dayIdx>=0?dayIdx:0]||''));
+    const periodRaw=String(r[periodIdx>=0?periodIdx:1]||'');
+    const {part,pnum,period}=parsePeriodLabel(periodRaw);
+    const time=String(r[timeIdx>=0?timeIdx:2]||'').trim();
+    const subject=String(r[subjIdx>=0?subjIdx:3]||'').trim();
+    const cn=String(r[clsIdx>=0?clsIdx:4]||'').trim();
+    const classroom=String(r[roomIdx>=0?roomIdx:5]||'').trim();
+    const biweeklyRaw=String(r[biIdx>=0?biIdx:6]||'').trim();
+    const biweekly=/是|yes|1|true|隔周/i.test(biweeklyRaw);
+    if(!day||!subject)return;
+    let clsObj=S.classes.find(c=>c.name===cn);
+    if(!clsObj&&cn){clsObj={id:uid(),name:cn};S.classes.push(clsObj);}
+    const entry={id:uid(),day,part,pnum,period,time,subject,classId:clsObj?clsObj.id:'',classroom};
+    if(biweekly){entry.biweekly=true;entry.biweeklyRefWeek=isoWeekOfYear(new Date());}
+    S.timetable.push(entry);added++;});
   save();viewReload('settings');toast('导入 '+added+' 节课');});}
 function exportTimetable(){if(!S.timetable.length){toast('暂无课表');return;}
-  const rows=[['星期','节次','时间','科目','班级'],
-    ...S.timetable.map(t=>['周'+WD[t.day],t.period,t.time||'',t.subject,classNameOf(t.classId)])];
+  const rows=[['星期','节次','时间','科目','班级','教室','隔周'],
+    ...S.timetable.map(t=>['周'+WD[t.day],periodLabel(t),t.time||'',t.subject,classNameOf(t.classId),t.classroom||'',t.biweekly?'是':''])];
   doExport('课表',[{name:'课表',rows}],toCsv(rows));}
 
 /* plan import-export */
-function importPlan(){pickTable(sheets=>{const rows=(sheets[0].rows||[]).filter(r=>r.length);if(!rows.length){toast('文件为空');return;}
-  const header=rows[0].map(x=>String(x||'').trim()).join(',');const start=(/班级|任务|class|task/i.test(header))?1:0;const sem=S._planSem||(curSem()?curSem().id:ALL_CLASS);let added=0;
-  rows.slice(start).forEach(r=>{const cn=String(r[0]||'').trim();const t=String(r[1]||'').trim();if(!cn||!t)return;
-    const cid=resolveClass(cn);S.plan.push({id:uid(),classId:cid,title:t,order:S.plan.length+1,done:false,temp:false,subject:S._planSubject||'',sem});added++;});
-  save();viewReload('settings');toast('导入 '+added+' 条任务');});}
+function modalImportPlan(){
+  const subjDefault=S._planSubject||'';
+  const subjectNames=planSubjectOpts();
+  openModal('导入教学任务',`<form data-form="imp-plan">
+    <div class="field"><label>默认可用科目（应用于整批导入；若文件本身含「科目」列，则按文件逐行覆盖）</label>${comboHTML('iplan_subj',subjDefault,subjectNames,'选择或输入科目（留空=无科目）')}</div>
+    <div class="sub">支持 Excel / CSV。列顺序：班级、科目、任务，或 班级、任务。</div>
+    <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">选择文件并导入</button></div>
+  </form>`);
+}
+function importPlan(defaultSubj){pickTable(sheets=>{const rows=(sheets[0].rows||[]).filter(r=>r.length);if(!rows.length){toast('文件为空');return;}
+  const header=rows[0].map(x=>String(x||'').trim());
+  const hasSubjCol=header.some(h=>/科目|subject/i.test(h));
+  const subjIdx=header.findIndex(h=>/科目|subject/i.test(h));
+  const classIdx=header.findIndex(h=>/班级|class/i.test(h));
+  const titleIdx=header.findIndex(h=>/任务|task/i.test(h));
+  const hasHeader=header.some(h=>/班级|任务|科目|class|task|subject/i.test(h));
+  const start=hasHeader?1:0;const sem=S._planSem||(curSem()?curSem().id:ALL_CLASS);const def=defaultSubj||S._planSubject||'';let added=0;
+  rows.slice(start).forEach(r=>{const cn=String(r[classIdx>=0?classIdx:0]||'').trim();const t=String(r[titleIdx>=0?titleIdx:1]||'').trim();if(!cn||!t)return;
+    let subj=(hasSubjCol&&subjIdx>=0)?String(r[subjIdx]||'').trim():'';if(!subj)subj=def;
+    const cid=resolveClass(cn);S.plan.push({id:uid(),classId:cid,title:t,order:S.plan.length+1,done:false,temp:false,subject:subj,sem});added++;});
+  save();viewReload('settings');toast('导入 '+added+' 条任务'+(def?('（科目：'+def+'）'):''));});}
 function exportPlan(){if(!S.plan.length){toast('暂无教学任务');return;}
-  const rows=[['班级','任务','已完成'],[...S.plan.map(p=>[classNameOf(p.classId),p.title,p.done?'是':'否'])]];
-  doExport('教学任务安排',[{name:'安排',rows}],toCsv([['班级','任务','已完成'],...S.plan.map(p=>[classNameOf(p.classId),p.title,p.done?'是':'否'])]));}
+  const rows=[['班级','科目','任务','已完成'],...S.plan.map(p=>[classNameOf(p.classId),p.subject||'',p.title,p.done?'是':'否'])];
+  doExport('教学任务安排',[{name:'安排',rows}],toCsv(rows));}
 function exportNotes(){if(!S.notes.length){toast('暂无备课笔记');return;}
   const rows=[['课程','标题','标签','内容','创建时间'],...S.notes.map(n=>{const c=course(n.courseId)||{};return [c.name||'未分类',n.title||'',n.tags||'',n.content||'',n.created?new Date(n.created).toLocaleString():''];})];
   doExport('备课笔记',[{name:'笔记',rows}],toCsv(rows));}
@@ -7047,6 +7153,8 @@ function reloadCur(fb){const r=location.hash.slice(1);viewReload(VIEWS[r]?r:(fb|
 
 /* ============ init ============ */
 load();
+/* 一次性清理：旧版本会把「记录进度-未完成任务」自动写进教学待办（title 前缀【未完成·…】，src='unfinished'）。现改为不再写入，启动顺带清掉历史残留；幂等，无残留时不写盘以免触发云同步 */
+if((S.todos||[]).some(t=>t.src==='unfinished')){S.todos=(S.todos||[]).filter(t=>t.src!=='unfinished');save();}
 if(!S.seeded||S.seedVer!==SEED_VER){seed();}save();
 applyTheme();buildNav();maybeAutoReview();cleanupPendingSubs();router();autoArchiveBySemester();
 bootCloudSync();
