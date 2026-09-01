@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>工作E · v20260831-r51</title>
+<title>工作E · v20260831-r52</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -6788,13 +6788,20 @@ async function bootCloudSync(){
   if(!c.enabled||!c.token||!c.owner||!c.repo||!c.path){cloudReady=true;return;}
   const r=await cloudPull();
   if(r.ok&&r.data){
-    try{
-      Object.assign(S,r.data);S.examPoints=S.examPoints||[];
-      for(const k in DEFAULTS)store.set(k,S[k]);
-      const cfg=cloudCfg();cfg.lastSync=Date.now();cloudCfgSave(cfg);
-      updateCloudStatus('ok','已从云端同步');router();
-    }catch(e){toast('云端数据解析失败，使用本地数据');}
-    cloudReady=true;
+    // 启动时不覆盖本地：本地有数据则以本地为准，仅把本地上传到云端（避免刷新后本地更改被旧云端快照冲掉）
+    const localN=(S.students||[]).length;
+    if(localN>0){
+      cloudReady=true;updateCloudStatus('pulling','本地优先，已上传到云端');await cloudPush();
+    }else{
+      // 本地为空且云端有数据 → 拉取云端到本地
+      try{
+        Object.assign(S,r.data);S.examPoints=S.examPoints||[];
+        for(const k in DEFAULTS)store.set(k,S[k]);
+        const cfg=cloudCfg();cfg.lastSync=Date.now();cloudCfgSave(cfg);
+        updateCloudStatus('ok','已从云端同步');router();
+      }catch(e){toast('云端数据解析失败，使用本地数据');}
+      cloudReady=true;
+    }
   }else if(r.empty){
     cloudReady=true;updateCloudStatus('pulling','初始化上传…');await cloudPush();
   }else{
