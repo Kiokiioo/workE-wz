@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>工作E · v20260901-r60</title>
+<title>工作E · v20260901-r62</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -6791,11 +6791,14 @@ function scheduleCloudPush(){
   const c=cloudCfg();
   if(!c.enabled||!cloudReady||cloudPulling)return;
   if(cloudPushTimer)clearTimeout(cloudPushTimer);
-  cloudPushTimer=setTimeout(()=>{cloudPushTimer=null;cloudPush();},1500);
+  // 基础 1.5s + 随机 0–6s 错开，避免两台设备同时保存后「锁步碰撞」反复 409
+  const delay=1500+Math.random()*6000;
+  cloudPushTimer=setTimeout(()=>{cloudPushTimer=null;cloudPush();},delay);
 }
 async function cloudGetSha(c){
   const r=await fetch(GH_API+ghContentsPath(c),{method:'GET',headers:ghHeaders(c.token)});
   if(r.status===404)return {sha:null,exists:false};
+  if(r.status===401)throw new Error('HTTP 401 令牌无效或已过期');
   if(!r.ok)throw new Error('HTTP '+r.status);
   const j=await r.json();return {sha:j.sha,exists:true,content:j.content};
 }
@@ -6820,32 +6823,41 @@ async function cloudPush(){
   updateCloudStatus('pulling','上传中…');
   const payload=JSON.stringify(S);const b64=b64enc(payload);
   if(b64.length>1.4e6){cloudPushing=false;updateCloudStatus('error','数据超过单文件 1MB 上限，无法同步，请用「全部导出」');toast('同步失败：数据过大');return;}
-  let lastErr=null, pushed=false;
-  for(let attempt=0; attempt<3 && !pushed; attempt++){
+  let lastErr=null, pushed=false, adopted=false;
+  for(let attempt=0; attempt<6 && !pushed && !adopted; attempt++){
     try{
-      const g=await cloudGetSha(c);              // 每次重试前都重新取最新 sha，规避 409
+      const g=await cloudGetSha(c);              // 每次都重新取最新 sha，规避 409
       // 真冲突：远端 _savedAt 比本地更新（另一设备刚保存），按 LWW 采用远端
-      if(g.exists && g.content && attempt===0){
+      // 关键：每次重试都重新比对，避免推送过程中对方又写了一遍我们没察觉
+      if(g.exists && g.content){
         try{
           const rd=JSON.parse(b64dec((g.content||'').replace(/\s/g,'')));
           const remoteAt=rd._savedAt||0, localAt=S._savedAt||0;
           if(remoteAt>localAt){
+            snapshotLocal('cloud-pull');
             Object.assign(S,rd);S.examPoints=S.examPoints||[];
             for(const k in DEFAULTS)store.set(k,S[k]);
-            cloudPushing=false;updateCloudStatus('ok','已从云端同步（远端较新）');router();return;
+            const cfg=cloudCfg();cfg.lastSync=Date.now();cloudCfgSave(cfg);
+            cloudPushing=false;adopted=true;
+            updateCloudStatus('ok','已从云端同步（远端较新）');toast('已采用云端较新版本');router();return;
           }
         }catch(_){/* 远端内容异常则按原样重试推送 */}
       }
       const body=JSON.stringify({message:'sync '+new Date().toISOString(),content:b64,branch:c.branch||'main',sha:g.sha||undefined});
       const r=await fetch(GH_API+ghContentsPath(c),{method:'PUT',headers:ghHeaders(c.token),body});
-      if(r.status===409){lastErr='HTTP 409 写入冲突';continue;}   // 并发写入致 sha 不一致 → 重试
+      if(r.status===401){lastErr='令牌无效或已过期，请在「设置-云端同步」重新填写 Access Token';break;}
+      if(r.status===409){                         // 并发写入致 sha 不一致 → 退避后重试；下次再 GET 时若发现对方已更新会更稳
+        lastErr='HTTP 409 写入冲突';
+        if(attempt<5){await new Promise(res=>setTimeout(res,400+Math.random()*1200));continue;}
+        break;
+      }
       if(!r.ok)throw new Error('HTTP '+r.status+' '+((await r.text().catch(()=> ''))||'').slice(0,80));
       const cfg=cloudCfg();cfg.lastSync=Date.now();cloudCfgSave(cfg);
       updateCloudStatus('ok','已同步 '+new Date().toLocaleTimeString());pushed=true;break;
     }catch(e){lastErr=e.message;break;}
   }
   cloudPushing=false;
-  if(!pushed){updateCloudStatus('error','同步失败：'+(lastErr||'未知错误'));toast('云端同步失败：'+(lastErr||'未知错误'));}
+  if(!pushed && !adopted){updateCloudStatus('error','同步失败：'+(lastErr||'未知错误'));toast('云端同步失败：'+(lastErr||'未知错误'));}
 }
 function hasLocalData(){return ['students','courses','classes','todos','notes','plan','timetable','reviews','exams','subjects'].some(k=>(S[k]||[]).length>0);}
 function snapshotLocal(tag){try{store.set('_syncBackup',{tag:tag||'cloud-pull',at:Date.now(),state:JSON.parse(JSON.stringify(S))});}catch(e){}}
@@ -7191,6 +7203,28 @@ if((S.todos||[]).some(t=>t.src==='unfinished')){S.todos=(S.todos||[]).filter(t=>
 if(!S.seeded||S.seedVer!==SEED_VER){seed();}save();
 applyTheme();buildNav();maybeAutoReview();cleanupPendingSubs();router();autoArchiveBySemester();
 bootCloudSync();
+/* 双端同时在线的轮询拉取：每 25s 偷偷看一眼远端 _savedAt，比本地新就拉取并静默刷新（不弹 toast 避免打扰） */
+setInterval(async()=>{
+  if(cloudPushTimer||cloudPushing||cloudPulling)return;
+  const c=cloudCfg();
+  if(!c.enabled||!c.token||!c.owner||!c.repo||!c.path||!cloudReady)return;
+  try{
+    const r=await fetch(GH_API+ghContentsPath(c),{method:'GET',headers:ghHeaders(c.token)});
+    if(!r.ok)return;
+    const j=await r.json();
+    const remoteAt=(j.content?(JSON.parse(b64dec((j.content||'').replace(/\s/g,'')))._savedAt||0):0);
+    const localAt=S._savedAt||0;
+    if(remoteAt>localAt){            // 远端比本地新 → 静默拉取
+      const pr=await cloudPull();
+      if(pr.ok&&pr.data){
+        snapshotLocal('cloud-poll');
+        Object.assign(S,pr.data);S.examPoints=S.examPoints||[];
+        for(const k in DEFAULTS)store.set(k,S[k]);
+        updateCloudStatus('ok','已自动从云端同步');reloadCur();          // 保持当前页
+      }
+    }
+  }catch(_){/* 网络/限流等异常一律静默，下一轮再试 */}
+},25000);
 window.addEventListener('hashchange',router);
 
 
