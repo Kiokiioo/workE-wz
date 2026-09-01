@@ -6765,7 +6765,7 @@ function bkLibHtml(){const auto=(S.fullArchives=S.fullArchives||[]);
 const CLOUD_KEY='tw_cloud_cfg';
 const GH_API='https://api.github.com';
 const enc=s=>encodeURIComponent(s);
-let cloudReady=false, cloudPulling=false, cloudPushTimer=null;
+let cloudReady=false, cloudPulling=false, cloudPushTimer=null, cloudPushing=false;
 function cloudCfg(){try{return JSON.parse(localStorage.getItem(CLOUD_KEY))||{};}catch(e){return {};}}
 function cloudCfgSave(c){localStorage.setItem(CLOUD_KEY,JSON.stringify(c));}
 function b64enc(str){const b=new TextEncoder().encode(str);let s='';for(const x of b)s+=String.fromCharCode(x);return btoa(s);}
@@ -6815,17 +6815,37 @@ async function cloudPull(){
 async function cloudPush(){
   const c=cloudCfg();
   if(!c.enabled||!c.token||!c.owner||!c.repo||!c.path)return;
+  if(cloudPushing){scheduleCloudPush();return;}  // 防并发：推送在途则重新排队，避免慢网下丢写
+  cloudPushing=true;
   updateCloudStatus('pulling','上传中…');
   const payload=JSON.stringify(S);const b64=b64enc(payload);
-  if(b64.length>1.4e6){updateCloudStatus('error','数据超过单文件 1MB 上限，无法同步，请用「全部导出」');toast('同步失败：数据过大');return;}
-  try{
-    const g=await cloudGetSha(c);
-    const body=JSON.stringify({message:'sync '+new Date().toISOString(),content:b64,branch:c.branch||'main',sha:g.sha||undefined});
-    const r=await fetch(GH_API+ghContentsPath(c),{method:'PUT',headers:ghHeaders(c.token),body});
-    if(!r.ok)throw new Error('HTTP '+r.status+' '+((await r.text().catch(()=> ''))||'').slice(0,80));
-    const cfg=cloudCfg();cfg.lastSync=Date.now();cloudCfgSave(cfg);
-    updateCloudStatus('ok','已同步 '+new Date().toLocaleTimeString());
-  }catch(e){updateCloudStatus('error','同步失败：'+e.message);toast('云端同步失败：'+e.message);}
+  if(b64.length>1.4e6){cloudPushing=false;updateCloudStatus('error','数据超过单文件 1MB 上限，无法同步，请用「全部导出」');toast('同步失败：数据过大');return;}
+  let lastErr=null, pushed=false;
+  for(let attempt=0; attempt<3 && !pushed; attempt++){
+    try{
+      const g=await cloudGetSha(c);              // 每次重试前都重新取最新 sha，规避 409
+      // 真冲突：远端 _savedAt 比本地更新（另一设备刚保存），按 LWW 采用远端
+      if(g.exists && g.content && attempt===0){
+        try{
+          const rd=JSON.parse(b64dec((g.content||'').replace(/\s/g,'')));
+          const remoteAt=rd._savedAt||0, localAt=S._savedAt||0;
+          if(remoteAt>localAt){
+            Object.assign(S,rd);S.examPoints=S.examPoints||[];
+            for(const k in DEFAULTS)store.set(k,S[k]);
+            cloudPushing=false;updateCloudStatus('ok','已从云端同步（远端较新）');router();return;
+          }
+        }catch(_){/* 远端内容异常则按原样重试推送 */}
+      }
+      const body=JSON.stringify({message:'sync '+new Date().toISOString(),content:b64,branch:c.branch||'main',sha:g.sha||undefined});
+      const r=await fetch(GH_API+ghContentsPath(c),{method:'PUT',headers:ghHeaders(c.token),body});
+      if(r.status===409){lastErr='HTTP 409 写入冲突';continue;}   // 并发写入致 sha 不一致 → 重试
+      if(!r.ok)throw new Error('HTTP '+r.status+' '+((await r.text().catch(()=> ''))||'').slice(0,80));
+      const cfg=cloudCfg();cfg.lastSync=Date.now();cloudCfgSave(cfg);
+      updateCloudStatus('ok','已同步 '+new Date().toLocaleTimeString());pushed=true;break;
+    }catch(e){lastErr=e.message;break;}
+  }
+  cloudPushing=false;
+  if(!pushed){updateCloudStatus('error','同步失败：'+(lastErr||'未知错误'));toast('云端同步失败：'+(lastErr||'未知错误'));}
 }
 function hasLocalData(){return ['students','courses','classes','todos','notes','plan','timetable','reviews','exams','subjects'].some(k=>(S[k]||[]).length>0);}
 function snapshotLocal(tag){try{store.set('_syncBackup',{tag:tag||'cloud-pull',at:Date.now(),state:JSON.parse(JSON.stringify(S))});}catch(e){}}
