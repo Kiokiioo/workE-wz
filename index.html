@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>工作E · v20260902-r72</title>
+<title>工作E · v20260902-r81</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -318,6 +318,8 @@ a{color:inherit;text-decoration:none}
 .home-todo-list{padding:2px 0}
 /* 首页教学待办卡片底部「全部」按钮：高度 16、圆角 99、小字号（覆盖 .btn.sm 的 padding/字号） */
 .btn.sm.home-todo-more{height:16px;padding:0 10px;box-sizing:border-box;font-size:11px;line-height:1;border-radius:99px;gap:0}
+/* 学期卡片「设为当前」按钮：高度 18、圆角 99（覆盖 .btn.sm 的 padding/字号） */
+.btn.sm.set-cur-sem{height:18px;padding:0 10px;box-sizing:border-box;font-size:11px;line-height:1;border-radius:99px;gap:0}
 .ht-row{display:flex;align-items:center;gap:7px;padding:7px 2px;border-bottom:1px dashed var(--border);font-size:13px;cursor:pointer;white-space:nowrap;overflow:hidden;transition:background .14s ease}
 .ht-row:active{background:var(--primary-soft)}
 .ht-row:last-child{border-bottom:none}
@@ -1192,6 +1194,14 @@ function load(){for(const k in DEFAULTS)S[k]=store.get(k,DEFAULTS[k]);
   S._drawFold=S._drawFold||{};if(S._drawFold.week!==false)S._drawFold.week=true;if(S._drawFold.older!==false)S._drawFold.older=true;
   // 迁移：为历史教学任务补上所属学期，便于按学期筛选
   const cs=curSem();if(cs&&S.plan)S.plan.forEach(p=>{if(!p.sem)p.sem=cs.id;});
+  /* r73 迁移：为历史考试记录补上 sem（r66 旧版归组不依赖 sem，但 r73 起按 (标题+学期+时间) 归组，
+   *       未设 sem 的旧记录会被误分到 '' 这一组，与新记录分开。统一回填为当前学期 id，
+   *       让同堂考试（无论新旧导入）合并为同一事件）。 */
+  if(cs&&S.exams)S.exams.forEach(e=>{if(!e.sem)e.sem=cs.id;});
+  /* r74 迁移：dayNum('周日') 由 7 改为 0（与 modalTt/ttMatrixHtml 的 0 索引对齐），
+   *       之前导入的周日记录 day=7 会被 ttMatrixHtml 当作 "周八" 忽略。
+   *       只在确有残留时写盘以免触发云同步。 */
+  if(S.timetable&&S.timetable.some(t=>t&&t.day===7)){S.timetable.forEach(t=>{if(t&&t.day===7)t.day=0;});save();}
   migrateTodos();normalizeTodos();normalizeStudentItems();}
 // 将历史 S.tasks / S.deadlines 合并进统一的 S.todos（带 type 字段）
 function migrateTodos(){
@@ -1460,7 +1470,7 @@ function router(){if(DEL_MODE){const b=document.getElementById(DEL_MODE.btnId);i
   if(r!=='grades')cleanupPendingSubs();
   document.getElementById('app').innerHTML=VIEWS[r]();setActive(r);closeDrawer();reopenCols();if(!samePage)window.scrollTo(0,0);
   /* 成绩趋势/科目：app 重建后（含强刷新/切换班级科目视图）默认滚动到最右（最新考试） */
-  if(r==='grades'){if((S._gradeView||'trend')==='trend')scrollTrendRight();if(S._gradeView==='subject')scrollSubjectRight();gradeTabsThumb();}
+  if(r==='grades'){if((S._gradeView||'trend')==='trend')scrollTrendRight();if(S._gradeView==='subject')scrollSubjectRight();gradeTabsThumb();if((S._gradeView||'trend')==='score')attachTopHScroll('scoreScroll','scoreHScroll');if((S._gradeView||'trend')==='subject')attachTopHScroll('subjScroll','subjHScroll');}
   if(r==='students')stuTabsThumb();
   if(r==='teach'){teachHubThumb();syncTeachPages();}
 }
@@ -1964,10 +1974,15 @@ function openClassProgress(clsName){const cl=S.classes.find(c=>c.name===clsName)
   const doneHtml=done.length?done.map(p=>`<div class="rec"><div class="ic" style="background:var(--ok)">✓</div>
     <div class="rc-body"><div class="rc-title">${esc(p.title)} ${p.tag?'<span class="tag">'+esc(p.tag)+'</span>':''}</div>
     <div class="rc-sub">完成于 ${esc(p.doneDate||'—')}</div></div></div>`).join(''):`<div class="sub">暂无「${esc(clsName)}」已完成教学任务</div>`;
-  const upHtml=up.length?up.map(p=>`<div class="rec"><div class="ic" style="background:var(--border);color:var(--text-2)">•</div>
-    <div class="rc-body"><div class="rc-title">${esc(p.title)} ${p.tag?'<span class="tag">'+esc(p.tag)+'</span>':''}</div></div></div>`).join(''):
-    '<div class="sub">教学任务已全部完成 🎉</div>';
+  /* r77：新增/额外 任务单独成块，紧贴「✅ 已完成」下方；其余为「将进行（本次任务）」 */
+  const tagItems=up.filter(p=>p.tag).slice().sort((a,b)=>a.order-b.order);
+  const regItems=up.filter(p=>!p.tag).slice().sort((a,b)=>a.order-b.order);
+  const newHtml=tagItems.length?tagItems.map(p=>`<div class="rec"><div class="ic" style="background:var(--border);color:var(--text-2)">•</div>
+    <div class="rc-body"><div class="rc-title">${esc(p.title)} <span class="tag">${esc(p.tag)}</span></div></div></div>`).join(''):'';
+  const upHtml=regItems.length?regItems.map(p=>`<div class="rec"><div class="ic" style="background:var(--border);color:var(--text-2)">•</div>
+    <div class="rc-body"><div class="rc-title">${esc(p.title)}</div></div></div>`).join(''):'<div class="sub">教学任务已全部完成 🎉</div>';
   openModal('教学进度 · '+esc(clsName),`<div class="section-title" style="font-size:13px;font-weight:600">✅ 已完成</div>${doneHtml}
+    ${tagItems.length?'<div class="section-title" style="margin-top:16px;font-size:13px;font-weight:600">📋 新增任务安排</div>'+newHtml:''}
     <div class="section-title" style="margin-top:16px;font-size:13px;font-weight:600">📋 将进行</div>${upHtml}
     <button class="btn primary block" style="margin-top:16px" onclick="planClassJump('${esc(clsName)}')">去「教学设置」管理该班任务安排</button>`);
 }
@@ -1995,12 +2010,20 @@ function openCourseProgress(id){
       </div>
     </div>`;
   const doneHtml=done.length?done.map(doneRow).map(r=>r+dash).join(''):`<div class="sub">暂无「${esc(c.cls||'')}」已完成教学任务</div>`;
-  const upHtml=up.length?up.map(p=>`<div class="rec" style="align-items:center;border-bottom:none">
+  /* r77：新增/额外 任务单独成块，紧贴「✅ 已完成」下方；其余为「将进行（本次任务）」 */
+  const tagItems=up.filter(p=>p.tag).slice().sort((a,b)=>a.order-b.order);
+  const regItems=up.filter(p=>!p.tag).slice().sort((a,b)=>a.order-b.order);
+  const newHtml=tagItems.length?tagItems.map(p=>`<div class="rec" style="align-items:center;border-bottom:none">
       <div class="ic" style="background:var(--border);color:var(--text-2);flex:none">•</div>
-      <div class="rc-body" style="flex:1;min-width:0"><div class="rc-title">${esc(p.title)}${p.tag?'<span class="tag">'+esc(p.tag)+'</span>':''}</div></div>
+      <div class="rc-body" style="flex:1;min-width:0"><div class="rc-title">${esc(p.title)} <span class="tag">${esc(p.tag)}</span></div></div>
+    </div>`).join(''):'';
+  const upHtml=regItems.length?regItems.map(p=>`<div class="rec" style="align-items:center;border-bottom:none">
+      <div class="ic" style="background:var(--border);color:var(--text-2);flex:none">•</div>
+      <div class="rc-body" style="flex:1;min-width:0"><div class="rc-title">${esc(p.title)}</div></div>
     </div>`).join(''):'<div class="sub">教学任务已全部完成 🎉</div>';
   openModal('教学进度 · '+esc(c.name)+' '+esc(c.cls||''),`<div style="display:block">
     <div class="section-title" style="display:flex;width:100%;font-size:13px;font-weight:600">✅ 已完成</div>${doneHtml}
+    ${tagItems.length?'<div class="section-title" style="display:flex;width:100%;margin-top:16px;font-size:13px;font-weight:600">📋 新增任务安排</div>'+newHtml:''}
     <div class="section-title" style="display:flex;width:100%;margin-top:16px;font-size:13px;font-weight:600">📋 将进行</div>${upHtml}
     <button class="btn primary block" style="margin-top:16px" onclick="planClassJump('${esc(c.cls||'')}')">管理教学安排</button></div>`);
 }
@@ -2501,9 +2524,19 @@ function delCustomRule(id){S.customRules=(S.customRules||[]).filter(c=>c.id!==id
 
 /* ---- student detail ---- */
 function rangeOf(opt){
-  opt=opt||'sem';
+  opt=opt||'all';
   if(opt&&opt.indexOf('sem:')===0){const sid=opt.slice(4);const s=S.semesters.find(x=>x.id===sid);if(s&&s.start&&s.end)return {from:s.start,to:s.end};}
-  if(opt==='all')return {from:'0000-01-01',to:'9999-12-31'};
+  if(opt==='all'){
+    /* r81：「全部学期」= 所有未归档学期的时间并集范围（min start ~ max end）；
+     * 若无未归档学期，回落到宽范围以兼容空数据。 */
+    const ar=S.semesters.filter(s=>!s.archived&&s.start&&s.end);
+    if(ar.length){
+      const from=ar.map(s=>s.start).sort()[0];
+      const to=ar.map(s=>s.end).sort().slice(-1)[0];
+      return {from,to};
+    }
+    return {from:'0000-01-01',to:'9999-12-31'};
+  }
   if(opt==='30')return {from:shiftDays(-30),to:todayISO()};
   if(opt==='7')return {from:shiftDays(-7),to:todayISO()};
   if(opt==='custom'){const d=S._stuDetail||{};return {from:d.from||'1970-01-01',to:d.to||'2999-12-31'};}
@@ -2536,7 +2569,11 @@ function studentRecords(id,range){
 }
 function openStudentDetail(id){
   S._stuDetail=S._stuDetail||{};S._stuDetail.id=id;
-  const mode=S._stuDetail.range||'sem';
+  /* r81：默认「全部学期」；对旧值（sem/30/7/custom/已归档学期）做迁移归位 */
+  const _v=S._stuDetail.range;
+  const _isValid=v=>v==='all'||(v&&v.indexOf('sem:')===0&&S.semesters.some(x=>x.id===v.slice(4)&&!x.archived));
+  if(!_isValid(_v))S._stuDetail.range='all';
+  const mode=S._stuDetail.range;
   const range=rangeOf(mode);
   const s=stu(id);if(!s)return;
   const rec=studentRecords(id,range);
@@ -2564,7 +2601,8 @@ function openStudentDetail(id){
       <div class="rc-body"><div class="rc-title">${it.title}</div>${it.sub?`<div class="rc-sub">${it.sub}</div>`:''}</div>
       ${it.delta!=null?`<div class="rc-delta" style="color:${it.delta>=0?'var(--ok)':'var(--danger)'}">${it.delta>0?'+':''}${it.delta}</div>`:''}${it.date?`<div class="rc-date">${esc(it.date)}</div>`:''}</div>`).join(''):
     emptyState('📭','该时间范围内还没有记录');
-  const rangeItems=[{k:'sem',l:'当前学期'},{k:'all',l:'任意时间'},{k:'30',l:'近30天'},{k:'7',l:'近7天'},{k:'custom',l:'自定义'}].concat(S.semesters.map(s=>({k:'sem:'+s.id,l:s.name+'（'+s.start+'~'+s.end+'）'+(s.archived?' · 已归档':'')}))).map(o=>({k:o.k,l:o.l,pick:'stuRange'}));
+  /* r81：范围下拉 = 全部学期 + 每个未归档学期；移除「当前学期 / 任意时间 / 近30天 / 近7天 / 自定义」 */
+  const rangeItems=[{k:'all',l:'全部学期'}].concat(S.semesters.filter(s=>!s.archived).map(s=>({k:'sem:'+s.id,l:s.name+'（'+s.start+'~'+s.end+'）'}))).map(o=>({k:o.k,l:o.l,pick:'stuRange'}));
   const drTypeItems=REC_TYPES.map(o=>({k:o.k,l:o.l,pick:'drTypePick'}));
   const curDr=S._stuDetail.drType||'违纪';
   const customHtml=mode==='custom'?`<div class="field row" style="margin-top:8px"><div class="field"><label>起始</label><input type="date" value="${S._stuDetail.from||''}" onchange="stuRangeCustom('from',this.value)"></div>
@@ -2654,7 +2692,7 @@ function stuCapToggle(sid){
   s.concern=!s.concern;save();viewReload('students');
   toast(s.concern?'已标记需关注':'已取消需关注');
 }
-function stuRangeSummary(m){const map={sem:'当前学期',all:'任意时间','30':'近30天','7':'近7天',custom:'自定义'};if(map[m])return map[m];if(m&&m.indexOf('sem:')===0){const s=S.semesters.find(x=>x.id===m.slice(4));return s?s.name+'（'+s.start+'~'+s.end+'）':'当前学期';}return '当前学期';}
+function stuRangeSummary(m){if(m==='all')return '全部学期';if(m&&m.indexOf('sem:')===0){const s=S.semesters.find(x=>x.id===m.slice(4));return s?s.name+'（'+s.start+'~'+s.end+'）':'全部学期';}return '全部学期';}
 function drTypeLabel(v){return v||'违纪';}
 function drTypePick(k){const lbl=recLabelOf(k);const inp=document.getElementById('dr_type');if(inp)inp.value=lbl;if(S._stuDetail)S._stuDetail.drType=lbl;closeAllBkPops();}
 function stuRange(mode){S._stuDetail.range=mode;openStudentDetail(S._stuDetail.id);}
@@ -2676,7 +2714,7 @@ function addDetailRecord(id){const s=stu(id);if(!s)return;const lbl=document.get
   else if(kind==='contact'){if(!s.contactItems)s.contactItems=[];if(txt)s.contactItems.push({id:uid(),text:txt,createdAt:todayISO(),processed:false,processedAt:null,notes:[]});}
   else if(kind==='other'){S.answers.push({id:uid(),studentId:id,date:todayISO(),result:'other',delta:0,note:txt?lbl+'：'+txt:lbl});}
   save();closeModal();viewReload(curView());toast('已添加记录');}
-function openStuStat(id,type){const s=stu(id);if(!s)return;const range=rangeOf(S._stuDetail&&S._stuDetail.range||'sem');
+function openStuStat(id,type){const s=stu(id);if(!s)return;const range=rangeOf(S._stuDetail&&S._stuDetail.range||'all');
   const labels={viol:'违纪',ans:'答题',proc:'处理',other:'其他'};
   let rows=[];
   if(type==='viol')rows=S.violations.filter(v=>v.studentId===id&&inRange(v.date,range)).map(v=>`<div class="rec"><div class="ic" style="background:var(--danger)">${iconSvg('违纪',16)}</div><div class="rc-body"><div class="rc-title">${esc(v.type)}</div><div class="rc-sub">${esc(v.note||'')}</div></div><div style="text-align:right"><div class="rc-date">${esc(v.date)}</div><div class="rc-delta" style="color:var(--danger)">${v.delta} 分</div></div></div>`);
@@ -2710,7 +2748,7 @@ function openStuExam(id,eid){const s=stu(id);const e=S.exams.find(x=>x.id===eid)
     <div class="sq"><div class="n">${rank!=null?rank:'—'}</div><div class="l">班级排名</div></div>
     <div class="sq"><div class="n ${delta>0?'ok':delta<0?'danger':''}">${delta>0?'▲+'+delta:delta<0?'▼'+delta:'—'}</div><div class="l">较上次</div></div></div>
     <div class="sub" style="margin-top:10px">${esc(e.date)}</div>`);}
-function openStuExams(id){const s=stu(id);if(!s)return;const range=rangeOf(S._stuDetail&&S._stuDetail.range||'sem');const rec=studentRecords(id,range);
+function openStuExams(id){const s=stu(id);if(!s)return;const range=rangeOf(S._stuDetail&&S._stuDetail.range||'all');const rec=studentRecords(id,range);
   const items=rec.grades.length?rec.grades.map(g=>`<div class="rec" data-action="stu-exam" data-id="${id}" data-eid="${g.examId}" style="cursor:pointer">
       <div class="ic" style="background:var(--primary)">${iconSvg('成绩归档',16)}</div>
       <div class="rc-body"><div class="rc-title">${esc(g.name)}</div><div class="rc-sub">${esc(g.date)}</div></div>
@@ -2847,9 +2885,11 @@ function examEvents(){
   const stuCls=(()=>{const m={};(S.students||[]).forEach(s=>{if(s&&s.name&&s.classId&&!m[s.name])m[s.name]=s.classId;});return m;})();
   const map={};
   (S.exams||[]).forEach(e=>{if(!e||!e.scores)return;
-    /* r66：分组键 = 事件标题(·后段) + 科目，确保「同标题同科目」才归为同一次考试；
-            不同科目的同名考试（如 数学·第一次月考 / 英语·第一次月考）各自独立成考试事件 */
-    const k=eventNameOf(e)+'\u241F'+(e.subjectId||'__none__');
+    /* r73：分组键 = 事件标题(·后段) + 学期 + 考试时间 —
+            「同标题同学期同时间」无论班级/科目都归为同一次考试；
+            不同学期或不同时间才算两次独立考试。
+            r66 旧版按 (标题 + 科目) 分组已被废止。 */
+    const k=eventNameOf(e)+'\u241F'+(e.sem||'')+'\u241F'+(e.date||'');
     (map[k]=map[k]||[]).push(e);
   });
   return Object.keys(map).map(k=>{
@@ -2897,6 +2937,9 @@ function renderGradesBody(){const b=document.getElementById('grade_body');if(b)b
   if((S._gradeView||'trend')==='trend')scrollTrendRight();
   // 成绩分析-科目：默认滚条滚到最近考试（表格最右）
   if((S._gradeView||'trend')==='subject')scrollSubjectRight();
+  /* r77：attach 顶部横滚条（成绩 / 科目 两个表格才有 scroll container） */
+  if((S._gradeView||'trend')==='score'){attachTopHScroll('scoreScroll','scoreHScroll');}
+  if((S._gradeView||'trend')==='subject'){attachTopHScroll('subjScroll','subjHScroll');}
 }
 function gradeRow2Html(ev){const v=S._gradeView||'trend';if(v==='cmp'||v==='mgmt')return '';if(!ev)return '';if(v==='subject')return gradeTopStat();return gradeEventStat(ev);}
 function gradeEventStat(ev){
@@ -2928,7 +2971,7 @@ function gradeTrendHtml(){
   if(r)evs=evs.filter(e=>e.date>=r.from&&e.date<=r.to);
   evs.sort((a,b)=>a.date.localeCompare(b.date));
   if(!evs.length)return emptyState('📈','该时间范围内还没有考试，点「+ 新增考试」录入成绩');
-  /* r66：x 轴按「考试场合」(标题) 归组，每个场合可能含多科目；序列仍按 班级×科目 */
+  /* r73：x 轴按「考试事件」归组（事件已跨科目合并）；序列仍按 班级×科目 */
   const occMap={};
   evs.forEach(e=>{const t=e.name;(occMap[t]=occMap[t]||[]).push(e);});
   const occs=Object.keys(occMap).map(t=>({name:t,evs:occMap[t],date:occMap[t].map(x=>x.date).sort().pop()})).sort((a,b)=>a.date.localeCompare(b.date));
@@ -2936,7 +2979,7 @@ function gradeTrendHtml(){
   const cid=S._gradeClass,subId=S._gradeSubCol||'';
   const clsList=(!cid||cid===ALL_CLASS)?S.classes.filter(c=>!isArchivedClass(c.id)&&c.name!=='全部班级'):[cls(cid)].filter(Boolean);
   const subList=(!subId)?[...new Set(evs.flatMap(e=>e.subjects))]:[subId];
-  const _trendVal=(o,sid,cid)=>{const ev=o.evs.find(x=>x.subjects[0]===sid);return ev?avgClassSubject(ev,sid,cid):null;};
+  const _trendVal=(o,sid,cid)=>{const ev=o.evs.find(x=>x.subjects.includes(sid));return ev?avgClassSubject(ev,sid,cid):null;};
   let series=[];
   if(!cid||cid===ALL_CLASS){
     if(!subId)clsList.forEach(C=>subList.forEach(sid=>series.push({label:C.name+' · '+subjName(sid),clsId:C.id,subId:sid,values:occs.map(o=>_trendVal(o,sid,C.id))})));
@@ -3021,10 +3064,15 @@ function gradeScoreHtml(ev){
     <th class="c-name" data-action="grade-score-sort" data-k="name" style="cursor:pointer${st.key==='name'?';color:var(--primary);font-weight:700':''}">学生${st.key==='name'?(st.dir==='asc'?' ▲':' ▼'):''}</th>
     ${subTh}
     <th class="c-total" data-action="grade-score-sort" data-k="total" style="cursor:pointer${st.key==='total'?';color:var(--primary);font-weight:700':''}">总分${st.key==='total'?(st.dir==='asc'?' ▲':' ▼'):''}</th><th class="c-trk" style="color:var(--text-2);font-weight:400;font-size:12px">排名</th></tr>`;
-  const rows=list.map(n=>{const cid0=stuByName(n)?stuByName(n).classId:'';const subCells=subs.map((sid,i)=>{const o=subExams[i];let sc=o.e?o.e.scores[n]:null;const rk=o.rk?o.rk[n]:null;const pe=prevExams[i];const ps=pe?pe.scores[n]:null;let ar='';if(ps!=null&&sc!=null){const d=sc-ps;const dim=Math.abs(d)<=5?'opacity:.7':'';if(d>0)ar='<span style="color:var(--ok);font-size:10px;margin-left:2px;'+dim+'">▲</span>';else if(d<0)ar='<span style="color:var(--danger);font-size:10px;margin-left:2px;'+dim+'">▼</span>';}if(sc!=null)sc=sc+ar;if(sc==null)return `<td class="c-sub">—</td><td class="c-rk">—</td>`;return `<td class="c-sub">${sc}</td><td class="c-rk" style="color:var(--text-2)">${rk!=null?rk:'—'}</td>`;}).join('');const lpSid=subs[0]||'';return `<tr data-name="${esc(n)}" onpointerdown="lpSubjStuStart('${esc(n)}',event,'${esc(lpSid)}')" onpointerup="lpSubjStuCancel()" onpointerleave="lpSubjStuCancel()" style="cursor:pointer"><td class="c-cls" style="text-align:left">${esc(classNameOf(cid0))}</td><td class="c-name" style="font-weight:700">${esc(n)}</td>${subCells}<td class="c-total" style="font-weight:700">${tot[n]}</td><td class="c-trk">${totalRank[n]!=null?totalRank[n]:'—'}</td></tr>`;}).join('');
+  const rows=list.map(n=>{const cid0=stuByName(n)?stuByName(n).classId:'';const lpSid=subs[0]||'';const lpAttrs=`onpointerdown="lpSubjStuStart('${esc(n)}',event,'${esc(lpSid)}')" onpointerup="lpSubjStuCancel()" onpointerleave="lpSubjStuCancel()" style="cursor:pointer"`;const subCells=subs.map((sid,i)=>{const o=subExams[i];let sc=o.e?o.e.scores[n]:null;const rk=o.rk?o.rk[n]:null;const pe=prevExams[i];const ps=pe?pe.scores[n]:null;let ar='';if(ps!=null&&sc!=null){const d=sc-ps;const dim=Math.abs(d)<=5?'opacity:.7':'';if(d>0)ar='<span style="color:var(--ok);font-size:10px;margin-left:2px;'+dim+'">▲</span>';else if(d<0)ar='<span style="color:var(--danger);font-size:10px;margin-left:2px;'+dim+'">▼</span>';}if(sc!=null)sc=sc+ar;if(sc==null)return `<td>—</td><td>—</td>`;return `<td class="c-sub" ${lpAttrs}>${sc}</td><td class="c-rk" style="color:var(--text-2)">${rk!=null?rk:'—'}</td>`;}).join('');return `<tr data-name="${esc(n)}"><td class="c-cls" style="text-align:left">${esc(classNameOf(cid0))}</td><td class="c-name" ${lpAttrs}>${esc(n)}</td>${subCells}<td class="c-total" style="font-weight:700">${tot[n]}</td><td class="c-trk">${totalRank[n]!=null?totalRank[n]:'—'}</td></tr>`;}).join('');
   const hint='';
-  return `<div class="card" style="padding:16px;overflow:auto"><div class="section-title" style="padding:0;display:flex;align-items:center;gap:4px"><span style="color:#5b6675;display:inline-flex">${iconSvg('网格汇总',22)}</span><span>${esc(ev.name)} · 成绩汇总${hint}</span></div>
-    <table class="score-fixed score-center" style="margin-top:8px">${cols}<thead>${header}</thead><tbody>${rows}</tbody></table></div>`;
+  /* r77：与 gradeSubjectHtml 一致，标题在外、横滚条 sticky 在顶部、可拖拽；
+     长按仅在 姓名/分数 格生效（避免触摸滑动表格时误触）。 */
+  return `<div class="card" style="padding:0"><div style="padding:16px 16px 8px"><div class="section-title" style="padding:0;display:flex;align-items:center;gap:4px"><span style="color:#5b6675;display:inline-flex">${iconSvg('网格汇总',22)}</span><span>${esc(ev.name)} · 成绩汇总${hint}</span></div></div>
+    <div id="scoreHScroll" class="g-top-hscroll" style="position:sticky;top:0;z-index:10;background:var(--surface);padding:6px 16px;border-bottom:1px solid var(--border);box-shadow:0 1px 0 rgba(0,0,0,.02)"><div class="g-hscroll-bar" style="height:6px;background:var(--bg-2);border-radius:3px;position:relative;cursor:pointer;overflow:hidden"><div class="g-hscroll-thumb" style="position:absolute;top:0;left:0;height:100%;width:30%;background:var(--primary);border-radius:3px;min-width:32px;will-change:transform"></div></div></div>
+    <div id="scoreScroll" style="padding:0 16px 16px;overflow-x:auto;overflow-y:visible">
+      <table class="score-fixed score-center" style="margin-top:8px">${cols}<thead>${header}</thead><tbody>${rows}</tbody></table>
+    </div></div>`;
 }
 function gradeScoreSort(){return S._gradeScoreSort||(S._gradeScoreSort={key:'total',dir:'desc'});}
 function gradeScoreSortToggle(k){const s=gradeScoreSort();if(s.key===k)s.dir=s.dir==='asc'?'desc':'asc';else{s.key=k;s.dir=(k==='total'?'desc':'asc');}save();renderGradesBody();}
@@ -3079,18 +3127,96 @@ function gradeSubjectHtml(ev){
   const cols=`<colgroup><col class="c-cls"><col class="c-name">${exs.map(()=>'<col class="c-ex"><col class="c-jb"><col class="c-rk">').join('')}<col class="c-avg"><col class="c-ark"></colgroup>`;
   const rows=list.map(n=>{
     const cid0=stuByName(n)?stuByName(n).classId:'';
+    const lpAttrs=`onpointerdown="lpSubjStuStart('${esc(n)}',event)" onpointerup="lpSubjStuCancel()" onpointerleave="lpSubjStuCancel()" style="cursor:pointer"`;
+    /* r77：长按仅在「姓名 / 分数」格生效，避免误触（其余单元格如 班级/进退/排名/均分/排名 滑动页面时易误触）。
+       数据单元格（每场考试三格）：第 1 格分数 有数值 → 加长按；后两格 进退/排名 保持普通单元格。 */
     const cells=exs.map((e,i)=>{
       const sc=e.scores[n];
       if(sc==null)return `<td>—</td><td>—</td><td>—</td>`;
       const prev=i>0?exs[i-1].scores[n]:null;
       const d=prev!=null?sc-prev:0;
       const rk=ranks[i][n];
-      return `<td><b>${sc}</b></td><td style="color:${d>0?'var(--ok)':d<0?'var(--danger)':'var(--text-2)'}">${d>0?'▲+'+d:d<0?'▼'+d:'—'}</td><td>${rk!=null?rk:'—'}</td>`;
+      return `<td ${lpAttrs}><b>${sc}</b></td><td style="color:${d>0?'var(--ok)':d<0?'var(--danger)':'var(--text-2)'}">${d>0?'▲+'+d:d<0?'▼'+d:'—'}</td><td>${rk!=null?rk:'—'}</td>`;
     }).join('');
-    return `<tr data-name="${esc(n)}" onpointerdown="lpSubjStuStart('${esc(n)}',event)" onpointerup="lpSubjStuCancel()" onpointerleave="lpSubjStuCancel()" style="cursor:pointer"><td style="text-align:left;color:var(--text-2)">${esc(classNameOf(cid0))}</td><td style="font-weight:700">${esc(n)}</td>${cells}<td style="font-weight:700">${avgMap[n]!=null?avgMap[n].toFixed(1):'—'}</td><td>${avgRank[n]!=null?avgRank[n]:'—'}</td></tr>`;
+    return `<tr data-name="${esc(n)}"><td style="text-align:left;color:var(--text-2)">${esc(classNameOf(cid0))}</td><td ${lpAttrs}>${esc(n)}</td>${cells}<td style="font-weight:700">${avgMap[n]!=null?avgMap[n].toFixed(1):'—'}</td><td>${avgRank[n]!=null?avgRank[n]:'—'}</td></tr>`;
   }).join('');
-  return `<div class="card" id="subjScroll" style="padding:16px;overflow:auto"><div class="section-title" style="padding:0;display:flex;align-items:center;gap:6px"><span style="color:#5b6675;display:inline-flex">${iconSvg('单科折线',22)}</span><span>${esc(ev.name)} · ${esc(sub.name)} · ${esc(classNameOf(S._gradeClass)||'全部班级')} 成绩</span></div>
-    <table class="score-fixed score-center" style="margin-top:8px">${cols}<thead>${header}</thead><tbody>${rows}</tbody></table></div>`;
+  /* r77：在卡片内顶部加 sticky 的自定义横滚条（系统手势易触发页面切换，故给用户一个稳定可拖拽的顶部横滚条）
+     该条 bar 跟随 subjScroll 的 scrollLeft 同步更新，thumb 拖拽后亦同步写入 scrollLeft；
+     overflow 不溢出时不显示（hidden via attachTopHScroll）。 */
+  return `<div class="card" style="padding:0"><div style="padding:16px 16px 8px"><div class="section-title" style="padding:0;display:flex;align-items:center;gap:6px"><span style="color:#5b6675;display:inline-flex">${iconSvg('单科折线',22)}</span><span>${esc(ev.name)} · ${esc(sub.name)} · ${esc(classNameOf(S._gradeClass)||'全部班级')} 成绩</span></div></div>
+    <div id="subjHScroll" class="g-top-hscroll" style="position:sticky;top:0;z-index:10;background:var(--surface);padding:6px 16px;border-bottom:1px solid var(--border);box-shadow:0 1px 0 rgba(0,0,0,.02)"><div class="g-hscroll-bar" style="height:6px;background:var(--bg-2);border-radius:3px;position:relative;cursor:pointer;overflow:hidden"><div class="g-hscroll-thumb" style="position:absolute;top:0;left:0;height:100%;width:30%;background:var(--primary);border-radius:3px;min-width:32px;will-change:transform"></div></div></div>
+    <div id="subjScroll" style="padding:0 16px 16px;overflow-x:auto;overflow-y:visible">
+      <table class="score-fixed score-center" style="margin-top:8px">${cols}<thead>${header}</thead><tbody>${rows}</tbody></table>
+    </div></div>`;
+}
+/* r77：顶部横滚条 attach —— 给指定 #scrollId 水平 overflow 容器配一根 sticky 顶部、可拖拽的横滚条 #trackId
+   - 容器 scrollLeft 变化 → 更新 thumb translateX 位置
+   - thumb 拖拽 → 改写容器 scrollLeft
+   - track 点击空白处 → 滚到对应位置
+   - 不溢出（scrollWidth<=clientWidth）→ 整条隐藏 */
+const _hscrollState={};
+function attachTopHScroll(scrollId,trackId){
+  const sc=document.getElementById(scrollId),track=document.getElementById(trackId);
+  if(!sc||!track)return;
+  /* 若此前已为该 scrollId 绑定过（重渲染会产生新的 sc 元素），先移除上一次挂在 document/window 上的全局监听，避免累积泄漏 */
+  if(_hscrollState[scrollId]){try{_hscrollState[scrollId]();}catch(_){}}
+  const bar=track.querySelector('.g-hscroll-bar'),thumb=track.querySelector('.g-hscroll-thumb');
+  if(!bar||!thumb)return;
+  let dragging=false,startX=0,startScroll=0;
+  function update(){
+    const total=sc.scrollWidth,view=sc.clientWidth;
+    if(total<=view+1){track.style.display='none';return;}
+    track.style.display='';
+    const trackW=bar.clientWidth;
+    if(!trackW)return;
+    const ratio=view/total;
+    const thumbW=Math.max(32,Math.round(trackW*ratio));
+    thumb.style.width=thumbW+'px';
+    const maxScroll=total-view,maxX=trackW-thumbW;
+    if(maxScroll<=0||maxX<=0){thumb.style.transform='translateX(0)';return;}
+    const pct=sc.scrollLeft/maxScroll;
+    thumb.style.transform='translateX('+(pct*maxX).toFixed(1)+'px)';
+  }
+  sc.addEventListener('scroll',update,{passive:true});
+  requestAnimationFrame(()=>requestAnimationFrame(update));
+  function startDrag(e){
+    dragging=true;startX=e.clientX;startScroll=sc.scrollLeft;
+    try{thumb.setPointerCapture(e.pointerId);}catch(_){}
+    e.preventDefault();e.stopPropagation();
+  }
+  function moveDrag(e){
+    if(!dragging)return;
+    const maxScroll=sc.scrollWidth-sc.clientWidth,maxBar=bar.clientWidth-thumb.offsetWidth;
+    if(maxScroll<=0||maxBar<=0)return;
+    const dx=e.clientX-startX;
+    sc.scrollLeft=Math.max(0,Math.min(maxScroll,startScroll+dx*(maxScroll/maxBar)));
+    e.preventDefault();
+  }
+  function endDrag(e){
+    if(!dragging)return;
+    dragging=false;
+    try{thumb.releasePointerCapture(e.pointerId);}catch(_){}
+  }
+  thumb.addEventListener('pointerdown',startDrag);
+  document.addEventListener('pointermove',moveDrag);
+  document.addEventListener('pointerup',endDrag);
+  document.addEventListener('pointercancel',endDrag);
+  bar.addEventListener('pointerdown',function(e){
+    if(e.target!==bar)return;          /* 让 thumb 自己处理 */
+    const r=bar.getBoundingClientRect();
+    const x=e.clientX-r.left;
+    const maxScroll=sc.scrollWidth-sc.clientWidth,trackW=bar.clientWidth,thumbW=thumb.offsetWidth;
+    const maxBar=trackW-thumbW;
+    if(maxBar<=0||maxScroll<=0)return;
+    const leftPct=(x-thumbW/2)/maxBar;
+    sc.scrollLeft=Math.max(0,Math.min(maxScroll,leftPct*maxScroll));
+    e.preventDefault();
+  });
+  window.addEventListener('resize',update);
+  /* 兜底：等待可能的 resize/font load 完成后再算一次 */
+  setTimeout(update,200);setTimeout(update,800);
+  /* 记录清理函数：下次重渲染该 scrollId 时移除本回合挂在 document/window 上的全局监听 */
+  _hscrollState[scrollId]=function(){document.removeEventListener('pointermove',moveDrag);document.removeEventListener('pointerup',endDrag);document.removeEventListener('pointercancel',endDrag);window.removeEventListener('resize',update);};
 }
 function gradeSubjSort(){return S._gradeSubjSort||(S._gradeSubjSort={key:'latest',dir:'desc'});}
 function gradeSubjSortToggle(k){const s=gradeSubjSort();if(s.key===k)s.dir=s.dir==='asc'?'desc':'asc';else{s.key=k;s.dir=k.indexOf('ex:')===0?'desc':'asc';}save();renderGradesBody();}
@@ -3661,7 +3787,10 @@ function gradeRecentExamOfSubj(subjId){
 function gradeDefaultFor(v){
   const evs=examEvents();const recent=evs[0];const recSubj=stuCmpRecentSubjClass().subjId;
   if(v==='trend'){
-    S._gradeSem='';S._gradeEvent='';S._gradeClass=ALL_CLASS;S._gradeSubCol=recSubj;S._gradeSub=recSubj;
+    const rid=recent?recent.id:'';const rdate=recent?recent.date:'';
+    /* r80：趋势视图默认选中「最近一次考试」——分数段分布/行2统计/考试选择器默认展示最新一场；
+       趋势折线图本身按 gradeRange 展示全部考试，不受影响。 */
+    S._gradeSem='';S._gradeEvent=rid;S._gradeClass=ALL_CLASS;S._gradeSubCol=recSubj;S._gradeSub=recSubj;
   }else if(v==='score'){
     const rid=recent?recent.id:'';const rdate=recent?recent.date:'';
     S._gradeEvent=rid;S._gradeClass=ALL_CLASS;S._gradeSubCol='';S._gradeSub='';
@@ -4095,7 +4224,7 @@ function gradeTopStat(){
     <div class="sq" data-action="grade-stat" data-eid="${latest.id}" data-type="excel" style="cursor:pointer;grid-column:5;grid-row:2"><div class="n ok">${excelN}</div><div class="l">优秀</div></div>
     <div class="sq" data-action="grade-stat" data-eid="${latest.id}" data-type="fail" style="cursor:pointer;grid-column:6;grid-row:2"><div class="n danger">${failN}</div><div class="l">未及格</div></div>
     <div class="sq hide-mobile"><div class="n">${names.length}</div><div class="l">参考人数</div></div></div>`;}
-function gradeStudentSearch(v){S._gradeSearch=v;save();const el=document.getElementById('grade_body');if(el)el.innerHTML=gradeBodyHtml();const r2=document.getElementById('grade_row2');if(r2)r2.innerHTML=gradeRow2Html(gradeEventById(S._gradeEvent));const sc=document.getElementById('trendScroll');if(sc){const go=()=>{sc.scrollLeft=sc.scrollWidth;};requestAnimationFrame(()=>requestAnimationFrame(go));}if((S._gradeView||'')==='subject')scrollSubjectRight();}
+function gradeStudentSearch(v){S._gradeSearch=v;save();const el=document.getElementById('grade_body');if(el)el.innerHTML=gradeBodyHtml();const r2=document.getElementById('grade_row2');if(r2)r2.innerHTML=gradeRow2Html(gradeEventById(S._gradeEvent));const sc=document.getElementById('trendScroll');if(sc){const go=()=>{sc.scrollLeft=sc.scrollWidth;};requestAnimationFrame(()=>requestAnimationFrame(go));}if((S._gradeView||'')==='subject')scrollSubjectRight();if((S._gradeView||'')==='score')attachTopHScroll('scoreScroll','scoreHScroll');if((S._gradeView||'')==='subject')attachTopHScroll('subjScroll','subjHScroll');}
 function gradeRange(v){v=v||S._gradeSem;if(!v||v===''){const act=S.semesters.filter(s=>!s.archived&&s.start&&s.end);if(!act.length)return null;const froms=act.map(s=>s.start).filter(Boolean).sort();const tos=act.map(s=>s.end).filter(Boolean).sort();return {from:froms[0]||'',to:tos[tos.length-1]||''};}if(v.indexOf('sem:')===0){const s=S.semesters.find(x=>x.id===v.slice(4));return s&&s.start&&s.end?{from:s.start,to:s.end}:null;}if(v.indexOf('range:')===0){const p=v.slice(6).split('~');return {from:p[0],to:p[1]};}return null;}
 function gradeSemSel(v){gradeSemPick(v);}
 function gradeSemSummary(){const v=S._gradeSem;if(!v)return '全部学期';if(v.indexOf('range:')===0)return '自定义范围';const sid=v.indexOf('sem:')===0?v.slice(4):v;const s=S.semesters.find(x=>x.id===sid);return s?s.name+(s.archived?' · 已归档':''):'全部学期';}
@@ -4105,7 +4234,9 @@ function gradeRangeApply(){const w=document.getElementById('gradeRangeWrap');if(
 function gradeRangeWrap(){const v=S._gradeSem;const base=`<input type="date" name="gfrom" value="${v&&v.indexOf('range:')===0?v.slice(6).split('~')[0]:''}"> <span>~</span> <input type="date" name="gto" value="${v&&v.indexOf('range:')===0?v.slice(6).split('~')[1]:''}"> <button type="button" class="btn sm" onclick="gradeRangeApply()">应用</button>`;return `<span id="gradeRangeWrap" style="display:${v&&v.indexOf('range:')===0?'inline-flex':'none'};gap:6px;align-items:center">${base}</span>`;}
 function gradeAllSubjects(){const act=activeClassIds();const subs=S.subjects.filter(s=>S.exams.some(e=>e.subjectId===s.id&&(e.classId?act.has(e.classId):Object.keys(e.scores).some(n=>{const st=stuByName(n);return st&&act.has(st.classId);}))));if(!subs.length)return emptyState('📈','还没有任何科目成绩，点「+ 新增考试」录入');const rows=subs.map(s=>{const exs=S.exams.filter(e=>e.subjectId===s.id).sort((a,b)=>a.date.localeCompare(b.date));const last=exs[exs.length-1];const vals=Object.values(last.scores);const avg=(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1);return `<tr><td><a data-action="pick-subj" data-id="${s.id}" style="cursor:pointer;color:var(--primary)">${esc(s.name)}</a></td><td>${exs.length}</td><td>${avg}</td><td>${esc(last.date)}</td><td>${esc(last.name)}</td></tr>`;}).join('');return `<div class="card"><div class="section-title">全部科目概览</div><table><thead><tr><th>科目</th><th>考试次数</th><th>最新平均分</th><th>最新日期</th><th>最新考试</th></tr></thead><tbody>${rows}</tbody></table><div class="sub">点击科目名查看该科详细分析（趋势 / 分布 / 排名 / 历次汇总 / 对比）。</div></div>`;}
 /* 考试/班级/科目 自定义弹层（与学期一致）：summary + opts + pick */
-function evTitle(ev){if(!ev)return '';return (ev.name||'')+(ev.subjName?(' · '+ev.subjName):'');}
+/* r73：考试事件标题 = 事件名；多科目时不带科目后缀（r66 旧版取首科目做后缀，
+        会让合并后的「一次多科考试」被误标成单一科目）。 */
+function evTitle(ev){if(!ev)return '';return ev.name||'';}
 function gradeEvSummary(){const v=S._gradeEvent;if(!v)return '全部考试';const e=gradeEventById(v);return e?evTitle(e)+' · '+e.date:'全部考试';}
 function gradeEvOptsHtml(){const v=S._gradeEvent||'';const evs=gradeScopeExams();const items=[{k:'',l:'全部考试'},...evs.map(e=>({k:e.id,l:evTitle(e)+' · '+e.date}))];return items.map(o=>`<div class="bk-range-opt" data-v="${esc(o.k)}" onclick="gradeEvPick('${esc(o.k)}')" style="${o.k===v?'background:var(--primary-soft);color:var(--primary);font-weight:600':''}">${esc(o.l)}</div>`).join('');}
 function gradeEvPick(v){closeAllBkPops();S._gradeEvent=v;const ev=gradeEventById(v);if(S._gradeClass&&S._gradeClass!==ALL_CLASS&&ev&&!ev.classIds.includes(S._gradeClass))S._gradeClass=ALL_CLASS;const subs=(ev?ev.subjects:[]);const curSub=(S._gradeView==='subject')?S._gradeSub:S._gradeSubCol;if(curSub&&!subs.includes(curSub)){if(S._gradeView==='subject')S._gradeSub=subs[0]||'';else S._gradeSubCol=subs[0]||'';}save();viewReload('grades');}
@@ -4692,7 +4823,7 @@ function ttMatrixHtml(){
   list.forEach(t=>{const k=(t.period>=1?t.period:1)+'_'+(t.day!=null?t.day:1);(byCell[k]=byCell[k]||[]).push(t);});
   const PARTS=[['上午',1],['下午',6],['晚上',11]];
   const DAYS=[1,2,3,4,5,6,0];
-  let h='<table class="tt-matrix"><thead><tr><th class="tt-m-corner" rowspan="2">节次＼星期</th>';
+  let h='<table class="tt-matrix"><thead><tr><th class="tt-m-corner" colspan="2">节次＼星期</th>';
   DAYS.forEach(d=>{h+='<th class="tt-m-day">周'+WD[d]+'</th>';});
   h+='</tr></thead><tbody>';
   PARTS.forEach(function(p){const label=p[0],from=p[1];
@@ -4763,7 +4894,7 @@ function viewSettings(){
             <button class="ic-btn" type="button" onclick="toggleSemArch('${s.id}')" title="归档" aria-label="归档">${iconSvg('archive',10)}</button>
             <button class="ic-btn" type="button" data-action="edit-sem" data-id="${s.id}" title="修改" aria-label="修改">${iconSvg('edit',10)}</button></div></div>
           <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px">
-            ${s.current?'':`<button class="btn sm" onclick="setCurSem('${s.id}')">设为当前</button>`}</div></div>`).join('')}
+            ${s.current?'':`<button class="btn sm set-cur-sem" onclick="setCurSem('${s.id}')">设为当前</button>`}</div></div>`).join('')}
       </div>
     </div>
   </div>
@@ -4884,7 +5015,7 @@ function planItemsHtml(){const explicitAll=S._planClass===ALL_CLASS;
   const cid=hasClass?S._planClass:(activeClasses()[0]&&activeClasses()[0].id);
   S._planSem=S._planSem||(curSem()?curSem().id:ALL_CLASS);
   const items=explicitAll?S.plan.slice():classPlan(cid);
-  const vis=items.filter(p=>(S._planSem===ALL_CLASS||p.sem===S._planSem||!p.sem)&&(S._planSubject===''||S._planSubject===undefined||(p.subject||'')===S._planSubject));
+  const vis=items.filter(p=>(S._planSem===ALL_CLASS||p.sem===S._planSem||!p.sem)&&(S._planSubject===''||S._planSubject===undefined||(p.subject||'')===S._planSubject)).sort((a,b)=>a.order-b.order);
   if(!vis.length)return '<div class="sub">该筛选下暂无教学任务安排</div>';
   return vis.map((p,i)=>`<div class="rec-wrap" data-id="${p.id}">
   <div class="rec" style="align-items:center;gap:8px" draggable="true" data-id="${p.id}"><input type="checkbox" ${p.done?'checked':''} onchange="planToggle('${p.id}')" style="width:auto;flex:none">
@@ -5478,7 +5609,12 @@ function modalTt(id,prefill){const t=id?S.timetable.find(x=>x.id===id):{};
   const subjList=planSubjectOpts();
   const subjDefault=id?(t.subject&&subjList.includes(t.subject)?t.subject:(subjList[0]||'')):(S._ttLastSubj&&subjList.includes(S._ttLastSubj)?S._ttLastSubj:(subjList[0]||''));
   const per=id&&t.period&&t.period>=1?t.period:(prefill&&prefill.period>=1?prefill.period:1);const part=Math.max(0,Math.min(2,Math.floor((per-1)/5)));const pnum=Math.max(1,Math.min(5,(per-1)%5+1));const dayDefault=(id&&t.day!=null)?t.day:(prefill&&prefill.day!=null?prefill.day:1);
-  openModal(id?'编辑课节':'添加课节',`<form data-form="tt" data-id="${id||''}">
+  /* r74：弹窗标题加「周X 上午/下午/晚上第N节」上下文，避免用户在多 cell 列表中点错位置时误改。
+         主按钮（无 prefill）打开的「添加课节」保持纯标题，避免误以为是具体位置 */
+  const titleBase=id?'编辑课节':'添加课节';
+  const hasPos=id||(prefill&&prefill.day!=null);
+  const title=hasPos?(titleBase+' · '+ttPosCtx(dayDefault,part,pnum)):titleBase;
+  openModal(title,`<form data-form="tt" data-id="${id||''}">
     <div class="field row" style="margin-bottom:12px"><div class="field" style="flex:1;margin-bottom:0"><label>学期</label>${selHtml('ttadd_sem',ttAddSemLabel(semDefault),bkOpts(ttAddSemOpts(),semDefault))}<input type="hidden" name="ttsem" value="${esc(semDefault)}"></div>
       <div class="field" style="flex:1;margin-bottom:0"><label>班级</label>${selHtml('ttadd_cls',ttAddClsLabel(clsDefault),bkOpts(ttAddClsOpts(),clsDefault))}<input type="hidden" name="ttcls" value="${esc(clsDefault)}"></div>
       <div class="field" style="flex:1;margin-bottom:0"><label>科目</label><div class="bk-range-wrap" id="ttadd_subj_wrap"><div class="bk-range-trigger rec-type-combo" onclick="bkSelOpen('ttadd_subj_pop',event)"><input name="ttsubj" class="bk-trigger-input" value="${esc(subjDefault)}" placeholder="选择或输入科目" onclick="event.stopPropagation()"></div><div class="bk-range-pop" id="ttadd_subj_pop" style="display:none">${bkOpts(subjList.map(n=>({k:n,l:n,pick:'ttSubjPick'})),subjDefault)}</div></div></div></div>
@@ -5509,6 +5645,8 @@ function ttAddClsLabel(v){if(!v||v===ALL_CLASS)return '全部班级';if(v==='__c
 function ttAddClsOpts(){return [{k:ALL_CLASS,l:'全部班级',pick:'ttAddClsPick'}].concat(S.classes.filter(c=>!c.archived).map(c=>({k:c.id,l:c.name,pick:'ttAddClsPick'}))).concat([{k:'__custom__',l:'自定义班级…',pick:'ttAddClsPick'}]);}
 function ttAddClsPick(v){const f=document.querySelector('form[data-form="tt"]');const hid=f&&f.querySelector('input[name="ttcls"]');if(hid)hid.value=v;const w=document.getElementById('ttadd_cls_wrap');const t=w&&w.querySelector('.bk-trigger-text');if(t)t.textContent=ttAddClsLabel(v);ttClsChange(v);closeAllBkPops();}
 function ttAddDayLabel(v){const DAYS=[['一',1],['二',2],['三',3],['四',4],['五',5],['六',6],['日',0]];const f=DAYS.find(([w,d])=>String(d)===String(v));return f?'周'+f[0]:'星期';}
+/* r74：弹窗标题用的「周X 上午/下午/晚上第N节」位置上下文（modalTt 在编辑/带 prefill 的添加场景使用） */
+function ttPosCtx(day,part,pnum){if(day==null||day==='')return '';const WD=['日','一','二','三','四','五','六'];const wk='周'+(WD[+day]||'');const pt=['上午','下午','晚上'][+part];if(!pt&&!pnum)return wk;if(!pt)return wk+' 第'+(+pnum)+'节';if(!pnum)return wk+' '+pt;return wk+' '+pt+'第'+(+pnum)+'节';}
 function ttAddDayOpts(){const DAYS=[['一',1],['二',2],['三',3],['四',4],['五',5],['六',6],['日',0]];return DAYS.map(([w,v])=>({k:String(v),l:'周'+w,pick:'ttAddDayPick'}));}
 function ttAddDayPick(v){const f=document.querySelector('form[data-form="tt"]');const hid=f&&f.querySelector('input[name="day"]');if(hid)hid.value=v;const w=document.getElementById('ttadd_day_wrap');const t=w&&w.querySelector('.bk-trigger-text');if(t)t.textContent=ttAddDayLabel(v);closeAllBkPops();}
 function ttAddPartLabel(v){const m=['上午','下午','晚上'];const i=+v;return m[i]!=null?m[i]:'节次';}
@@ -7483,7 +7621,7 @@ function restoreGrade(id){const a=(S.gradeArchives=S.gradeArchives||[]).find(x=>
 function delGradePerm(id){const a=(S.gradeArchives=S.gradeArchives||[]).find(x=>x.id===id);if(!a)return;S.gradeArchives=S.gradeArchives.filter(x=>x.id!==id);save();viewReload('grades');toast('已永久删除成绩归档');}
 
 /* timetable import-export */
-function dayNum(w){const s=String(w||'').replace(/["'\u201C\u201D]/g,'').replace(/星期|周/g,'').trim();if(/^\d$/.test(s)){const n=+s;return n===0||n===7?7:n;}const m={'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'日':7,'天':7};return m[s];}
+function dayNum(w){const s=String(w||'').replace(/["'\u201C\u201D]/g,'').replace(/星期|周/g,'').trim();if(/^\d$/.test(s)){const n=+s;if(n===7)return 0;return n;}const m={'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'日':0,'天':0};return m[s];}
 function importTimetable(){pickTable(sheets=>{const rows=(sheets[0].rows||[]).filter(r=>r.length);if(!rows.length){toast('文件为空');return;}
   const h=rows[0].map(x=>String(x||'').trim());
   const dayIdx=h.findIndex(x=>/星期|周|day/i.test(x));
