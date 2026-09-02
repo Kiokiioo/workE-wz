@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>工作E · v20260902-r64</title>
+<title>工作E · v20260902-r72</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -558,6 +558,27 @@ tbody tr:hover{background:var(--surface-2)}
   .tt-subj{font-size:14px;font-weight:700;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .tt-meta{font-size:11px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 }
+/* 课表矩阵（桌面）：行=上午/下午/晚上+第N节，列=星期；单元格堆叠 班级+科目(+时间) */
+.tt-matrix{width:100%;min-width:680px;border-collapse:separate;border-spacing:0;font-size:12px;table-layout:fixed;background:var(--surface)}
+.tt-matrix th,.tt-matrix td{border:1px solid var(--border);padding:0;text-align:center;vertical-align:top}
+.tt-matrix thead th{position:sticky;top:0;background:var(--surface);z-index:2;padding:6px 4px;font-weight:700;color:var(--text);font-size:12px}
+.tt-m-corner{width:62px;background:var(--bg,#f5f6f8);font-size:11px;color:var(--text-2);font-weight:600}
+.tt-m-day{font-size:12px}
+.tt-m-part{width:28px;background:var(--primary-soft,#eef1fe);color:var(--primary,#4f6bed);font-weight:700;font-size:13px;writing-mode:vertical-rl;letter-spacing:3px}
+.tt-m-pnum{width:28px;color:var(--text-2);font-size:11px;background:var(--bg,#f7f8fa)}
+.tt-m-cell{padding:3px!important}
+.tt-m-item{display:flex;flex-direction:column;gap:1px;align-items:flex-start;text-align:left;border-left:3px solid hsl(var(--dh,210),68%,56%);border-radius:6px;background:hsl(var(--dh,210),72%,97%);padding:3px 5px;margin:2px 0;cursor:pointer;min-width:0;box-shadow:0 1px 2px rgba(20,30,60,.06);transition:filter .12s}
+.tt-m-item:hover{filter:brightness(.97);background:hsl(var(--dh,210),72%,94%)}
+.tt-m-item.pick{outline:2px solid var(--primary);outline-offset:-1px;background:var(--primary-soft)}
+.tt-mi-subj{font-size:12px;font-weight:700;line-height:1.2;color:var(--text);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tt-mi-cls{font-size:10px;line-height:1.2;color:var(--text-2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tt-mi-time{font-size:10px;color:var(--text-2);opacity:.85}
+.tt-mi-bw{font-size:9px;color:var(--primary);background:var(--primary-soft);border-radius:99px;padding:0 4px;align-self:flex-start}
+.tt-m-empty{vertical-align:middle;background:var(--bg,#fafbfc);cursor:pointer}
+.tt-m-empty:hover{background:hsl(var(--primary,210),70%,98%)}
+.tt-m-add{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1px dashed var(--border);background:transparent;color:var(--text-2);font-size:16px;line-height:1}
+.tt-m-empty:hover .tt-m-add{border-color:var(--primary);color:var(--primary)}
+@media(max-width:640px){.tt-matrix{display:none}}
 /* 手机端（≤640px）：教学待办任务卡——行1 ☑·类别chip·标题(占满)；行2 优先级(缩进对齐类别)·截止日·操作(靠右) */
 @media(max-width:640px){
   .task{padding:8px 8px 8px 10px;gap:8px}
@@ -2172,6 +2193,11 @@ function stuPointsColor(rank,size){
   if(rank>size-botOrange)return 'color:#F2762E;background:#F2762E1A';
   return 'color:#4F6BED;background:#4F6BED1F';
 }
+/* 学情跟进-学生：拼音首字母按姓氏分桶。
+   _m 收录常见单字姓氏（百家姓/现代常见姓氏约 600+）；未收录字走 Unicode 码点 fallback（2188 行 B）。
+   注意：Unicode fallback 对 CJK-Basic 中段（U+4E00–U+9FA5，绝大多数汉字都在 0x9CD0 之前）会一律映射成 A，
+   极易错排。任何确认映射错的姓氏必须显式收录到 _m，如「腾 T」（与「滕」不同字）。
+   r67：补 腾T，防止「腾奕芬」之类走 fallback 错分到 A 段。 */
 function stuIndexKey(name){
   const c=(name[0]||'').toUpperCase();
   if(/[A-Z]/.test(c))return c;
@@ -2179,7 +2205,7 @@ function stuIndexKey(name){
   if(!ch.match(/[一-龥]/))return '#';
   if(!stuIndexKey._m){
     stuIndexKey._m={};
-    const D='赵Z钱Q孙S李L周Z吴W郑Z王W冯F陈C蒋J韩H杨Y朱Z秦Q沈S许X何H吕L施S张Z孔K曹C严Y华H金J魏W陶T姜J戚Q谢X邹Z喻Y柏B水S窦D章Z云Y苏S潘P葛G奚X范F彭P郎L鲁L韦W昌C马M苗M凤F花H方F俞Y任R袁Y柳L酆F鲍B史S唐T费F岑C薛X雷L贺H倪N汤T滕T殷Y罗L毕B郝H邬W安A常C乐Y于Y时S傅F皮P卞B齐Q康K伍W余Y元Y卜B顾G孟M平P黄H和H穆M萧X肖X尹Y姚Y邵S汪W祁Q毛M禹Y狄D米M贝B明M臧Z计J伏F成C戴D谈T宋S茅M庞P熊X纪J舒S屈Q项X祝Z董D梁L杜D阮R蓝L闵M席X季J麻M强Q贾J路L娄L危W江J童T颜Y郭G梅M盛S林L刁D钟Z徐X邱Q骆L高G夏X蔡C田T樊F胡H凌L霍H万W柯K卢L莫M房F裘Q缪M干G解X应Y宗Z丁D宣X贲B邓D郁Y单S杭H洪H包B诸Z左Z石S崔C吉J钮N龚G程C嵇J邢X滑H裴P陆L荣R翁W荀X羊Y於Y惠H甄Z麹Q家J封F芮R羿Y储C褚C靳J汲J邴B糜M松S井J段D富F巫W乌W焦J巴B弓G牧M隗W山S谷G车C侯H宓M蓬P全Q郗X班B仰Y秋Q仲Z伊Y宫G宁N仇Q栾L暴B甘G钭D厉L戎R祖Z武W符F刘L景J詹Z束S龙L叶Y幸X司S韶S郜G黎L蓟J薄B印Y宿S白B怀H蒲P邰T从C鄂E索S咸X籍J赖L卓Z蔺L屠T蒙M池C乔Q阴Y鬱Y胥X能N苍C双S闻W莘S党D翟Z谭T贡G劳L逄P姬J申S扶F堵D冉R宰Z郦L雍Y却Q璩Q桑S桂G濮P牛N寿S通T边B扈H燕Y冀J浦P尚S农N温W别B庄Z晏Y柴C瞿Q阎Y充C慕M连L茹R习X宦H艾A鱼Y容R向X古G易Y慎S戈G廖L庾Y终Z暨J居J衡H步B都D耿G满M弘H匡K国G文W寇K广G禄L阙Q欧O殳S沃W利L蔚W越Y夔K隆L师S巩G聂N晁C勾G敖A融R冷L訾Z辛X阚K那N简J饶R空K曾Z毋W沙S乜N养Y鞠J须X丰F巢C关G蒯K相X查Z后H荆J红H游Y竺Z权Q逯L盖G益Y桓H公G芳F洋Y阳Y静J杰J敏M磊L婷T浩H伟W雪X琳L悦Y斌B雯W丽L娜N娟J涛T峰F勇Y军J刚G辉H霞X波B宇Y飞F丹D莉L倩Q超C兵B俊J佳J晓X萍P凯K颖Y璐L航H鑫X瑞R泽Z涵H轩X彤T梓Z豪H晨C曦X露L萌M萱X睿R嘉J怡Y然R博B森S淼M骏J鸿H志Z鹏P昊H雨Y欣X子Z玉Y银Y铜T铁T岩Y川C海H河H禾H麦M豆D竹Z兰L菊J荷H莲L蓉R薇W菁J菲F茜Q瑶Y琪Q珍Z珠Z玲L珊S雅Y韵Y泰T顺S同T福F喜X庆Q德D才C智Z慧H忠Z孝X仁R义Y礼L信X友Y爱A恩E念N思S忆Y梦M霜S冰B清Q润R淳C源Y泉Q溪X湖H浪L潮C澎P湃P渊Y灏H焱Y煜Y炜W烨Y灿C烁S灵L焕H焰Y煌H炯J熙X熠Y熹X燚Y璋Z瑾J琛C玥Y珏J珂K璧B环H琦Q琴Q瑟S碧B硕S砚Y砥D研Y砂S砾L岳Y岚L岫X峻J岭L巍W峡X州Z岛D岸A帆F舟Z渔Y滨B湄M溯S沁Q沛P沅Y芷Z苒R芊Q芃P茁Z茂M茗M茵Y蕊R蕾L蕴Y芙F蒄G蔼A蔓M藤T蕉J苇W芒M芝Z芋Y苔T莞G荃Q茏L荟H荔L荥X荫Y茯F茚Y闫Y占Z睡S付F佘S覃Q邝K芦L鄢Y谌C栗L亓Q旷K郄Q佟T赫H鄞Y曲Q迟C隋S邸D门M敬J缑G卫W么Y昝Z雒L笪D';
+    const D='腾T赵Z钱Q孙S李L周Z吴W郑Z王W冯F陈C蒋J韩H杨Y朱Z秦Q沈S许X何H吕L施S张Z孔K曹C严Y华H金J魏W陶T姜J戚Q谢X邹Z喻Y柏B水S窦D章Z云Y苏S潘P葛G奚X范F彭P郎L鲁L韦W昌C马M苗M凤F花H方F俞Y任R袁Y柳L酆F鲍B史S唐T费F岑C薛X雷L贺H倪N汤T滕T殷Y罗L毕B郝H邬W安A常C乐Y于Y时S傅F皮P卞B齐Q康K伍W余Y元Y卜B顾G孟M平P黄H和H穆M萧X肖X尹Y姚Y邵S汪W祁Q毛M禹Y狄D米M贝B明M臧Z计J伏F成C戴D谈T宋S茅M庞P熊X纪J舒S屈Q项X祝Z董D梁L杜D阮R蓝L闵M席X季J麻M强Q贾J路L娄L危W江J童T颜Y郭G梅M盛S林L刁D钟Z徐X邱Q骆L高G夏X蔡C田T樊F胡H凌L霍H万W柯K卢L莫M房F裘Q缪M干G解X应Y宗Z丁D宣X贲B邓D郁Y单S杭H洪H包B诸Z左Z石S崔C吉J钮N龚G程C嵇J邢X滑H裴P陆L荣R翁W荀X羊Y於Y惠H甄Z麹Q家J封F芮R羿Y储C褚C靳J汲J邴B糜M松S井J段D富F巫W乌W焦J巴B弓G牧M隗W山S谷G车C侯H宓M蓬P全Q郗X班B仰Y秋Q仲Z伊Y宫G宁N仇Q栾L暴B甘G钭D厉L戎R祖Z武W符F刘L景J詹Z束S龙L叶Y幸X司S韶S郜G黎L蓟J薄B印Y宿S白B怀H蒲P邰T从C鄂E索S咸X籍J赖L卓Z蔺L屠T蒙M池C乔Q阴Y鬱Y胥X能N苍C双S闻W莘S党D翟Z谭T贡G劳L逄P姬J申S扶F堵D冉R宰Z郦L雍Y却Q璩Q桑S桂G濮P牛N寿S通T边B扈H燕Y冀J浦P尚S农N温W别B庄Z晏Y柴C瞿Q阎Y充C慕M连L茹R习X宦H艾A鱼Y容R向X古G易Y慎S戈G廖L庾Y终Z暨J居J衡H步B都D耿G满M弘H匡K国G文W寇K广G禄L阙Q欧O殳S沃W利L蔚W越Y夔K隆L师S巩G聂N晁C勾G敖A融R冷L訾Z辛X阚K那N简J饶R空K曾Z毋W沙S乜N养Y鞠J须X丰F巢C关G蒯K相X查Z后H荆J红H游Y竺Z权Q逯L盖G益Y桓H公G芳F洋Y阳Y静J杰J敏M磊L婷T浩H伟W雪X琳L悦Y斌B雯W丽L娜N娟J涛T峰F勇Y军J刚G辉H霞X波B宇Y飞F丹D莉L倩Q超C兵B俊J佳J晓X萍P凯K颖Y璐L航H鑫X瑞R泽Z涵H轩X彤T梓Z豪H晨C曦X露L萌M萱X睿R嘉J怡Y然R博B森S淼M骏J鸿H志Z鹏P昊H雨Y欣X子Z玉Y银Y铜T铁T岩Y川C海H河H禾H麦M豆D竹Z兰L菊J荷H莲L蓉R薇W菁J菲F茜Q瑶Y琪Q珍Z珠Z玲L珊S雅Y韵Y泰T顺S同T福F喜X庆Q德D才C智Z慧H忠Z孝X仁R义Y礼L信X友Y爱A恩E念N思S忆Y梦M霜S冰B清Q润R淳C源Y泉Q溪X湖H浪L潮C澎P湃P渊Y灏H焱Y煜Y炜W烨Y灿C烁S灵L焕H焰Y煌H炯J熙X熠Y熹X燚Y璋Z瑾J琛C玥Y珏J珂K璧B环H琦Q琴Q瑟S碧B硕S砚Y砥D研Y砂S砾L岳Y岚L岫X峻J岭L巍W峡X州Z岛D岸A帆F舟Z渔Y滨B湄M溯S沁Q沛P沅Y芷Z苒R芊Q芃P茁Z茂M茗M茵Y蕊R蕾L蕴Y芙F蒄G蔼A蔓M藤T蕉J苇W芒M芝Z芋Y苔T莞G荃Q茏L荟H荔L荥X荫Y茯F茚Y闫Y占Z睡S付F佘S覃Q邝K芦L鄢Y谌C栗L亓Q旷K郄Q佟T赫H鄞Y曲Q迟C隋S邸D门M敬J缑G卫W么Y昝Z雒L笪D';
     for(let i=0;i<D.length;i+=2)stuIndexKey._m[D[i]]=D[i+1];
   }
   if(stuIndexKey._m[ch])return stuIndexKey._m[ch];
@@ -2820,7 +2846,12 @@ function examEvents(){
   // 学生名 → 班级（兜底：考试数据未标 classId 时从 scores 反查；同名优先取首个匹配班级）
   const stuCls=(()=>{const m={};(S.students||[]).forEach(s=>{if(s&&s.name&&s.classId&&!m[s.name])m[s.name]=s.classId;});return m;})();
   const map={};
-  (S.exams||[]).forEach(e=>{if(!e||!e.scores)return;const k=eventNameOf(e);(map[k]=map[k]||[]).push(e);});
+  (S.exams||[]).forEach(e=>{if(!e||!e.scores)return;
+    /* r66：分组键 = 事件标题(·后段) + 科目，确保「同标题同科目」才归为同一次考试；
+            不同科目的同名考试（如 数学·第一次月考 / 英语·第一次月考）各自独立成考试事件 */
+    const k=eventNameOf(e)+'\u241F'+(e.subjectId||'__none__');
+    (map[k]=map[k]||[]).push(e);
+  });
   return Object.keys(map).map(k=>{
     const exs=(map[k]||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
     const subs=[...new Set(exs.map(e=>e.subjectId))].filter(Boolean);
@@ -2828,7 +2859,8 @@ function examEvents(){
       if(e.classId)cls.add(e.classId);
       else Object.keys(e.scores||{}).forEach(n=>{const c=stuCls[n];if(c)cls.add(c);});
     });
-    return {id:k,name:k,date:(exs[exs.length-1]||{date:''}).date,exams:exs,subjects:subs,classIds:[...cls]};
+    const sub=subs[0];
+    return {id:k,name:eventNameOf(exs[0]),date:(exs[exs.length-1]||{date:''}).date,exams:exs,subjects:subs,classIds:[...cls],subjName:sub?subjName(sub):''};
   }).sort((a,b)=>b.date.localeCompare(a.date));
 }
 /* 当前学期筛选范围内的考试事件（用于级联选择器：学期→考试→班级→科目） */
@@ -2880,7 +2912,7 @@ function gradeEventStat(ev){
     <div class="sq big ref" style="grid-column:3/span 2;grid-row:1/span 2"><div class="n">${list.length}</div><div class="l">参考人数</div></div>
     <div class="sq" data-action="grade-event-stat" data-evid="${esc(ev.id)}" data-type="excel" style="cursor:pointer;grid-column:5;grid-row:1"><div class="n ok">${excel}</div><div class="l">优秀</div></div>
     <div class="sq" data-action="grade-event-stat" data-evid="${esc(ev.id)}" data-type="fail" style="cursor:pointer;grid-column:6;grid-row:1"><div class="n danger">${fail}</div><div class="l">未及格</div></div>
-    <div class="sq" style="grid-column:5;grid-row:2"><div class="n">${ev.subjects.length}</div><div class="l">科目数</div></div>
+    <div class="sq" style="grid-column:5;grid-row:2"><div class="n">${ev.classIds.length}</div><div class="l">涉及班级</div></div>
     <div class="sq" style="grid-column:6;grid-row:2"><div class="n">${ev.exams.length}</div><div class="l">场次数</div></div></div>`;
 }
 function shade(hex,k){const n=parseInt(hex.slice(1),16);let r=(n>>16)&255,g=(n>>8)&255,b=n&255;r=Math.round(r*k);g=Math.round(g*k);b=Math.round(b*k);return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);}
@@ -2896,17 +2928,22 @@ function gradeTrendHtml(){
   if(r)evs=evs.filter(e=>e.date>=r.from&&e.date<=r.to);
   evs.sort((a,b)=>a.date.localeCompare(b.date));
   if(!evs.length)return emptyState('📈','该时间范围内还没有考试，点「+ 新增考试」录入成绩');
-  const xLabels=evs.map(e=>e.name);
+  /* r66：x 轴按「考试场合」(标题) 归组，每个场合可能含多科目；序列仍按 班级×科目 */
+  const occMap={};
+  evs.forEach(e=>{const t=e.name;(occMap[t]=occMap[t]||[]).push(e);});
+  const occs=Object.keys(occMap).map(t=>({name:t,evs:occMap[t],date:occMap[t].map(x=>x.date).sort().pop()})).sort((a,b)=>a.date.localeCompare(b.date));
+  const xLabels=occs.map(o=>o.name);
   const cid=S._gradeClass,subId=S._gradeSubCol||'';
   const clsList=(!cid||cid===ALL_CLASS)?S.classes.filter(c=>!isArchivedClass(c.id)&&c.name!=='全部班级'):[cls(cid)].filter(Boolean);
   const subList=(!subId)?[...new Set(evs.flatMap(e=>e.subjects))]:[subId];
+  const _trendVal=(o,sid,cid)=>{const ev=o.evs.find(x=>x.subjects[0]===sid);return ev?avgClassSubject(ev,sid,cid):null;};
   let series=[];
   if(!cid||cid===ALL_CLASS){
-    if(!subId)clsList.forEach(C=>subList.forEach(sid=>series.push({label:C.name+' · '+subjName(sid),clsId:C.id,subId:sid,values:evs.map(e=>avgClassSubject(e,sid,C.id))})));
-    else clsList.forEach(C=>series.push({label:C.name,clsId:C.id,subId:subId,values:evs.map(e=>avgClassSubject(e,subId,C.id))}));
+    if(!subId)clsList.forEach(C=>subList.forEach(sid=>series.push({label:C.name+' · '+subjName(sid),clsId:C.id,subId:sid,values:occs.map(o=>_trendVal(o,sid,C.id))})));
+    else clsList.forEach(C=>series.push({label:C.name,clsId:C.id,subId:subId,values:occs.map(o=>_trendVal(o,subId,C.id))}));
   }else{
-    if(!subId)subList.forEach(sid=>series.push({label:subjName(sid),clsId:cid,subId:sid,values:evs.map(e=>avgClassSubject(e,sid,cid))}));
-    else series=[{label:(cls(cid)?cls(cid).name:'')+' · '+subjName(subId),clsId:cid,subId:subId,values:evs.map(e=>avgClassSubject(e,subId,cid))}];
+    if(!subId)subList.forEach(sid=>series.push({label:subjName(sid),clsId:cid,subId:sid,values:occs.map(o=>_trendVal(o,sid,cid))}));
+    else series=[{label:(cls(cid)?cls(cid).name:'')+' · '+subjName(subId),clsId:cid,subId:subId,values:occs.map(o=>_trendVal(o,subId,cid))}];
   }
   series=series.filter(s=>s.values.some(v=>v!=null)).map(s=>{s.color=trendColor(s.clsId,s.subId,subList);return s;});
   const clsLabel=(!cid||cid===ALL_CLASS)?'全部班级':(cls(cid)?cls(cid).name:'');
@@ -3001,7 +3038,15 @@ function lpSubjStuCancel(){if(_lpSubjStuTimer){clearTimeout(_lpSubjStuTimer);_lp
 function gradeSubjectHtml(ev){
   const sid=S._gradeSub||(ev.subjects[0]||'');const sub=subj(sid);
   if(!sid||!sub)return emptyState('📈','请选择科目');
-  const f=gradeClassFilter();const exs=S.exams.filter(e=>e.subjectId===sid).sort((a,b)=>a.date.localeCompare(b.date));
+  const f=gradeClassFilter();
+  let exs=S.exams.filter(e=>e.subjectId===sid);
+  /* r65：顶部选了具体某场 ev 时（S._gradeEvent 非空 + ev 存在）→ 表格只展示这场 ev 里的该科目；
+           S._gradeEvent 空字符串「全部考试」→ 维持旧行为，展示该科目全部考试 */
+  if(ev && ev.exams){
+    const evExSet=new Set(ev.exams.map(x=>x.id));
+    exs=exs.filter(e=>evExSet.has(e.id));
+  }
+  exs.sort((a,b)=>a.date.localeCompare(b.date));
   if(!exs.length)return emptyState('📈','该科目还没有考试');
   const names=new Set();exs.forEach(e=>Object.keys(e.scores).forEach(n=>{if(!f||f.has(n))names.add(n);}));
   let list=[...names];if(!list.length)return emptyState('📈','该科目没有成绩数据');
@@ -3218,7 +3263,7 @@ document.addEventListener('contextmenu',function(e){const el=e.target.closest&&e
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeCmpPop();});
 function cmpThresh(k,v){S._cmpThresh=S._cmpThresh||{pass:70,low:40};S._cmpThresh[k]=+v||0;save();renderGradesBody();}
 function openCmpAdd(){
-  const evs=examEvents();const evOpts=`<option value="all">所有考试（范围）</option>`+evs.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join('');
+  const evs=examEvents();const evOpts=`<option value="all">所有考试（范围）</option>`+evs.map(e=>`<option value="${esc(e.id)}">${esc(evTitle(e))}</option>`).join('');
   openModal('对比添加',`<form data-form="cmp-add-form">
     <div class="field"><label>考试名称</label><select id="cmp_ev" onchange="cmpAddEv()">${evOpts}</select></div>
     <div class="field"><label>科目（可多选；空=所有科目）</label><div id="cmp_subj" class="chkbox-list" onchange="cmpAddSubj()"></div></div>
@@ -4060,8 +4105,9 @@ function gradeRangeApply(){const w=document.getElementById('gradeRangeWrap');if(
 function gradeRangeWrap(){const v=S._gradeSem;const base=`<input type="date" name="gfrom" value="${v&&v.indexOf('range:')===0?v.slice(6).split('~')[0]:''}"> <span>~</span> <input type="date" name="gto" value="${v&&v.indexOf('range:')===0?v.slice(6).split('~')[1]:''}"> <button type="button" class="btn sm" onclick="gradeRangeApply()">应用</button>`;return `<span id="gradeRangeWrap" style="display:${v&&v.indexOf('range:')===0?'inline-flex':'none'};gap:6px;align-items:center">${base}</span>`;}
 function gradeAllSubjects(){const act=activeClassIds();const subs=S.subjects.filter(s=>S.exams.some(e=>e.subjectId===s.id&&(e.classId?act.has(e.classId):Object.keys(e.scores).some(n=>{const st=stuByName(n);return st&&act.has(st.classId);}))));if(!subs.length)return emptyState('📈','还没有任何科目成绩，点「+ 新增考试」录入');const rows=subs.map(s=>{const exs=S.exams.filter(e=>e.subjectId===s.id).sort((a,b)=>a.date.localeCompare(b.date));const last=exs[exs.length-1];const vals=Object.values(last.scores);const avg=(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1);return `<tr><td><a data-action="pick-subj" data-id="${s.id}" style="cursor:pointer;color:var(--primary)">${esc(s.name)}</a></td><td>${exs.length}</td><td>${avg}</td><td>${esc(last.date)}</td><td>${esc(last.name)}</td></tr>`;}).join('');return `<div class="card"><div class="section-title">全部科目概览</div><table><thead><tr><th>科目</th><th>考试次数</th><th>最新平均分</th><th>最新日期</th><th>最新考试</th></tr></thead><tbody>${rows}</tbody></table><div class="sub">点击科目名查看该科详细分析（趋势 / 分布 / 排名 / 历次汇总 / 对比）。</div></div>`;}
 /* 考试/班级/科目 自定义弹层（与学期一致）：summary + opts + pick */
-function gradeEvSummary(){const v=S._gradeEvent;if(!v)return '全部考试';const e=gradeEventById(v);return e?e.name+' · '+e.date:'全部考试';}
-function gradeEvOptsHtml(){const v=S._gradeEvent||'';const evs=gradeScopeExams();const items=[{k:'',l:'全部考试'},...evs.map(e=>({k:e.id,l:e.name+' · '+e.date}))];return items.map(o=>`<div class="bk-range-opt" data-v="${esc(o.k)}" onclick="gradeEvPick('${esc(o.k)}')" style="${o.k===v?'background:var(--primary-soft);color:var(--primary);font-weight:600':''}">${esc(o.l)}</div>`).join('');}
+function evTitle(ev){if(!ev)return '';return (ev.name||'')+(ev.subjName?(' · '+ev.subjName):'');}
+function gradeEvSummary(){const v=S._gradeEvent;if(!v)return '全部考试';const e=gradeEventById(v);return e?evTitle(e)+' · '+e.date:'全部考试';}
+function gradeEvOptsHtml(){const v=S._gradeEvent||'';const evs=gradeScopeExams();const items=[{k:'',l:'全部考试'},...evs.map(e=>({k:e.id,l:evTitle(e)+' · '+e.date}))];return items.map(o=>`<div class="bk-range-opt" data-v="${esc(o.k)}" onclick="gradeEvPick('${esc(o.k)}')" style="${o.k===v?'background:var(--primary-soft);color:var(--primary);font-weight:600':''}">${esc(o.l)}</div>`).join('');}
 function gradeEvPick(v){closeAllBkPops();S._gradeEvent=v;const ev=gradeEventById(v);if(S._gradeClass&&S._gradeClass!==ALL_CLASS&&ev&&!ev.classIds.includes(S._gradeClass))S._gradeClass=ALL_CLASS;const subs=(ev?ev.subjects:[]);const curSub=(S._gradeView==='subject')?S._gradeSub:S._gradeSubCol;if(curSub&&!subs.includes(curSub)){if(S._gradeView==='subject')S._gradeSub=subs[0]||'';else S._gradeSubCol=subs[0]||'';}save();viewReload('grades');}
 function gradeClsSummary(){const cid=S._gradeClass;if(!cid||cid===ALL_CLASS)return '全部班级';const c=S.classes.find(x=>x.id===cid);return c?c.name:'全部班级';}
 function gradeClassSubjects(clsId,ev){if(!clsId||clsId===ALL_CLASS)return ev?ev.subjects.slice():[];const subs=new Set();(ev?ev.exams:[]).forEach(ex=>{if(ex.classId===clsId)subs.add(ex.subjectId);else if(S.students.some(s=>s.classId===clsId&&ex.scores&&ex.scores[s.name]!=null))subs.add(ex.subjectId);});return [...subs];}
@@ -4640,6 +4686,43 @@ function ttRowsHtml(){const list=ttList().map(t=>`
     <td data-label="班级">${esc(classNameOf(t.classId))}</td>
     <td data-label=""><button class="btn sm" data-action="edit-tt-row" data-id="${t.id}">改</button><button class="btn sm danger" data-action="del-tt" data-id="${t.id}">删</button></td></tr>`).join('');
   return list||`<tr><td colspan="6">${emptyState('🗓️','该筛选下还没有课表')}</td></tr>`;}
+function ttMatrixHtml(){
+  const list=ttList();
+  const byCell={};
+  list.forEach(t=>{const k=(t.period>=1?t.period:1)+'_'+(t.day!=null?t.day:1);(byCell[k]=byCell[k]||[]).push(t);});
+  const PARTS=[['上午',1],['下午',6],['晚上',11]];
+  const DAYS=[1,2,3,4,5,6,0];
+  let h='<table class="tt-matrix"><thead><tr><th class="tt-m-corner" rowspan="2">节次＼星期</th>';
+  DAYS.forEach(d=>{h+='<th class="tt-m-day">周'+WD[d]+'</th>';});
+  h+='</tr></thead><tbody>';
+  PARTS.forEach(function(p){const label=p[0],from=p[1];
+    for(let pnum=1;pnum<=5;pnum++){
+      const period=from+pnum-1;
+      h+='<tr>';
+      if(pnum===1)h+='<th class="tt-m-part" rowspan="5">'+label+'</th>';
+      h+='<th class="tt-m-pnum">'+pnum+'</th>';
+      DAYS.forEach(function(d){
+        const cell=byCell[period+'_'+d];
+        if(cell&&cell.length){
+          h+='<td class="tt-m-cell">'+cell.map(function(t){
+            const hue=(TT_HUES[d]!=null)?TT_HUES[d]:212;
+            return '<div class="tt-m-item" data-action="edit-tt-row" data-id="'+t.id+'" style="--dh:'+hue+'">'
+              +'<span class="tt-mi-subj">'+esc(t.subject||'未填科目')+'</span>'
+              +'<span class="tt-mi-cls">'+esc(classNameOf(t.classId))+'</span>'
+              +(t.time?'<span class="tt-mi-time">'+esc(t.time)+'</span>':'')
+              +(t.biweekly?'<span class="tt-mi-bw">隔周</span>':'')
+              +'</div>';
+          }).join('')+'</td>';
+        }else{
+          h+='<td class="tt-m-empty" data-action="add-tt-cell" data-day="'+d+'" data-period="'+period+'" title="添加课节（周'+WD[d]+' '+label+pnum+'节）"><span class="tt-m-add">+</span></td>';
+        }
+      });
+      h+='</tr>';
+    }
+  });
+  h+='</tbody></table>';
+  return h;
+}
 function viewSettings(){
   S._arcClass=S._arcClass||(S.classes[0]&&S.classes[0].id)||ALL_CLASS;S._arcContent=S._arcContent||'all';
   S._bkClass=S._bkClass||ALL_CLASS;S._bkTime=S._bkTime||'all';S._bkFrom=S._bkFrom||'';S._bkTo=S._bkTo||'';S._bkRanges=S._bkRanges||['all'];
@@ -4647,7 +4730,7 @@ function viewSettings(){
   if(S._ttSem&&S._ttSem!==''&&!S.semesters.some(s=>s.id===S._ttSem))S._ttSem=curSem()?curSem().id:'';
   S._planSem=S._planSem||S._previewSem||(curSem()?curSem().id:ALL_CLASS);
   if(S._planSem&&S._planSem!==ALL_CLASS&&!S.semesters.some(s=>s.id===S._planSem))S._planSem=curSem()?curSem().id:ALL_CLASS;
-  const tt=ttRowsHtml();
+  const ttMatrix=ttMatrixHtml();const ttCards=ttCardsHtml();
   const arcRows=(S.archives||[]).map(a=>{const clsList=classArcList(a);return `<div class="sch-row"><div><strong style="line-height:1">${esc(classArcName(a))}</strong> ${a.auto?'<span class="sch-chip" style="background:var(--primary-soft);color:var(--primary)">自动</span>':''} ${clsList?'<span class="sch-chip semarc-info">'+esc(clsList)+'</span>':''}</div>
     <div style="display:flex;gap:12px"><button class="btn sm" data-action="res-arc" data-id="${a.id}" title="恢复" style="padding:0;border:0;background:transparent;width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center">${iconSvg('loop',14)}</button>
     <button class="btn sm" data-action="exp-arc" data-id="${a.id}" title="导出" style="padding:0;border:0;background:transparent;width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center">${iconSvg('upload',14)}</button>
@@ -4689,9 +4772,8 @@ function viewSettings(){
     <div class="section-title clickable" onclick="toggleCollapse('set_timetable')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('课表设置',22)}课表设置</span> <span class="chev"></span></div>
     <div class="collapse-body" style="display:none;padding-top:12px">
       <div class="field row" style="align-items:flex-end;flex-wrap:wrap;margin-bottom:8px">
-        <div class="field" style="flex:1.2;margin-bottom:0;min-width:0">${selHtml('tt_sem',ttSemSummary(),bkOpts([{k:'',l:'全部学期',pick:'ttSemSel'},...S.semesters.map(s=>({k:s.id,l:s.name+(s.current?'（当前）':'')+(s.archived?' · 已归档':'')}))],S._ttSem||''))}</div>
-        <div class="field" style="flex:1.2;margin-bottom:0;min-width:0">${selHtml('tt_class',ttClassSummary(),bkOpts([{k:ALL_CLASS,l:'全部班级',pick:'ttClassSel'},...S.classes.filter(c=>!c.archived&&c.name!=='全部班级').map(c=>({k:c.id,l:c.name,pick:'ttClassSel'}))],S._ttClass||ALL_CLASS))}</div>
-        <div class="field" style="flex:1.2;margin-bottom:0;min-width:0">${selHtml('tt_subj',ttSubjSummary(),bkOpts([{k:'',l:'全部科目',pick:'ttSubjSel'},...planSubjectOpts().map(n=>({k:n,l:n,pick:'ttSubjSel'}))],S._ttSubject||''))}</div>
+        <div class="field" style="flex:1;margin-bottom:0;min-width:0">${selHtml('tt_sem',ttSemSummary(),bkOpts([{k:'',l:'全部学期',pick:'ttSemSel'},...S.semesters.map(s=>({k:s.id,l:s.name+(s.current?'（当前）':'')+(s.archived?' · 已归档':'')}))],S._ttSem||''))}</div>
+        <div class="field" style="flex:1;margin-bottom:0;min-width:0">${selHtml('tt_subj',ttSubjSummary(),bkOpts([{k:'',l:'全部科目',pick:'ttSubjSel'},...planSubjectOpts().map(n=>({k:n,l:n,pick:'ttSubjSel'}))],S._ttSubject||''))}</div>
       </div>
       <div class="set-act" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;justify-content:flex-end">
         <button class="btn sm stu-ie-btn" data-action="tt-del" data-lp="tt-del" id="tt_del_btn" style="flex:none;width:38px;height:38px;border-radius:99px;border:1px solid var(--border);background:#fff;padding:0;display:inline-flex;align-items:center;justify-content:center;color:#444441" aria-label="删除">${iconSvg('trash',16)}</button>
@@ -4699,8 +4781,8 @@ function viewSettings(){
         <button class="btn sm" data-action="exp-tt" style="flex:none;width:38px;height:38px;border-radius:99px;border:1px solid var(--border);background:#fff;padding:0;display:inline-flex;align-items:center;justify-content:center;color:#444441" aria-label="导出课表">${iconSvg('upload',16)}</button>
         <button class="btn primary sm add-spin" data-action="edit-tt" onclick="spinAddBtn(this)" style="flex:none;width:38px;height:38px;border-radius:50%;padding:0;display:inline-flex;align-items:center;justify-content:center" aria-label="添加课节">${addIconSvg()}</button>
       </div>
-      <div class="tt-cards">${ttCardsHtml()}</div>
-      <div style="padding:0;overflow:auto"><table class="tt-table"><thead><tr><th>星期</th><th>节次</th><th>时间</th><th>科目</th><th>班级</th><th></th></tr></thead><tbody>${tt}</tbody></table></div>
+      <div style="padding:0;overflow:auto">${ttMatrix}</div>
+      <div class="tt-cards">${ttCards}</div>
       <div class="field row" style="margin-top:12px"><label style="display:flex;gap:8px;align-items:center;flex:1;cursor:pointer">
         <input type="checkbox" id="ttCal" ${S.settings.ttCal?'checked':''} onchange="saveTtCal(this.checked)" style="width:auto"> 课表显示在日历里</label></div>
     </div>
@@ -5377,7 +5459,7 @@ function modalExam(subId){const sel=S._gradeSub&&subId?subId:subId;
   <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">保存</button></div></form>`);}
 function examSubjChange(v){const w=document.getElementById('examSubjCustomWrap');if(w)w.style.display=v==='__custom__'?'block':'none';}
 function periodSelectOpts(part,pnum){const parts=[['上午',0],['下午',1],['晚上',2]];let h='';parts.forEach(([label,p])=>{h+=`<optgroup label="${label}">`;for(let n=1;n<=4;n++){const val=p+':'+n;const sel=(p===part&&n===pnum)?'selected':'';h+=`<option value="${val}" ${sel}>${label}第${n}节</option>`;}h+=`</optgroup>`;});return h;}
-function periodLabel(t){const p=t.part!=null?t.part:0;const period=t.period||1;const n=(((period-1)%5)+1);const labels=['上午','下午','晚上'];return labels[p]+n;}
+function periodLabel(t){const period=t.period&&t.period>=1?t.period:1;const p=Math.max(0,Math.min(2,Math.floor((period-1)/5)));const n=((period-1)%5)+1;const labels=['上午','下午','晚上'];return labels[p]+n;}
 function parsePeriodLabel(s){
   const raw=String(s||'').trim();
   let part=0;
@@ -5390,12 +5472,12 @@ function parsePeriodLabel(s){
   const per=Math.max(1,Math.min(15,parseInt(digits,10)));
   return {part:Math.floor((per-1)/5),pnum:((per-1)%5)+1,period:per};
 }
-function modalTt(id){const t=id?S.timetable.find(x=>x.id===id):{};
+function modalTt(id,prefill){const t=id?S.timetable.find(x=>x.id===id):{};
   const semDefault=t.sem||(curSem()?('sem:'+curSem().id):'');
-  const clsDefault=id?t.classId:(S._ttLastCls||ALL_CLASS);
+  const clsDefault=id?t.classId:(prefill&&prefill.classId?prefill.classId:(S._ttLastCls||ALL_CLASS));
   const subjList=planSubjectOpts();
   const subjDefault=id?(t.subject&&subjList.includes(t.subject)?t.subject:(subjList[0]||'')):(S._ttLastSubj&&subjList.includes(S._ttLastSubj)?S._ttLastSubj:(subjList[0]||''));
-  const part=t.part!=null?t.part:0;const pnum=(t.period&&t.period>=1&&t.period<=5)?t.period:1;const dayDefault=(t.day!=null)?t.day:1;
+  const per=id&&t.period&&t.period>=1?t.period:(prefill&&prefill.period>=1?prefill.period:1);const part=Math.max(0,Math.min(2,Math.floor((per-1)/5)));const pnum=Math.max(1,Math.min(5,(per-1)%5+1));const dayDefault=(id&&t.day!=null)?t.day:(prefill&&prefill.day!=null?prefill.day:1);
   openModal(id?'编辑课节':'添加课节',`<form data-form="tt" data-id="${id||''}">
     <div class="field row" style="margin-bottom:12px"><div class="field" style="flex:1;margin-bottom:0"><label>学期</label>${selHtml('ttadd_sem',ttAddSemLabel(semDefault),bkOpts(ttAddSemOpts(),semDefault))}<input type="hidden" name="ttsem" value="${esc(semDefault)}"></div>
       <div class="field" style="flex:1;margin-bottom:0"><label>班级</label>${selHtml('ttadd_cls',ttAddClsLabel(clsDefault),bkOpts(ttAddClsOpts(),clsDefault))}<input type="hidden" name="ttcls" value="${esc(clsDefault)}"></div>
@@ -5519,10 +5601,10 @@ modal.addEventListener('submit',e=>{
   else if(form==='custom-sub'){const nm=v('subName').trim();if(!nm){toast('请输入科目名称');return;}S._gradeSub=ensureSubj(nm,true);closeModal();viewReload('grades');toast('已添加科目：'+nm+'（请为该科目录入一次成绩，否则不会被保留）');}
     else if(form==='edit-score'){const eid=f.dataset.eid;const nm=f.dataset.name;const sc=parseFloat(v('sc'));const e=S.exams.find(x=>x.id===eid);if(!e){toast('考试不存在');return;}
       if(isNaN(sc)){toast('请输入数字分数');return;}e.scores[nm]=sc;save();closeModal();viewReload('grades');toast('已修改成绩');}
-    else if(form==='imp-grade'){const semV=(v('gsem')||'').trim();const clsIdV=(v('gcls')||'').trim();const subRaw=(v('gsubj')||'').trim();const nameV=(v('gname')||'').trim();if(!semV||!clsIdV||clsIdV===ALL_CLASS||!subRaw||!nameV){toast('请补充完整考试信息（学期/班级/科目/考试名称）');return;}
+    else if(form==='imp-grade'){const semV=(v('gsem')||'').trim();const clsIdV=(v('gcls')||'').trim();const subRaw=(v('gsubj')||'').trim();const nameV=(v('gname')||'').trim();if(!semV||!clsIdV){toast('请先选择学期与班级（科目、考试名称可留空：宽表会从文件自动读取）');return;}
       let subId=S.subjects.find(s=>s.name===subRaw)?S.subjects.find(s=>s.name===subRaw).id:'';
       if(!subId){subId=uid();S.subjects.push({id:subId,name:subRaw});}
-      const classId=clsIdV===ALL_CLASS?'':clsIdV;const sem=semV;const name=nameV;
+      const classId=clsIdV;const sem=semV;const name=nameV; /* r70：classId===ALL_CLASS 表示「自动识别班级」 */
       S._gradeSub=subId;S._gradeClass=clsIdV;S._gradeSem=sem;save();closeModal();
       importGrade(subId,{sem,classId,name});}
     else if(form==='exp-grade'){const subRaw=(v('gsubj')||'').trim();const allSubj=(subRaw==='__all__');
@@ -5693,6 +5775,8 @@ document.body.addEventListener('click',e=>{
   else if(a==='add-exam'){modalExamAdd();}
   else if(a==='pick-subj'){S._gradeSub=t.dataset.id;S._gradeView='subject';viewReload('grades');}
   else if(a==='imp-grade'){if(!id){toast('请先选择或自定义科目');openCustomSub();return;}modalImportGrade(id);}
+  else if(a==='dl-grade-tpl'){downloadGradeTemplate();}
+  else if(a==='dl-grade-tpl-wide'){downloadGradeTemplateWide();}
   else if(a==='exp-grade'){if(!id){toast('请先选择或自定义科目');openCustomSub();return;}modalExportGrade(id);}
   else if(a==='grade-view'){gradeView(t.dataset.t);}
     else if(a==='grade-score-sort'){gradeScoreSortToggle(t.dataset.k);}
@@ -5739,6 +5823,7 @@ document.body.addEventListener('click',e=>{
   else if(a==='exp-tt'){exportTimetable();}
   else if(a==='edit-tt'){modalTt();}
   else if(a==='edit-tt-row'){modalTt(id);}
+  else if(a==='add-tt-cell'){const day=parseInt(t.dataset.day,10)||1,period=parseInt(t.dataset.period,10)||1;const fc=S.classes.find(c=>!c.archived&&c.name!=='全部班级');modalTt(null,{day,period,classId:(fc&&fc.id)||ALL_CLASS});}
   else if(a==='del-tt'){S.timetable=S.timetable.filter(y=>y.id!==id);save();viewReload('settings');}
   else if(a==='imp-plan'){modalImportPlan();}
   else if(a==='plan-add-modal'){modalPlanAdd();}
@@ -6142,7 +6227,7 @@ DEL_CFG={
   reviews:{btnId:'review_del_btn',itemSel:'.review-card',ids:currentReviewIds,del:deleteReviews},
   classes:{btnId:'class_del_btn',itemSel:'.stu-grid .card',ids:currentClassIds,del:deleteClasses},
   students:{btnId:'stu_del_btn',itemSel:'.stu-idx .card',ids:currentStuIds,del:deleteStudents},
-  timetable:{btnId:'tt_del_btn',itemSel:'.tt-card',ids:currentTtIds,del:deleteTimetable},
+  timetable:{btnId:'tt_del_btn',itemSel:'.tt-card,.tt-m-item',ids:currentTtIds,del:deleteTimetable},
   plan:{btnId:'plan_del_btn',itemSel:'#planList .rec',ids:currentPlanIds,del:deletePlan}
 };
 
@@ -6962,12 +7047,215 @@ function restoreNoteArc(id){const list=S.noteArchives=S.noteArchives||[];const t
 function restoreReviewArc(id){const list=S.reviewArchives=S.reviewArchives||[];const t=list.find(x=>x.id===id);if(!t)return;if(!S.reviews.some(x=>x.id===t.id))S.reviews.push(t);S.reviewArchives=S.reviewArchives.filter(x=>x.id!==id);save();viewReload('settings');toast('已恢复每周复盘');}
 
 /* grade import-export */
-function findScoreColumns(h){const nameIdx=h.findIndex(x=>/姓名|学生|name|student/i.test(String(x||'')));const scoreIdx=h.findIndex(x=>/分数|成绩|score|mark/i.test(String(x||'')));return {nameIdx,scoreIdx};}
+/* r70：定位 姓名 / 分数 / 班级 三列（表头顺序任意，多余列如考号/性别/备注自动忽略）。clsIdx<0 表示文件没有班级列。 */
+function findScoreColumns(h){
+  const n=x=>String(x||'').replace(/\s/g,'');
+  const nameIdx=h.findIndex(x=>/姓名|学生|name|student/i.test(n(x)));
+  const scoreIdx=h.findIndex(x=>/分数|成绩|得分|score|mark/i.test(n(x)));
+  const clsIdx=h.findIndex(x=>/^(班级|班|所在班级|班级名称|班级名|class|classname)$/i.test(n(x)));
+  return {nameIdx,scoreIdx,clsIdx};}
 function parseScoreRows(rows){const out=[];if(!rows.length)return out;
   let start=0;let nameIdx=0,scoreIdx=1;
   const h=rows[0].map(x=>String(x||'').trim());const fc=findScoreColumns(h);
   if(fc.nameIdx>=0&&fc.scoreIdx>=0){start=1;nameIdx=fc.nameIdx;scoreIdx=fc.scoreIdx;}
   rows.slice(start).forEach(r=>{const nm=String(r[nameIdx]||'').trim();const sc=parseFloat(String(r[scoreIdx]||'').replace(/["'\u201C\u201D]/g,''));if(nm&&!isNaN(sc))out.push([nm,sc]);});return out;}
+/* r70：学生姓名 → 班级 id（供没有班级列的文件按花名册反查分班；同名取首个匹配） */
+function stuClassMap(){const m={};(S.students||[]).forEach(s=>{if(s&&s.name&&s.classId&&!m[s.name])m[s.name]=s.classId;});return m;}
+/* r70：文件里的班级文本 → 系统 classId。依次尝试：精确名 → 去空格/去「班」后缀 → 唯一编号 → （可选）自动新建班级。返回 {id,created} */
+function gradeClassIdOf(t,autoCreate){
+  const s=String(t==null?'':t).replace(/\s/g,'').trim();
+  if(!s)return {id:'',created:false};
+  const list=(S.classes||[]).filter(c=>c&&c.name&&c.name!=='全部班级');
+  const act=list.filter(c=>!c.archived); /* 模糊/编号匹配只看未归档班，避免成绩误录进已归档班级 */
+  const norm=v=>String(v||'').replace(/\s/g,'').replace(/班$/,'').toLowerCase();
+  const num=v=>{const m=String(v||'').match(/[（(]?(\d+)[）)]?/);return m?m[1]:'';};
+  let c=list.find(x=>x.name===s);
+  if(!c){const ns=norm(s);if(ns)c=act.find(x=>norm(x.name)===ns);}
+  if(!c){const ns=num(s);if(ns){const hit=act.filter(x=>num(x.name)===ns);if(hit.length===1)c=hit[0];}}
+  if(c)return {id:c.id,created:false};
+  if(!autoCreate)return {id:'',created:false};
+  const nc={id:uid(),name:s};S.classes.push(nc);return {id:nc.id,created:true};}
+/* r70：把一张表的行解析成「按班级分组」的成绩块（纯函数，便于单测）。
+   rows 二维数组（可含表头，列顺序任意，多余列自动忽略）；defCls 导入弹窗选的班级（空/ALL_CLASS = 自动识别）；autoCreate 未知班级是否新建
+   识别优先级：① 班级列 ② 花名册按姓名反查 ③ 导入弹窗选的班级 ④ 归入「未识别」(classId='')
+   返回 {groups:{cid:{姓名:分数}}, order:[cid], mode:'col'|'roster'|'single', total, unmatched, created:[classId]} */
+function gradeGroupsFromRows(rows,defCls,autoCreate){
+  const res={groups:{},order:[],mode:'single',total:0,unmatched:0,created:[]};
+  const src=(rows||[]).filter(r=>r&&r.length);
+  if(!src.length)return res;
+  const h=src[0].map(x=>String(x||'').trim());
+  const fc=findScoreColumns(h);
+  let start=0,nameIdx=0,scoreIdx=1,clsIdx=-1;
+  if(fc.nameIdx>=0&&fc.scoreIdx>=0){start=1;nameIdx=fc.nameIdx;scoreIdx=fc.scoreIdx;clsIdx=fc.clsIdx;}
+  const isAuto=!defCls||defCls===ALL_CLASS;
+  const roster=clsIdx<0?stuClassMap():null;
+  if(clsIdx>=0)res.mode='col';else if(roster&&Object.keys(roster).length)res.mode='roster';
+  const items=[];
+  src.slice(start).forEach(r=>{
+    const nm=String(r[nameIdx]||'').trim();
+    const sc=parseFloat(String(r[scoreIdx]||'').replace(/["'\u201C\u201D]/g,''));
+    if(!nm||isNaN(sc))return;
+    let cid='';
+    if(clsIdx>=0){const m=gradeClassIdOf(r[clsIdx],autoCreate);cid=m.id||'';if(m.created&&res.created.indexOf(m.id)<0)res.created.push(m.id);}
+    if(!cid&&roster)cid=roster[nm]||'';
+    if(!cid&&!isAuto)cid=defCls;
+    items.push([cid||'',nm,sc]);
+  });
+  items.forEach(function(it){const k=it[0];
+    if(!res.groups[k]){res.groups[k]={};res.order.push(k);}
+    if(res.groups[k][it[1]]==null)res.total++;
+    res.groups[k][it[1]]=it[2];});
+  res.unmatched=res.groups['']?Object.keys(res.groups['']).length:0;
+  return res;}
+/* r72：统一「归一化长表」解析（一张表 = 学生的每一场考试一行，列可含 学期/班级/考试名/科目/考试时间）。
+   优先级：列值优先；缺列时回退导入弹窗的 学期/班级/科目/考试名 默认值。
+   识别每个班的每一次考试 → 按 (sem|classId|examName|subjectId|date) 归组成一条 S.exams 记录。
+   返回 {exams:[{subjectId,name,date,scores,classId,sem}],total,skipped,unmatched,createdClasses:[],createdSubjects:[]} */
+function findUnifiedColumns(h){
+  const n=x=>String(x||'').replace(/\s/g,'');
+  const nameIdx=h.findIndex(x=>/姓名|学生|name|student/i.test(n(x)));
+  const scoreIdx=h.findIndex(x=>/分数|成绩|得分|score|mark/i.test(n(x)));
+  const clsIdx=h.findIndex(x=>/^(班级|班|所在班级|班级名称|班级名|class|classname)$/i.test(n(x)));
+  const semIdx=h.findIndex(x=>/^(学期|学年|semester|sem)$/i.test(n(x)));
+  const subjIdx=h.findIndex(x=>/^(科目|学科|课程|subject|course)$/i.test(n(x)));
+  const examIdx=h.findIndex(x=>/^(考试名|考试名称|考试|测验名|测验|exam|test)$/i.test(n(x)));
+  const dateIdx=h.findIndex(x=>/^(考试时间|考试日期|日期|时间|date)$/i.test(n(x)));
+  return {nameIdx,scoreIdx,clsIdx,semIdx,subjIdx,examIdx,dateIdx};}
+function gradeRecordsFromRows(allRows,subId,meta,autoCreate){
+  const res={exams:[],total:0,skipped:0,unmatched:0,createdClasses:[],createdSubjects:[]};
+  const src=(allRows||[]).filter(r=>r&&r.length);
+  if(!src.length)return res;
+  let hi=-1;
+  for(let i=0;i<Math.min(src.length,12);i++){const h=src[i].map(x=>String(x||'').trim());const fc=findScoreColumns(h);if(fc.nameIdx>=0&&fc.scoreIdx>=0){hi=i;break;}}
+  if(hi<0)return res;
+  const h=src[hi].map(x=>String(x||'').trim());
+  const fc=findScoreColumns(h);
+  const uc=findUnifiedColumns(h);
+  const nameIdx=fc.nameIdx,scoreIdx=fc.scoreIdx,clsIdx=fc.clsIdx;
+  const semIdx=uc.semIdx,subjIdx=uc.subjIdx,examIdx=uc.examIdx,dateIdx=uc.dateIdx;
+  const defName=meta.name||'',defSem=meta.sem||'';
+  const defCls=(meta.classId&&meta.classId!==ALL_CLASS)?meta.classId:'';
+  const isAuto=!meta.classId||meta.classId===ALL_CLASS;
+  const roster=clsIdx<0?stuClassMap():null;
+  const defDate=todayISO();
+  const map={};
+  src.slice(hi+1).forEach(r=>{
+    const nm=String(r[nameIdx]||'').trim();
+    const raw=String(r[scoreIdx]==null?'':r[scoreIdx]).replace(/["'\u201C\u201D]/g,'').trim();
+    if(!nm||raw===''){res.skipped++;return;}
+    const sc=parseFloat(raw);
+    if(isNaN(sc)){res.skipped++;return;}
+    let cid='';
+    if(clsIdx>=0){const m=gradeClassIdOf(r[clsIdx],autoCreate);cid=m.id||'';if(m.created&&res.createdClasses.indexOf(m.id)<0)res.createdClasses.push(m.id);}
+    if(!cid&&roster)cid=roster[nm]||'';
+    if(!cid&&!isAuto)cid=defCls;
+    if(!cid)res.unmatched++;
+    let sub=subId||'';
+    if(subjIdx>=0){const s=String(r[subjIdx]||'').trim();if(s){const ex=S.subjects.find(x=>x.name===s);sub=ex?ex.id:ensureSubj(s);if(!ex&&res.createdSubjects.indexOf(sub)<0)res.createdSubjects.push(sub);}}
+    if(!sub)return;
+    const ename=(examIdx>=0)?String(r[examIdx]||'').trim():defName;
+    if(!ename)return;
+    let sem=defSem;
+    if(semIdx>=0){const s=gradeSemOfText(String(r[semIdx]||'').trim());if(s)sem=s;}
+    const date=(dateIdx>=0)?(normDateStr(String(r[dateIdx]||''))||defDate):defDate;
+    const key=sem+'|'+cid+'|'+ename+'|'+sub+'|'+date;
+    if(!map[key])map[key]={subjectId:sub,name:ename,date:date,scores:{},classId:cid,sem:sem};
+    map[key].scores[nm]=sc;res.total++;
+  });
+  Object.keys(map).forEach(k=>{if(Object.keys(map[k].scores).length)res.exams.push(map[k]);});
+  return res;}
+/* ---------- r71：单班「多次考试」宽表导入（一列一场考试） ---------- */
+/* 日期规范化：2026-03-15 / 2026/3/15 / 2026.3.15 / 2026年3月15日 / 3月15日 / 20260315 / Excel 日期序列号 → YYYY-MM-DD；无法解析返回 '' */
+function normDateStr(v){
+  let s=String(v==null?'':v).replace(/["'\u201C\u201D]/g,'').trim();
+  if(!s)return '';
+  let m=s.match(/(\d{4})\s*[年\-\/\.]\s*(\d{1,2})\s*[月\-\/\.]\s*(\d{1,2})/);
+  if(m)return m[1]+'-'+String(+m[2]).padStart(2,'0')+'-'+String(+m[3]).padStart(2,'0');
+  m=s.match(/^(\d{1,2})\s*[月\-\/\.]\s*(\d{1,2})\s*日?$/);
+  if(m)return String(new Date().getFullYear())+'-'+String(+m[1]).padStart(2,'0')+'-'+String(+m[2]).padStart(2,'0');
+  m=s.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if(m)return m[1]+'-'+m[2]+'-'+m[3];
+  m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m)return m[1]+'-'+m[2]+'-'+m[3];
+  if(/^\d{5}$/.test(s)){const n=+s;
+    if(n>20000&&n<60000){const d=new Date(Date.UTC(1899,11,30)+n*86400000);
+      return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');}}
+  return '';}
+/* 学期文本 → sem 值：已是 sem:/range: 原样返回；按学期名精确/模糊匹配；匹配不到返回 ''（由调用方回退默认学期） */
+function gradeSemOfText(v){
+  const s=String(v==null?'':v).trim();
+  if(!s)return '';
+  if(s.indexOf('sem:')===0||s.indexOf('range:')===0)return s;
+  const norm=x=>String(x||'').replace(/\s/g,'').toLowerCase();
+  const ns=norm(s),list=S.semesters||[];
+  let t=list.find(x=>x.name===s);
+  if(!t&&ns)t=list.find(x=>norm(x.name)===ns);
+  if(!t&&ns)t=list.find(x=>{const nx=norm(x.name);return nx&&(nx.indexOf(ns)>=0||ns.indexOf(nx)>=0);});
+  return t?('sem:'+t.id):'';}
+/* 判断是否「单班多次考试」宽表：元信息行(科目/学期/日期) + 「姓名」表头行，其右侧每列 = 一场考试 */
+function looksLikeWideTable(rows){
+  const src=(rows||[]).filter(r=>r&&r.length);
+  if(src.length<2)return false;
+  let hasMeta=false,headCols=0,foundHead=false;
+  for(let i=0;i<Math.min(src.length,8);i++){
+    const L=String(src[i][0]==null?'':src[i][0]).replace(/\s/g,'');
+    if(/^(科目|学科|学期|日期|考试时间|考试日期)$/.test(L))hasMeta=true;
+    if(/^(姓名|学生|学生姓名|name)$/i.test(L)){
+      foundHead=true;
+      headCols=(src[i]||[]).slice(1).filter(x=>String(x==null?'':x).trim()!=='').length;
+      /* 表头行若带「分数/成绩」列 → 是长表（单次考试多班），不是宽表 */
+      const fc=findScoreColumns(src[i].map(x=>String(x==null?'':x).trim()));
+      if(fc.scoreIdx>=0)return false;
+    }
+  }
+  if(foundHead&&hasMeta&&headCols>=1)return true;
+  if(foundHead&&headCols>=2)return true;
+  return false;}
+/* 宽表 → 每列一场考试。模板：
+     科目 | 数学 | 数学        学期 | 2026春 | 2026春        日期 | 2026-03-15 | 2026-04-20
+     姓名 | 第一次月考 | 期中考试       张三 | 85 | 90
+   返回 {exams:[{name,subjectId,date,sem,scores}],total,skipped,headRow} */
+function gradeExamsFromWideRows(rows,defSubId,meta){
+  const res={exams:[],total:0,skipped:0,headRow:-1};
+  const src=(rows||[]).filter(r=>r&&r.length);
+  if(src.length<2)return res;
+  const lbl=i=>String(src[i][0]==null?'':src[i][0]).replace(/\s/g,'');
+  let hi=-1;
+  for(let i=0;i<Math.min(src.length,8);i++){if(/^(姓名|学生|学生姓名|name)$/i.test(lbl(i))){hi=i;break;}}
+  if(hi<0)return res;
+  res.headRow=hi;
+  let subjRow=-1,semRow=-1,dateRow=-1;
+  for(let i=0;i<hi;i++){
+    const L=lbl(i);
+    if(subjRow<0&&/^(科目|学科|subject)$/i.test(L))subjRow=i;
+    else if(semRow<0&&/^(学期|semester|sem)$/i.test(L))semRow=i;
+    else if(dateRow<0&&/^(日期|考试时间|考试日期|date)$/i.test(L))dateRow=i;
+  }
+  const head=src[hi],cols=[];
+  for(let c=1;c<head.length;c++){
+    const nm=String(head[c]==null?'':head[c]).trim();
+    if(!nm)continue;
+    const subRaw=subjRow>=0?String(src[subjRow][c]==null?'':src[subjRow][c]).trim():'';
+    const semRaw=semRow>=0?String(src[semRow][c]==null?'':src[semRow][c]).trim():'';
+    const dateRaw=dateRow>=0?String(src[dateRow][c]==null?'':src[dateRow][c]).trim():'';
+    const subId=subRaw?ensureSubj(subRaw):(defSubId||'');
+    const sem=(semRaw?gradeSemOfText(semRaw):'')||((meta&&meta.sem)||'');
+    cols.push({name:nm,subjectId:subId,date:normDateStr(dateRaw)||todayISO(),sem:sem,scores:{}});
+  }
+  if(!cols.length)return res;
+  src.slice(hi+1).forEach(r=>{
+    const nm=String(r[0]==null?'':r[0]).trim();
+    if(!nm)return;
+    cols.forEach((col,ci)=>{
+      const rawStr=String(r[ci+1]==null?'':r[ci+1]).replace(/["'\u201C\u201D]/g,'').trim();
+      if(rawStr===''){res.skipped++;return;}
+      const sc=parseFloat(rawStr);
+      if(isNaN(sc)){res.skipped++;return;}
+      col.scores[nm]=sc;res.total++;
+    });
+  });
+  cols.forEach(c=>{if(Object.keys(c.scores).length)res.exams.push(c);});
+  return res;}
 function modalImportGrade(presetSub){
   const sem=S._gradeSem||(curSem()?('sem:'+curSem().id):'');
   const cid=S._gradeClass||ALL_CLASS;
@@ -6985,6 +7273,7 @@ function modalImportGrade(presetSub){
       <div class="field" style="flex:1"><label>学期</label>${semTrigger}<input type="hidden" name="gsem" value="${esc(sem)}"></div>
       <div class="field" style="flex:1"><label>班级</label>${clsTrigger}<input type="hidden" name="gcls" value="${esc(cid)}"></div>
       <div class="field" style="flex:1"><label>科目</label>${comboHTML('gsubj',subName,subjectNames,'选择或输入科目')}</div></div>
+    <div class="sub"><b>一个文件导入所有班级的历次考试</b>：用下面这个模板，每行填一个学生的单场成绩（学期 / 班级 / 考试名 / 科目 / 考试时间 / 姓名 / 分数）。系统会按这些列自动归类到「每个班的每一场考试」，没有的列从上方默认值读取，没建过的班级/科目会自动新建。<a href="javascript:;" data-action="dl-grade-tpl" style="color:var(--primary);font-weight:600">下载模板</a>　也兼容旧版「一列一场考试」的宽表格式<a href="javascript:;" data-action="dl-grade-tpl-wide" style="color:var(--primary);font-weight:600">下载旧模板</a></div>
     <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">确定</button></div>
   </form>`);
 }
@@ -6992,17 +7281,116 @@ function modalImportGrade(presetSub){
 function impSemLabel(v){if(!v)return '选择学期';if(v==='__range__')return '自定义时间范围…';if(v.indexOf('sem:')===0){const s=S.semesters.find(x=>x.id===v.slice(4));return s?s.name+'（'+s.start+'~'+s.end+'）'+(s.archived?' · 已归档':''):'选择学期';}return v;}
 function impSemOpts(){return S.semesters.map(s=>({k:'sem:'+s.id,l:s.name+'（'+s.start+'~'+s.end+'）'+(s.archived?' · 已归档':''),pick:'impSemPick'})).concat([{k:'__range__',l:'自定义时间范围…',pick:'impSemPick'}]);}
 function impSemPick(v){const f=document.querySelector('form[data-form="imp-grade"]');const hid=f&&f.querySelector('input[name="gsem"]');if(hid)hid.value=v;const w=document.getElementById('imp_sem_wrap');const t=w&&w.querySelector('.bk-trigger-text');if(t)t.textContent=impSemLabel(v);closeAllBkPops();}
-function impClsLabel(v){if(!v||v===ALL_CLASS)return '全部班级';const c=cls(v);return c?c.name:'全部班级';}
-function impClsOpts(){return [{k:ALL_CLASS,l:'全部班级',pick:'impClsPick'}].concat(S.classes.filter(c=>!c.archived).map(c=>({k:c.id,l:c.name,pick:'impClsPick'})));}
+/* r70：班级选项里的 ALL_CLASS 语义 = 「自动识别班级」（按文件班级列 / 花名册自动分班），不再代表「未选择」 */
+function impClsLabel(v){if(!v||v===ALL_CLASS)return '自动识别班级';const c=cls(v);return c?c.name:'自动识别班级';}
+function impClsOpts(){return [{k:ALL_CLASS,l:'自动识别班级',pick:'impClsPick'}].concat(S.classes.filter(c=>!c.archived).map(c=>({k:c.id,l:c.name,pick:'impClsPick'})));}
 function impClsPick(v){const f=document.querySelector('form[data-form="imp-grade"]');const hid=f&&f.querySelector('input[name="gcls"]');if(hid)hid.value=v;const w=document.getElementById('imp_cls_wrap');const t=w&&w.querySelector('.bk-trigger-text');if(t)t.textContent=impClsLabel(v);closeAllBkPops();}
+/* r72：统一成绩导入模板——归一化长表（一行 = 某班某场考试中某学生的成绩；系统按 学期/班级/考试名/科目/考试时间 自动归类）。
+   维度列（学期/班级/考试名/科目/考试时间）可按需删减：缺哪列就从弹窗默认值读取。 */
+function downloadGradeTemplate(){
+  const cs=curSem();const semName=(cs&&cs.name)||'2026春';
+  const demo=(S.classes||[]).filter(c=>c&&!c.archived&&c.name!=='全部班级').slice(0,2);
+  const c1=demo.length>=1?demo[0].name:'高一(3)班';
+  const c2=demo.length>=2?demo[1].name:'高二(1)班';
+  const rows=[
+    ['学期','班级','考试名','科目','考试时间','姓名','分数'],
+    [semName,c1,'第一次月考','数学','2026-03-15','张三',85],
+    [semName,c1,'第一次月考','数学','2026-03-15','李四',92],
+    [semName,c2,'第一次月考','数学','2026-03-15','王五',78],
+    [semName,c1,'期中考试','数学','2026-04-20','张三',90],
+    [semName,c2,'期中考试','数学','2026-04-20','王五',88]
+  ];
+  doExport('成绩导入模板',[{name:'成绩',rows:rows}],toCsv(rows));}
+/* r71：「单班多次考试」宽表模板——一列一场考试，带 科目 / 学期 / 日期 元信息行 */
+function downloadGradeTemplateWide(){
+  const cs=curSem();const semName=(cs&&cs.name)||'2026春';
+  const stus=(S.students||[]).filter(s=>s&&s.name).slice(0,3).map(s=>s.name);
+  const demo=stus.length===3?stus:['张三','李四','王五'];
+  const rows=[
+    ['科目','数学','数学','数学'],
+    ['学期',semName,semName,semName],
+    ['日期','2026-03-15','2026-04-20','2026-06-30'],
+    ['姓名','第一次月考','期中考试','期末考试']
+  ];
+  [85,92,78].forEach((base,i)=>{rows.push([demo[i],base,base+5,base-3]);});
+  doExport('成绩导入模板-单班多次考试',[{name:'成绩',rows:rows}],toCsv(rows));}
+/* r71：宽表（单班多次考试）导入落地——每一列一场考试，各自带 名称 / 科目 / 日期 / 学期 */
+function importWideExams(rows,subId,meta){
+  const r=gradeExamsFromWideRows(rows,subId,meta);
+  if(!r.exams.length){toast('未识别到考试列：请确认第 1 列有「姓名」行，其右侧每一列是一场考试');return;}
+  const cid=(meta.classId&&meta.classId!==ALL_CLASS)?meta.classId:'';
+  r.exams.forEach(e=>{S.exams.push({id:uid(),subjectId:e.subjectId||subId,name:e.name,date:e.date,scores:e.scores,classId:cid,sem:e.sem});});
+  recomputeExamPoints();save();viewReload('grades');
+  let msg='导入 '+r.exams.length+' 场考试，共 '+r.total+' 条成绩';
+  if(!cid)msg+='（未选择班级）';
+  toast(msg);}
+/* r70：一次导入同堂考试「所有班级」的成绩——按班级列（或花名册）自动分班，每个班生成一条考试记录。
+   同 名称+同科目 的多条记录会被 examEvents() 自动聚合成同一次考试（界面统计「涉及班级 N」）。
+   meta.autoCreate 默认 true：文件里出现系统没有的班级名时自动新建该班级。 */
 function importGrade(subId,meta){const sj=subj(subId);if(sj)sj.pending=false;
-  pickTable(sheets=>{let pairs=[];
-    if(sheets.length>1){for(const sh of sheets){const p=parseScoreRows((sh.rows||[]).filter(r=>r.length));if(p.length)pairs=p;}}
-    else{const all=sheets[0].rows||[];const sections=[];let cur=[];all.forEach(r=>{if(r.length&&r.some(c=>String(c||'').trim()!==''))cur.push(r);else if(cur.length){sections.push(cur);cur=[];}});if(cur.length)sections.push(cur);
-      for(const sec of sections){const p=parseScoreRows(sec);if(p.length){pairs=p;break;}}}
-    if(!pairs.length){toast('未找到有效的 姓名,分数 数据；请确保文件包含姓名和分数两列');return;}
-    const scores={};pairs.forEach(([n,s])=>scores[n]=s);
-    S.exams.push({id:uid(),subjectId:subId,name:meta.name,date:todayISO(),scores,classId:meta.classId,sem:meta.sem});recomputeExamPoints();save();viewReload('grades');toast('导入 '+Object.keys(scores).length+' 条成绩');});}
+  pickTable(sheets=>{
+    /* r71：优先判「单班多次考试」宽表（一列一场考试），命中则走宽表分支 */
+    const wide=(sheets||[]).find(sh=>looksLikeWideTable((sh.rows||[]).filter(r=>r&&r.length)));
+    if(wide){importWideExams((wide.rows||[]).filter(r=>r&&r.length),subId,meta);return;}
+    /* r72：先判「统一归一化长表」——表头含 学期/科目/考试名/考试时间 任一维度列，
+       即按列归组成「每个班的每一场考试」一条记录；列缺则回退弹窗默认值。 */
+    const flat=(sheets||[]).reduce((a,sh)=>a.concat((sh.rows||[]).filter(r=>r&&r.length)),[]);
+    if(flat.length){
+      let hh=-1;
+      for(let i=0;i<Math.min(flat.length,12);i++){const h=flat[i].map(x=>String(x||'').trim());const fc=findScoreColumns(h);if(fc.nameIdx>=0&&fc.scoreIdx>=0){hh=i;break;}}
+      if(hh>=0){
+        const uc=findUnifiedColumns(flat[hh].map(x=>String(x||'').trim()));
+        if(uc.semIdx>=0||uc.subjIdx>=0||uc.examIdx>=0||uc.dateIdx>=0){
+          const r=gradeRecordsFromRows(flat,subId,meta,meta.autoCreate!==false);
+          if(!r.exams.length){toast('未识别到有效的 姓名,分数 数据；请确保文件含「姓名」与「分数」两列');return;}
+          r.exams.forEach(e=>{S.exams.push({id:uid(),subjectId:e.subjectId,name:e.name,date:e.date,scores:e.scores,classId:e.classId,sem:e.sem});});
+          recomputeExamPoints();save();viewReload('grades');
+          const clsCovered=[...new Set(r.exams.map(e=>e.classId).filter(Boolean))];
+          const subjCovered=[...new Set(r.exams.map(e=>e.subjectId).filter(Boolean))];
+          let msg='导入 '+r.exams.length+' 场考试，'+r.total+' 条成绩';
+          if(clsCovered.length)msg+='，覆盖 '+clsCovered.length+' 个班级';
+          if(subjCovered.length)msg+='、'+subjCovered.length+' 个科目';
+          if(r.createdClasses.length)msg+='（新建班级：'+r.createdClasses.map(id=>classNameOf(id)).join('、')+'）';
+          if(r.createdSubjects.length)msg+='（新建科目：'+r.createdSubjects.map(id=>(subj(id)?subj(id).name:'')).join('、')+'）';
+          if(r.unmatched)msg+='；'+r.unmatched+' 人未识别班级';
+          toast(msg);return;
+        }
+      }
+    }
+    /* 长表/多班表：必须共享科目与考试名称（宽表则各列自带） */
+    if(!subId||!meta.name){toast('长表/多班表需先选择「科目」并填写「考试名称」；若用「单班多次考试」宽表，请在文件里加科目/姓名行，班级以上方选择为准');return;}
+    const autoCreate=meta.autoCreate!==false;
+    const agg={groups:{},order:[],created:[],total:0};
+    const merge=g=>{
+      g.order.forEach(k=>{
+        if(!agg.groups[k]){agg.groups[k]={};agg.order.push(k);}
+        Object.keys(g.groups[k]).forEach(n=>{if(agg.groups[k][n]==null)agg.total++;agg.groups[k][n]=g.groups[k][n];});
+      });
+      (g.created||[]).forEach(id=>{if(agg.created.indexOf(id)<0)agg.created.push(id);});
+    };
+    (sheets||[]).forEach(sh=>{
+      const all=(sh.rows||[]).filter(r=>r&&r.length);
+      if(!all.length)return;
+      /* 单张表内按空行切成多个区块（兼容「各班分块」排版） */
+      const secs=[];let cur=[];
+      all.forEach(r=>{if(r.some(c=>String(c||'').trim()!==''))cur.push(r);else if(cur.length){secs.push(cur);cur=[];}});
+      if(cur.length)secs.push(cur);
+      const blocks=secs.length?secs:[all];
+      /* 优先只解析「能识别出姓名/分数表头」的区块；整份文件都没有表头时才回退无表头模式 */
+      const head=blocks.filter(b=>{const h=b[0].map(x=>String(x||'').trim());const fc=findScoreColumns(h);return fc.nameIdx>=0&&fc.scoreIdx>=0;});
+      const use=head.length?head:blocks;
+      use.forEach(blk=>{const g=gradeGroupsFromRows(blk,meta.classId,autoCreate);if(g.total)merge(g);});
+    });
+    if(!agg.total){toast('未找到有效的 姓名,分数 数据；请确保文件包含姓名和分数两列');return;}
+    const date=todayISO();
+    agg.order.forEach(cid=>{S.exams.push({id:uid(),subjectId:subId,name:meta.name,date:date,scores:agg.groups[cid],classId:cid||'',sem:meta.sem});});
+    recomputeExamPoints();save();viewReload('grades');
+    const nCls=agg.order.length,unmatched=agg.groups['']?Object.keys(agg.groups['']).length:0;
+    let msg='导入 '+agg.total+' 条成绩';
+    if(nCls>1)msg+='，覆盖 '+nCls+' 个班级';
+    if(agg.created.length)msg+='（新建班级：'+agg.created.map(id=>classNameOf(id)).join('、')+'）';
+    if(unmatched)msg+='；'+unmatched+' 人未识别班级';
+    toast(msg);});}
 function modalExportGrade(presetSub){
   const sem=S._gradeSem||(curSem()?('sem:'+curSem().id):'');
   const cid=S._gradeClass||ALL_CLASS;
