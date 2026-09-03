@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>工作E · v20260902-r81</title>
+<title>工作E · v20260902-r86</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1636,13 +1636,14 @@ function homeSchedule(){
         html+=`<div class="tl-gap"><span class="g-dot"></span><span class="g-txt">休息 ${lbl}</span></div>`;}
     }
     if(em!=null)prevEnd=em;
-    const c=subjColor(t.subject);const cid=t.classId;const nt=classNextTask(cid);const uf=classUnfinished(cid);const done=classDoneToday(cid);
+    const c=subjColor(t.subject);const cid=t.classId;const nt=classNextTask(cid);const uf=classUnfinished(cid);const doneItems=classPlan(cid).filter(p=>p.done&&p.doneDate===todayISO());const done=doneItems.map(p=>p.title);const doneNote=doneItems.map(p=>p.note).filter(Boolean).join('、');
     html+=`<div class="tl-item" style="--c:${c}">
       <div class="tl-time"><b>${esc(parts[0]||'')}</b>${esc(parts[1]||'')}</div>
       <span class="tl-dot"></span>
       <div class="tl-card" data-lp="tt-card-course" data-cls="${cid}" data-subj="${esc(t.subject)}">
         <div class="tl-head"><span class="tl-subj">${esc(t.subject)}</span><span class="tl-meta">${esc(periodLabel(t))} · ${esc(classNameOf(cid))} · ${esc(t.classroom||'')}</span></div>
         ${done.length?`<div class="tl-meta" style="color:var(--ok)">✓ 今日已完成：${esc(done.join('、'))}</div>`:''}
+        ${doneNote?`<div class="tl-meta" style="color:var(--text-2)">↪ 备注：${esc(doneNote)}</div>`:''}
         ${nt?`<div class="tl-meta" style="color:var(--primary)">▶ 下节课任务：${esc(nt)}</div>`:''}
         ${uf.length?`<div class="tl-meta" style="color:var(--danger)">⚠ 待完成：${esc(uf.join('、'))}</div>`:''}
       </div></div>`;
@@ -1973,6 +1974,7 @@ function openClassProgress(clsName){const cl=S.classes.find(c=>c.name===clsName)
   const done=items.filter(p=>p.done),up=items.filter(p=>!p.done);
   const doneHtml=done.length?done.map(p=>`<div class="rec"><div class="ic" style="background:var(--ok)">✓</div>
     <div class="rc-body"><div class="rc-title">${esc(p.title)} ${p.tag?'<span class="tag">'+esc(p.tag)+'</span>':''}</div>
+    ${p.note?'<div class="rc-sub">↪ 备注：'+esc(p.note)+'</div>':''}
     <div class="rc-sub">完成于 ${esc(p.doneDate||'—')}</div></div></div>`).join(''):`<div class="sub">暂无「${esc(clsName)}」已完成教学任务</div>`;
   /* r77：新增/额外 任务单独成块，紧贴「✅ 已完成」下方；其余为「将进行（本次任务）」 */
   const tagItems=up.filter(p=>p.tag).slice().sort((a,b)=>a.order-b.order);
@@ -1998,14 +2000,15 @@ function openCourseProgress(id){
       <div class="rc-body" style="flex:1;min-width:0">
         <div class="rc-title"><span class="rc-title-text">${esc(p.title)}${p.tag?'<span class="tag">'+esc(p.tag)+'</span>':''}</span>
           <input class="cp-ed" data-pid="${p.id}" style="display:none;width:100%;height:36px;margin-top:4px;padding:0 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px;box-sizing:border-box">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:0;flex-wrap:wrap">
-            <span class="rc-sub" style="margin:0">完成于 ${esc(p.doneDate||'—')}</span>
-            <span style="display:flex;gap:4px;flex:none;flex-wrap:wrap">
-              <button class="btn sm danger" data-action="cp-del" data-pid="${p.id}" style="height:24px;border-radius:12px;padding:0 10px">🗑</button>
-              <button class="btn sm" data-action="cp-undone" data-pid="${p.id}" style="height:24px;border-radius:12px;padding:0 10px">未完成</button>
-              <button class="btn sm" data-action="cp-edit" data-pid="${p.id}" style="height:24px;border-radius:12px;padding:0 10px">修改</button>
-            </span>
-          </div>
+        </div>
+        ${p.note?`<div class="rc-sub" style="margin-top:2px">↪ 备注：${esc(p.note)}</div>`:''}
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:0;flex-wrap:wrap">
+          <span class="rc-sub" style="margin:0">完成于 ${esc(p.doneDate||'—')}</span>
+          <span style="display:flex;gap:4px;flex:none;flex-wrap:wrap">
+            <button class="btn sm danger" data-action="cp-del" data-pid="${p.id}" style="height:24px;border-radius:12px;padding:0 10px">🗑</button>
+            <button class="btn sm" data-action="cp-undone" data-pid="${p.id}" style="height:24px;border-radius:12px;padding:0 10px">未完成</button>
+            <button class="btn sm" data-action="cp-edit" data-pid="${p.id}" style="height:24px;border-radius:12px;padding:0 10px">修改</button>
+          </span>
         </div>
       </div>
     </div>`;
@@ -3064,10 +3067,10 @@ function gradeScoreHtml(ev){
     <th class="c-name" data-action="grade-score-sort" data-k="name" style="cursor:pointer${st.key==='name'?';color:var(--primary);font-weight:700':''}">学生${st.key==='name'?(st.dir==='asc'?' ▲':' ▼'):''}</th>
     ${subTh}
     <th class="c-total" data-action="grade-score-sort" data-k="total" style="cursor:pointer${st.key==='total'?';color:var(--primary);font-weight:700':''}">总分${st.key==='total'?(st.dir==='asc'?' ▲':' ▼'):''}</th><th class="c-trk" style="color:var(--text-2);font-weight:400;font-size:12px">排名</th></tr>`;
-  const rows=list.map(n=>{const cid0=stuByName(n)?stuByName(n).classId:'';const lpSid=subs[0]||'';const lpAttrs=`onpointerdown="lpSubjStuStart('${esc(n)}',event,'${esc(lpSid)}')" onpointerup="lpSubjStuCancel()" onpointerleave="lpSubjStuCancel()" style="cursor:pointer"`;const subCells=subs.map((sid,i)=>{const o=subExams[i];let sc=o.e?o.e.scores[n]:null;const rk=o.rk?o.rk[n]:null;const pe=prevExams[i];const ps=pe?pe.scores[n]:null;let ar='';if(ps!=null&&sc!=null){const d=sc-ps;const dim=Math.abs(d)<=5?'opacity:.7':'';if(d>0)ar='<span style="color:var(--ok);font-size:10px;margin-left:2px;'+dim+'">▲</span>';else if(d<0)ar='<span style="color:var(--danger);font-size:10px;margin-left:2px;'+dim+'">▼</span>';}if(sc!=null)sc=sc+ar;if(sc==null)return `<td>—</td><td>—</td>`;return `<td class="c-sub" ${lpAttrs}>${sc}</td><td class="c-rk" style="color:var(--text-2)">${rk!=null?rk:'—'}</td>`;}).join('');return `<tr data-name="${esc(n)}"><td class="c-cls" style="text-align:left">${esc(classNameOf(cid0))}</td><td class="c-name" ${lpAttrs}>${esc(n)}</td>${subCells}<td class="c-total" style="font-weight:700">${tot[n]}</td><td class="c-trk">${totalRank[n]!=null?totalRank[n]:'—'}</td></tr>`;}).join('');
+  const rows=list.map(n=>{const cid0=stuByName(n)?stuByName(n).classId:'';const lpSid=subs[0]||'';const lpEv=`onpointerdown="lpSubjStuStart('${esc(n)}',event,'${esc(lpSid)}')" onpointerup="lpSubjStuCancel()" onpointerleave="lpSubjStuCancel()"`;const lpAttrs=lpEv+` style="cursor:pointer"`;const subCells=subs.map((sid,i)=>{const o=subExams[i];let sc=o.e?o.e.scores[n]:null;const rk=o.rk?o.rk[n]:null;const pe=prevExams[i];const ps=pe?pe.scores[n]:null;let ar='';if(ps!=null&&sc!=null){const d=sc-ps;const dim=Math.abs(d)<=5?'opacity:.7':'';if(d>0)ar='<span style="color:var(--ok);font-size:10px;margin-left:2px;'+dim+'">▲</span>';else if(d<0)ar='<span style="color:var(--danger);font-size:10px;margin-left:2px;'+dim+'">▼</span>';}if(sc!=null)sc=sc+ar;if(sc==null)return `<td>—</td><td>—</td>`;return `<td class="c-sub" ${lpAttrs}>${sc}</td><td class="c-rk" style="color:var(--text-2)">${rk!=null?rk:'—'}</td>`;}).join('');return `<tr data-name="${esc(n)}"><td class="c-cls" style="text-align:left">${esc(classNameOf(cid0))}</td><td class="c-name" ${lpAttrs}>${esc(n)}</td>${subCells}<td class="c-total" style="font-weight:700;cursor:pointer" ${lpEv}>${tot[n]}</td><td class="c-trk">${totalRank[n]!=null?totalRank[n]:'—'}</td></tr>`;}).join('');
   const hint='';
-  /* r77：与 gradeSubjectHtml 一致，标题在外、横滚条 sticky 在顶部、可拖拽；
-     长按仅在 姓名/分数 格生效（避免触摸滑动表格时误触）。 */
+  /* r86：长按绑定「姓名 / 分数 / 总分」三处；整行 <tr> 不绑（防左右滑误触）。
+     班级/单科排名/总排名 格保持无长按。 */
   return `<div class="card" style="padding:0"><div style="padding:16px 16px 8px"><div class="section-title" style="padding:0;display:flex;align-items:center;gap:4px"><span style="color:#5b6675;display:inline-flex">${iconSvg('网格汇总',22)}</span><span>${esc(ev.name)} · 成绩汇总${hint}</span></div></div>
     <div id="scoreHScroll" class="g-top-hscroll" style="position:sticky;top:0;z-index:10;background:var(--surface);padding:6px 16px;border-bottom:1px solid var(--border);box-shadow:0 1px 0 rgba(0,0,0,.02)"><div class="g-hscroll-bar" style="height:6px;background:var(--bg-2);border-radius:3px;position:relative;cursor:pointer;overflow:hidden"><div class="g-hscroll-thumb" style="position:absolute;top:0;left:0;height:100%;width:30%;background:var(--primary);border-radius:3px;min-width:32px;will-change:transform"></div></div></div>
     <div id="scoreScroll" style="padding:0 16px 16px;overflow-x:auto;overflow-y:visible">
@@ -3127,9 +3130,9 @@ function gradeSubjectHtml(ev){
   const cols=`<colgroup><col class="c-cls"><col class="c-name">${exs.map(()=>'<col class="c-ex"><col class="c-jb"><col class="c-rk">').join('')}<col class="c-avg"><col class="c-ark"></colgroup>`;
   const rows=list.map(n=>{
     const cid0=stuByName(n)?stuByName(n).classId:'';
-    const lpAttrs=`onpointerdown="lpSubjStuStart('${esc(n)}',event)" onpointerup="lpSubjStuCancel()" onpointerleave="lpSubjStuCancel()" style="cursor:pointer"`;
-    /* r77：长按仅在「姓名 / 分数」格生效，避免误触（其余单元格如 班级/进退/排名/均分/排名 滑动页面时易误触）。
-       数据单元格（每场考试三格）：第 1 格分数 有数值 → 加长按；后两格 进退/排名 保持普通单元格。 */
+    const lpEv=`onpointerdown="lpSubjStuStart('${esc(n)}',event)" onpointerup="lpSubjStuCancel()" onpointerleave="lpSubjStuCancel()"`;const lpAttrs=lpEv+` style="cursor:pointer"`;
+    /* r86：长按绑定到「姓名 / 分数 / 均分」三处；整行 <tr> 不绑（防左右滑误触）。
+       班级/进退/均分排名 等格保持无长按。 */
     const cells=exs.map((e,i)=>{
       const sc=e.scores[n];
       if(sc==null)return `<td>—</td><td>—</td><td>—</td>`;
@@ -3138,7 +3141,7 @@ function gradeSubjectHtml(ev){
       const rk=ranks[i][n];
       return `<td ${lpAttrs}><b>${sc}</b></td><td style="color:${d>0?'var(--ok)':d<0?'var(--danger)':'var(--text-2)'}">${d>0?'▲+'+d:d<0?'▼'+d:'—'}</td><td>${rk!=null?rk:'—'}</td>`;
     }).join('');
-    return `<tr data-name="${esc(n)}"><td style="text-align:left;color:var(--text-2)">${esc(classNameOf(cid0))}</td><td ${lpAttrs}>${esc(n)}</td>${cells}<td style="font-weight:700">${avgMap[n]!=null?avgMap[n].toFixed(1):'—'}</td><td>${avgRank[n]!=null?avgRank[n]:'—'}</td></tr>`;
+    return `<tr data-name="${esc(n)}"><td style="text-align:left;color:var(--text-2)">${esc(classNameOf(cid0))}</td><td ${lpAttrs}>${esc(n)}</td>${cells}<td style="font-weight:700;cursor:pointer" ${lpEv}>${avgMap[n]!=null?avgMap[n].toFixed(1):'—'}</td><td>${avgRank[n]!=null?avgRank[n]:'—'}</td></tr>`;
   }).join('');
   /* r77：在卡片内顶部加 sticky 的自定义横滚条（系统手势易触发页面切换，故给用户一个稳定可拖拽的顶部横滚条）
      该条 bar 跟随 subjScroll 的 scrollLeft 同步更新，thumb 拖拽后亦同步写入 scrollLeft；
@@ -4859,8 +4862,10 @@ function viewSettings(){
   S._bkClass=S._bkClass||ALL_CLASS;S._bkTime=S._bkTime||'all';S._bkFrom=S._bkFrom||'';S._bkTo=S._bkTo||'';S._bkRanges=S._bkRanges||['all'];
   S._ttClass=S._ttClass||ALL_CLASS;S._ttSem=S._ttSem||S._previewSem||(curSem()?curSem().id:'');S._ttSubject=S._ttSubject||'';
   if(S._ttSem&&S._ttSem!==''&&!S.semesters.some(s=>s.id===S._ttSem))S._ttSem=curSem()?curSem().id:'';
-  S._planSem=S._planSem||S._previewSem||(curSem()?curSem().id:ALL_CLASS);
-  if(S._planSem&&S._planSem!==ALL_CLASS&&!S.semesters.some(s=>s.id===S._planSem))S._planSem=curSem()?curSem().id:ALL_CLASS;
+  /* r87：教学任务安排的三个筛选状态统一在这里规范化，保证「下拉显示值」与「列表实际过滤」同源。
+     历史 bug：S._planClass 未初始化(undefined)时，下拉按 `S._planClass||ALL_CLASS` 显示「全部班级」，
+     列表却按 `activeClasses()[0]` 过滤 → 首次进入设置页列表可能为空，再手动选一次「全部班级」才显示。 */
+  planScopeInit();
   const ttMatrix=ttMatrixHtml();const ttCards=ttCardsHtml();
   const arcRows=(S.archives||[]).map(a=>{const clsList=classArcList(a);return `<div class="sch-row"><div><strong style="line-height:1">${esc(classArcName(a))}</strong> ${a.auto?'<span class="sch-chip" style="background:var(--primary-soft);color:var(--primary)">自动</span>':''} ${clsList?'<span class="sch-chip semarc-info">'+esc(clsList)+'</span>':''}</div>
     <div style="display:flex;gap:12px"><button class="btn sm" data-action="res-arc" data-id="${a.id}" title="恢复" style="padding:0;border:0;background:transparent;width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center">${iconSvg('loop',14)}</button>
@@ -5010,26 +5015,40 @@ function viewSettings(){
   </div>
   </div></div>`;
 }
-function planItemsHtml(){const explicitAll=S._planClass===ALL_CLASS;
-  const hasClass=!!S._planClass&&S._planClass!==ALL_CLASS;
-  const cid=hasClass?S._planClass:(activeClasses()[0]&&activeClasses()[0].id);
-  S._planSem=S._planSem||(curSem()?curSem().id:ALL_CLASS);
-  const items=explicitAll?S.plan.slice():classPlan(cid);
-  const vis=items.filter(p=>(S._planSem===ALL_CLASS||p.sem===S._planSem||!p.sem)&&(S._planSubject===''||S._planSubject===undefined||(p.subject||'')===S._planSubject)).sort((a,b)=>a.order-b.order);
+/* ===== r87：教学任务安排「当前范围」唯一来源 =====
+   三个筛选状态（学期 / 班级 / 科目）在这里一次性规范化，供 viewSettings、planItemsHtml、
+   planMove、planAddManual、currentPlanIds、archivePlan 共用，避免各写一套兜底导致
+   「下拉显示全部班级、列表却按第一个活跃班级过滤」的错位（首次进入列表为空的老 bug）。
+   规则：未设置 / 指向已归档或已删除的班级 → 一律按 ALL_CLASS（全部班级）。 */
+function planScopeInit(){
+  if(S._planClass!==ALL_CLASS&&!S.classes.some(c=>c.id===S._planClass&&!c.archived))S._planClass=ALL_CLASS;
+  if(S._planSubject===undefined||S._planSubject===null)S._planSubject='';
+  S._planSem=S._planSem||S._previewSem||(curSem()?curSem().id:ALL_CLASS);
+  if(S._planSem&&S._planSem!==ALL_CLASS&&!S.semesters.some(s=>s.id===S._planSem))S._planSem=curSem()?curSem().id:ALL_CLASS;
+}
+function planScopeItems(){planScopeInit();return S._planClass===ALL_CLASS?S.plan.slice():classPlan(S._planClass);}
+function planVisibleItems(){
+  return planScopeItems().filter(p=>(S._planSem===ALL_CLASS||p.sem===S._planSem||!p.sem)
+    &&(S._planSubject===''||(p.subject||'')===S._planSubject)).sort((a,b)=>a.order-b.order);
+}
+function planItemsHtml(){
+  const explicitAll=S._planClass===ALL_CLASS;
+  const vis=planVisibleItems();
   if(!vis.length)return '<div class="sub">该筛选下暂无教学任务安排</div>';
   return vis.map((p,i)=>`<div class="rec-wrap" data-id="${p.id}">
   <div class="rec" style="align-items:center;gap:8px" draggable="true" data-id="${p.id}"><input type="checkbox" ${p.done?'checked':''} onchange="planToggle('${p.id}')" style="width:auto;flex:none">
-    <span style="flex:1">${esc(p.title)}
+    <span style="flex:1;min-width:0;display:block">${esc(p.title)}
     ${(S._planSubject===''||S._planSubject===undefined)?(p.subject?'<span class="tag" style="background:rgba(31,170,107,.12);color:var(--ok)">'+esc(p.subject)+'</span>':'<span class="tag" style="background:rgba(31,170,107,.12);color:var(--ok)">无科目</span>'):''}
     ${explicitAll?'<span class="tag" style="background:var(--primary-soft);color:var(--primary)">'+esc(classNameOf(p.classId))+'</span>':''}
-    ${p.tag?'<span class="tag">'+esc(p.tag)+'</span>':''} ${p.done?'<span class="tag">'+esc(p.doneDate||'')+'</span>':''}</span>
+    ${p.tag?'<span class="tag">'+esc(p.tag)+'</span>':''} ${p.done?'<span class="tag">'+esc(p.doneDate||'')+'</span>':''}
+    ${p.note?'<div style="margin-top:3px;font-size:12px;color:var(--text-2);line-height:1.3">↪ 备注：'+esc(p.note)+'</div>':''}</span>
     <span class="plan-move" style="display:flex;gap:2px"><button class="btn sm" onclick="planMove('${p.id}','up')" ${i===0?'disabled':''} title="上移">↑</button>
     <button class="btn sm" onclick="planMove('${p.id}','down')" ${i===vis.length-1?'disabled':''} title="下移">↓</button></span>
     <div class="rec-acts">
       <button class="ic-btn-del" type="button" data-action="plan-del" data-id="${p.id}" title="删除" aria-label="删除">${iconSvg('x',12)}</button>
       <button class="ic-btn" type="button" data-action="plan-edit" data-id="${p.id}" title="编辑" aria-label="编辑">${iconSvg('edit',12)}</button></div>
   </div></div>`).join('');}
-function planMove(id,dir){const cid=S._planClass;const items=classPlan(cid);const i=items.findIndex(p=>p.id===id);if(i<0)return;
+function planMove(id,dir){const items=planScopeItems();const i=items.findIndex(p=>p.id===id);if(i<0)return;
   const j=dir==='up'?i-1:i+1;if(j<0||j>=items.length)return;
   const a=items[i].order,b=items[j].order;items[i].order=b;items[j].order=a;save();planRender();}
 function planRender(){const el=document.getElementById('planList');if(el)el.innerHTML=planItemsHtml();}
@@ -5251,7 +5270,7 @@ function modalPlanAdd(id){const editing=!!id;const p=editing?S.plan.find(x=>x.id
       <div class="field" style="flex:1"><label>科目</label>${selHtml('planadd_subj',planAddSubjLabel(subj),bkOpts(planAddSubjOpts(),subj))}<input type="hidden" name="psubj" value="${esc(subj)}"></div></div>
     ${field('任务','<input name="ptitle" placeholder="输入教学任务…" required value="'+esc(p?p.title:'')+'">')}
     <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">${editing?'保存':'添加'}</button></div></form>`);}
-function planAddManual(){const cid=S._planClass||(S.classes[0]&&S.classes[0].id);const i=document.getElementById('plan_new');const t=i.value.trim();if(!t)return;
+function planAddManual(){const cid=(S._planClass&&S._planClass!==ALL_CLASS)?S._planClass:((activeClasses()[0]&&activeClasses()[0].id)||ALL_CLASS);const i=document.getElementById('plan_new');const t=i.value.trim();if(!t)return;
   S.plan.push({id:uid(),classId:cid,title:t,order:S.plan.filter(p=>p.classId===cid).length+1,done:false,temp:false,subject:S._planSubject||'',sem:S._planSem||(curSem()?curSem().id:ALL_CLASS)});save();planRender();i.value='';toast('已添加');}
 function planToggle(id){const p=S.plan.find(x=>x.id===id);if(p){p.done=!p.done;p.doneDate=p.done?(p.doneDate||todayISO()):'';save();viewReload('settings');}}
 function newSemester(){modalSemester();}
@@ -5363,6 +5382,7 @@ function modalProgress(id,pid){const c=course(id);if(!c)return;S._progCourse=id;
   const whenTimeV=editRec?(editRec.time||defTime):defTime;
   const ntV=editRec?(Array.isArray(editRec.nextTask)?editRec.nextTask.join('\n'):(editRec.nextTask||'')):(c.nextTask||'');
   const extraV=editRec?(editRec.extraDone||[]).join('\n'):'';
+  const noteV=editRec?(editRec.note||''):'';
   const colSec=(h,b)=>`<div style="border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden"><div onclick="const x=this.nextElementSibling;x.style.display=x.style.display==='none'?'block':'none';this.querySelector('.chev').textContent=x.style.display==='none'?'▸':'▾'" style="padding:10px 12px;background:var(--surface-2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600">${h} <span class="chev"></span></div><div style="display:none;padding:12px">${b}</div></div>`;
   openModal(recTitle,`<form data-form="progress" data-id="${id}">
     ${pid?`<div class="sub" style="margin-bottom:10px">正在编辑一条已存记录（保存将更新该记录，不新增）。<button type="button" class="btn sm" onclick="modalProgress('${id}')">↩ 返回新记录</button></div>`:''}
@@ -5373,6 +5393,7 @@ function modalProgress(id,pid){const c=course(id);if(!c)return;S._progCourse=id;
     <div class="field"><label>今日任务</label><div id="prog_today_wrap" style="max-height:200px;overflow:auto">${planChecks}</div></div>
     <div class="field"><label>超额完成</label><textarea name="extraDone" class="prog-ta" placeholder="每行一项，自动同步">${esc(extraV)}</textarea></div>
     <div class="field"><label>待完成</label><textarea name="nextTask" class="prog-ta" placeholder="每行一项，自动同步">${esc(ntV)}</textarea></div>
+    <div class="field"><label>备注（关联本次勾选的教学任务）</label><textarea name="note" class="prog-ta" placeholder="写下本节课的备注，会出现在「教学进度」弹窗与首页教学进度卡片">${esc(noteV)}</textarea></div>
     <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">${pid?'保存修改':'保存'}</button></div></form>`);
   setTimeout(()=>{
     const form=document.querySelector('form[data-form="progress"]');if(!form)return;
@@ -5759,7 +5780,12 @@ modal.addEventListener('submit',e=>{
   else if(form==='progress'){const cid=f.dataset.id;const c=course(cid);if(!c){toast('课程不存在');return;}
     const when=v('whenDate')||todayISO();const whenTime=v('whenTime')||classTimeToday(c.cls);const cl=resolveClass(c.cls);const subj=(c.subject||'').trim();const editing=!!S._progEditPid;
     // 只追加完成，绝不清除已完成的任务
-    coursePlan(c).forEach(p=>{const el=f.elements['pdone_'+p.id];const want=!!(el&&el.checked);if(want&&!p.done){p.done=true;p.doneDate=when;}});
+    const newlyDone=[];const noteRaw=(v('note')||'').trim();
+    coursePlan(c).forEach(p=>{const el=f.elements['pdone_'+p.id];const want=!!(el&&el.checked);if(want&&!p.done){p.done=true;p.doneDate=when;newlyDone.push(p);}});
+    if(noteRaw){
+      if(newlyDone.length){newlyDone.forEach(p=>{p.note=noteRaw;});}
+      else{const undone=coursePlan(c).filter(p=>!p.done).sort((a,b)=>a.order-b.order);if(undone.length)undone[0].note=noteRaw;}
+    }
     const nts=v('nextTask').split('\n').map(x=>x.trim()).filter(Boolean);
     const extra=v('extraDone').split('\n').map(x=>x.trim()).filter(Boolean);
     // 插入位置：最近一次完成任务的下一列（在标记完成之后计算）
@@ -5775,8 +5801,8 @@ modal.addEventListener('submit',e=>{
     c.progress=tot?Math.round(dn/tot*100):0;
     const doneTitles=plan.filter(p=>p.done).map(p=>p.title);
     c.nextTask='';
-    if(editing){const ex=(c.progressLog||[]).find(r=>r.id===S._progEditPid);if(ex){ex.date=when;ex.time=whenTime;ex.progress=c.progress;ex.nextTask=nts.slice();ex.doneTasks=doneTitles;ex.unfinished=c.unfinished.slice();ex.extraDone=extra.slice();}toast('已更新该进度记录');}
-    else{c.progressLog=c.progressLog||[];c.progressLog.push({id:uid(),date:when,time:whenTime,progress:c.progress,nextTask:nts.slice(),doneTasks:doneTitles,unfinished:c.unfinished.slice(),extraDone:extra.slice()});toast('进度已记录（'+c.progress+'%）');}
+    if(editing){const ex=(c.progressLog||[]).find(r=>r.id===S._progEditPid);if(ex){ex.date=when;ex.time=whenTime;ex.progress=c.progress;ex.nextTask=nts.slice();ex.doneTasks=doneTitles;ex.unfinished=c.unfinished.slice();ex.extraDone=extra.slice();ex.note=noteRaw;}toast('已更新该进度记录');}
+    else{c.progressLog=c.progressLog||[];c.progressLog.push({id:uid(),date:when,time:whenTime,progress:c.progress,nextTask:nts.slice(),doneTasks:doneTitles,unfinished:c.unfinished.slice(),extraDone:extra.slice(),note:noteRaw});toast('进度已记录（'+c.progress+'%）');}
     S.todos=S.todos.filter(t=>!(t.src==='unfinished'&&t.courseId===cid));
     save();closeModal();viewReload('courses');}
   else if(form==='semester'){const id=f.dataset.id;const start=v('start'),end=v('end'),nm=v('name').trim();
@@ -6333,7 +6359,7 @@ function currentReviewIds(){return S.reviews.map(rv=>rv.id);}
 function currentClassIds(){return S.classes.filter(c=>!c.archived).map(c=>c.id);}
 function currentStuIds(){const nonArch=S.classes.filter(c=>!c.archived);const clsId=(S._stuCls&&(S._stuCls==='all'||nonArch.some(c=>c.id===S._stuCls)))?S._stuCls:'all';const q=(S._stuSearch||'').trim().toLowerCase();let list=q?S.students.filter(s=>s.name.toLowerCase().includes(q)):S.students.filter(s=>clsId==='all'||s.classId===clsId);return list.map(s=>s.id);}
 function currentTtIds(){return ttList().map(t=>t.id);}
-function currentPlanIds(){const explicitAll=S._planClass===ALL_CLASS;const hasClass=!!S._planClass&&S._planClass!==ALL_CLASS;const cid=hasClass?S._planClass:(activeClasses()[0]&&activeClasses()[0].id);S._planSem=S._planSem||(curSem()?curSem().id:ALL_CLASS);const items=explicitAll?S.plan.slice():classPlan(cid);return items.filter(p=>(S._planSem===ALL_CLASS||p.sem===S._planSem||!p.sem)&&(S._planSubject===''||S._planSubject===undefined||(p.subject||'')===S._planSubject)).map(p=>p.id);}
+function currentPlanIds(){return planVisibleItems().map(p=>p.id);}
 
 /* ---- 各页面删除实现（单条即时删；多条弹确认；级联保留与现有删除逻辑一致） ---- */
 function deleteNotes(ids){if(!ids.length){toast('没有可删除的备课笔记');return;}
@@ -6625,7 +6651,7 @@ function delCourseSemPerm(sem){const before=(S.courses=S.courses||[]).length;S.c
 function archiveTimetable(){const sem=S._ttSem||(curSem()?curSem().id:'');const clsId=S._ttClass;const rows=S.timetable.filter(t=>(S._ttClass===ALL_CLASS||t.classId===S._ttClass)&&(S._ttSubject===''||t.subject===S._ttSubject));if(!rows.length){toast('当前筛选没有可归档的课表');return;}const clsName=clsId===ALL_CLASS?'全部班级':(cls(clsId)?cls(clsId).name:clsId);const name=archiveName(sem,clsId,'课表',clsName+'课表');const obj={id:uid(),sem,classId:clsId,className:clsName,cat:'课表',name,rows:rows.slice(),archivedAt:todayISO()};const before=(S.ttArchives=S.ttArchives||[]).length;S.ttArchives=upsertArc(S.ttArchives,o=>o.sem+'\u0000'+o.classId,obj);S.timetable=S.timetable.filter(t=>!rows.some(r=>r.id===t.id));save();viewReload('settings');toast((before&&(S.ttArchives.length===before)?'已覆盖更新':'已归档')+'课表：'+name+'（同班同学期唯一，重复自动覆盖）');}
 function restoreTimetable(id){const a=(S.ttArchives=S.ttArchives||[]).find(x=>x.id===id);if(!a)return;S.timetable=S.timetable.concat(a.rows);S.ttArchives=S.ttArchives.filter(x=>x.id!==id);save();viewReload('settings');toast('已恢复课表');}
 function delTtPerm(id){S.ttArchives=S.ttArchives.filter(x=>x.id!==id);save();viewReload('settings');toast('已永久删除课表归档');}
-function archivePlan(){const sem=S._planSem||(curSem()?curSem().id:ALL_CLASS);const clsId=S._planClass||ALL_CLASS;const items=classPlan(clsId).filter(p=>(S._planSem===ALL_CLASS||p.sem===S._planSem||!p.sem)&&(S._planSubject===''||(p.subject||'')===S._planSubject));if(!items.length){toast('当前筛选没有可归档的教学任务');return;}const clsName=clsId===ALL_CLASS?'全部班级':(cls(clsId)?cls(clsId).name:clsId);const name=archiveName(sem,clsId,'教学任务',clsName+'教学任务');const obj={id:uid(),sem,classId:clsId,className:clsName,cat:'教学任务',name,items:items.slice(),archivedAt:todayISO()};const before=(S.planArchives=S.planArchives||[]).length;S.planArchives=upsertArc(S.planArchives,o=>o.sem+'\u0000'+o.classId,obj);S.plan=S.plan.filter(p=>!items.some(i=>i.id===p.id));save();viewReload('settings');toast((before&&(S.planArchives.length===before)?'已覆盖更新':'已归档')+'教学任务：'+name+'（同班同学期唯一，重复自动覆盖）');}
+function archivePlan(){planScopeInit();const sem=S._planSem;const clsId=S._planClass;const items=planVisibleItems();if(!items.length){toast('当前筛选没有可归档的教学任务');return;}const clsName=clsId===ALL_CLASS?'全部班级':(cls(clsId)?cls(clsId).name:clsId);const name=archiveName(sem,clsId,'教学任务',clsName+'教学任务');const obj={id:uid(),sem,classId:clsId,className:clsName,cat:'教学任务',name,items:items.slice(),archivedAt:todayISO()};const before=(S.planArchives=S.planArchives||[]).length;S.planArchives=upsertArc(S.planArchives,o=>o.sem+'\u0000'+o.classId,obj);S.plan=S.plan.filter(p=>!items.some(i=>i.id===p.id));save();viewReload('settings');toast((before&&(S.planArchives.length===before)?'已覆盖更新':'已归档')+'教学任务：'+name+'（同班同学期唯一，重复自动覆盖）');}
 function restorePlan(id){const a=(S.planArchives=S.planArchives||[]).find(x=>x.id===id);if(!a)return;S.plan=S.plan.concat(a.items);S.planArchives=S.planArchives.filter(x=>x.id!==id);save();viewReload('settings');toast('已恢复教学任务');}
 function delPlanPerm(id){S.planArchives=S.planArchives.filter(x=>x.id!==id);save();viewReload('settings');toast('已永久删除教学任务归档');}
 function archiveAllClasses(){const list=S.classes.filter(c=>!c.archived);if(!list.length){toast('没有可归档的班级');return;}
