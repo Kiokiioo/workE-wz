@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>工作E · v20260902-r89</title>
+<title>工作E · v20260902-r91</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -430,7 +430,11 @@ th{color:var(--text-2);font-weight:600;font-size:13px}
 .score-fixed col.c-total{width:80px}
 .score-fixed col.c-trk{width:60px}
 /* 科目视图（历次考试）：考试名 / 进退步 / 均分 列宽 */
-.score-fixed col.c-ex{width:96px}
+/* 考试名列宽跟随考试名称自适应（不再固定 96px）：
+   - table-layout:fixed 模式下，单纯改 col 宽度在跨浏览器下不稳定；
+   - 用 min-width:max-content 锁住 th 最小宽度，浏览器会被迫撑开整列。 */
+.score-fixed col.c-ex{width:max-content}
+.score-fixed th.c-ex{min-width:max-content}
 .score-fixed col.c-jb{width:50px}
 .score-fixed col.c-avg{width:40px}
 .score-fixed col.c-ark{width:32px}
@@ -1282,7 +1286,7 @@ const classNameOf=id=> id===ALL_CLASS?'全部班级':((cls(id)||{}).name||'');
 const AV=['#4f6bed','#e0533d','#1faa6b','#e8a33d','#8a5cf6','#11999e','#d65db1','#ff6f91'];
 const WD=['日','一','二','三','四','五','六'];
 function jsDay(){return (new Date().getDay()+6)%7+1;} // 周一=1
-function classPlan(cid){return S.plan.filter(p=>(p.classId===cid||p.classId===ALL_CLASS)).sort((a,b)=>a.order-b.order);}
+function classPlan(cid,subj){return S.plan.filter(p=>(p.classId===cid||p.classId===ALL_CLASS)&&(!subj||(p.subject||'')===subj)).sort((a,b)=>a.order-b.order);}
 function coursePlan(c){if(!c)return [];const cid=resolveClass(c.cls);const subj=(c.subject||'').trim();
   return S.plan.filter(p=>(p.classId===cid||p.classId===ALL_CLASS)&&(!subj||(p.subject||'')===subj)).sort((a,b)=>a.order-b.order);}
 function isArchivedClass(cid){const c=cls(cid);return !!(c&&c.archived);}
@@ -1636,7 +1640,7 @@ function homeSchedule(){
         html+=`<div class="tl-gap"><span class="g-dot"></span><span class="g-txt">休息 ${lbl}</span></div>`;}
     }
     if(em!=null)prevEnd=em;
-    const c=subjColor(t.subject);const cid=t.classId;const nt=classNextTask(cid);const uf=classUnfinished(cid);const doneItems=classPlan(cid).filter(p=>p.done&&p.doneDate===todayISO());const done=doneItems.map(p=>p.title);const doneNote=doneItems.map(p=>p.note).filter(Boolean).join('、');
+    const c=subjColor(t.subject);const cid=t.classId;const nt=classNextTask(cid,t.subject);const uf=classUnfinished(cid,t.subject);const doneItems=classPlan(cid,t.subject).filter(p=>p.done&&p.doneDate===todayISO());const done=doneItems.map(p=>p.title);const doneNote=doneItems.map(p=>p.note).filter(Boolean).join('、');
     html+=`<div class="tl-item" style="--c:${c}">
       <div class="tl-time"><b>${esc(parts[0]||'')}</b>${esc(parts[1]||'')}</div>
       <span class="tl-dot"></span>
@@ -1650,15 +1654,20 @@ function homeSchedule(){
   }
   return `<div class="sched-tl">${html}</div>`;
 }
-function classNextTask(cid){const cl=cls(cid);if(!cl)return '';
-  const cs=S.courses.filter(c=>c.cls===cl.name);
+function classNextTask(cid,subj){const cl=cls(cid);if(!cl)return '';
+  const ss=(subj||'').trim();
+  const cs=ss?S.courses.filter(c=>c.cls===cl.name && c.subject===ss):S.courses.filter(c=>c.cls===cl.name);
   for(const c of cs){if(c.nextTask&&c.nextTask.trim())return c.nextTask;}
-  const undone=classPlan(cid).filter(p=>!p.done);
+  // 当指定 subject 时：仅在该 classId 下找同 subject 的未完成计划；不回落 ALL_CLASS
+  // 这样「课后服务」等非教学科目不会被生物的计划污染
+  const undone=ss?classPlan(cid,ss).filter(p=>!p.done):classPlan(cid).filter(p=>!p.done);
   return undone.length?undone[0].title:'';
 }
-function classDoneToday(cid){return classPlan(cid).filter(p=>p.done&&p.doneDate===todayISO()).map(p=>p.title);}
-function classUnfinished(cid){const cl=cls(cid);if(!cl)return [];
-  const arr=[];S.courses.filter(c=>c.cls===cl.name).forEach(c=>(c.unfinished||[]).forEach(t=>arr.push(t)));return arr;}
+function classDoneToday(cid,subj){return classPlan(cid,subj).filter(p=>p.done&&p.doneDate===todayISO()).map(p=>p.title);}
+function classUnfinished(cid,subj){const cl=cls(cid);if(!cl)return [];
+  const ss=(subj||'').trim();
+  const arr=[];
+  S.courses.filter(c=>{if(c.cls!==cl.name)return false;if(ss&&c.subject!==ss)return false;return true;}).forEach(c=>(c.unfinished||[]).forEach(t=>arr.push(t)));return arr;}
 /* 首页 hero 4 项统计：教学待办/今日课节/学生待办/沟通（学情跟进-学生 用） */
 function homeTodayClassCount(){const d=jsDay();return ttForDay(d).length;}
 function homeStuTodoCount(){let n=0;(S.students||[]).forEach(s=>{(s.todoItems||[]).forEach(x=>{if(!x.processed)n++;});});return n;}
