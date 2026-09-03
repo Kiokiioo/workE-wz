@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>工作E · v20260902-r92</title>
+<title>工作E · v20260902-r93</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1190,9 +1190,49 @@ const DEFAULTS={
   ruleEnabled:true,examRuleEnabled:true,
   settings:{semStart:'',semEnd:'',ttCal:true,autoArchive:true,autoCats:{sem:true,teach:true,class:true,grade:true}},
   semesters:[],planRange:{mode:'sem',from:'',to:''},
-  theme:'light',seeded:false,seedVer:0,_drawDrawn:[],_drawHistory:[],_drawFold:{week:true,older:true},_savedAt:0
+  theme:'light',seeded:false,seedVer:0,_drawDrawn:[],_drawHistory:[],_drawFold:{week:true,older:true},_savedAt:0,
+  _tomb:{},_syncIds:{},_syncVer:0
 };
 const SEED_VER=3;
+/* ============ 多端「按条目合并」同步（r93 方案 B） ============
+ * 核心：不再整体 last-write-wins 覆盖，而是按集合 id 取并集；同 id 冲突取保存时间较新的一方；
+ *       删除通过墓碑(_tomb)跨端传播，避免「A 删了 B 又复活」。
+ * 仅对带稳定 id 的实体集合做合并；_drawDrawn/_drawHistory 为 {name,time} 无 id 数组，排除（按较新端整体覆盖）。 */
+const DATA_COLLS=['todos','courses','notes','classes','students','violations','homeworks','answers','reviews','subjects','exams','timetable','plan','archives','examPoints','gradeArchives','ttArchives','planArchives','semArchives','fullArchives','backups','todoArchives','noteArchives','reviewArchives','semesters'];
+function clone(o){return JSON.parse(JSON.stringify(o));}
+function syncIdsSnapshot(st){const m={};DATA_COLLS.forEach(k=>{m[k]=(st[k]||[]).filter(x=>x&&x.id).map(x=>x.id);});return m;}
+function refreshSyncIds(){S._syncIds=syncIdsSnapshot(S);}
+function refreshLocalTomb(){const cur=syncIdsSnapshot(S);for(const a in S._tomb){if(!S._tomb[a]||!S._tomb[a].length){delete S._tomb[a];continue;}S._tomb[a]=S._tomb[a].filter(id=>(cur[a]||[]).indexOf(id)<0);if(!S._tomb[a].length)delete S._tomb[a];}}
+function tombUnion(a,b){const m={};[a,b].forEach(t=>{if(!t)return;for(const k in t){const arr=t[k]||[];m[k]=(m[k]||[]).concat(arr);}});for(const k in m)m[k]=[...new Set(m[k])];return m;}
+function mergeState(local,remote){
+  const out=clone(remote);
+  const lw=(local._savedAt||0)>=(remote._savedAt||0);
+  const tomb=tombUnion(local._tomb,remote._tomb);
+  const SKIP=new Set(['_tomb','_syncIds','_syncVer','_savedAt']);
+  // 非集合字段：取较新一侧；若较新侧缺该字段（如某端版本新增键），回退到另一侧，避免被 undefined 覆盖
+  for(const k in DEFAULTS){if(DATA_COLLS.indexOf(k)>=0||SKIP.has(k))continue;const wv=(lw?local:remote)[k],ov=(lw?remote:local)[k];out[k]=wv!==undefined?wv:ov;}
+  // 集合：按 id 并集 + 同 id 较新者 + 墓碑项移除
+  DATA_COLLS.forEach(k=>{
+    const L=local[k]||[],R=remote[k]||[],tb=tomb[k]||[],map={},noId=[];
+    R.forEach(x=>{if(x&&x.id){if(tb.indexOf(x.id)<0&&!map[x.id])map[x.id]=x;}else if(x)noId.push(x);});
+    L.forEach(x=>{if(x&&x.id){if(tb.indexOf(x.id)<0){if(!map[x.id])map[x.id]=x;else map[x.id]=lw?x:map[x.id];}}else if(x)noId.push(x);});
+    out[k]=Object.keys(map).map(id=>map[id]).concat(noId);
+  });
+  out._tomb=tomb;
+  out._syncIds=local._syncIds||remote._syncIds||{};
+  out._syncVer=1;
+  out._savedAt=Math.max(local._savedAt||0,remote._savedAt||0);
+  out.examPoints=out.examPoints||[];
+  return out;
+}
+/* 把远端合并进全局 S（就地），落盘并刷新同步基线/墓碑；返回合并后的状态 */
+function applyMerge(remote){
+  const m=mergeState(S,remote);
+  Object.assign(S,m);
+  for(const k in DEFAULTS)store.set(k,S[k]);
+  refreshSyncIds();refreshLocalTomb();
+  return m;
+}
 const S={};
 function load(){for(const k in DEFAULTS)S[k]=store.get(k,DEFAULTS[k]);
   S._drawFold=S._drawFold||{};if(S._drawFold.week!==false)S._drawFold.week=true;if(S._drawFold.older!==false)S._drawFold.older=true;
@@ -1206,7 +1246,10 @@ function load(){for(const k in DEFAULTS)S[k]=store.get(k,DEFAULTS[k]);
    *       之前导入的周日记录 day=7 会被 ttMatrixHtml 当作 "周八" 忽略。
    *       只在确有残留时写盘以免触发云同步。 */
   if(S.timetable&&S.timetable.some(t=>t&&t.day===7)){S.timetable.forEach(t=>{if(t&&t.day===7)t.day=0;});save();}
-  migrateTodos();normalizeTodos();normalizeStudentItems();}
+  migrateTodos();normalizeTodos();normalizeStudentItems();
+  // r93：首次启动把当前各集合 id 快照作为合并基线，避免把已有数据误判为「被删除」而清空其他端的同名条目
+  if(!S._syncVer){S._syncIds=syncIdsSnapshot(S);S._syncVer=1;}
+}
 // 将历史 S.tasks / S.deadlines 合并进统一的 S.todos（带 type 字段）
 function migrateTodos(){
   const lt=store.get('tasks',null),ld=store.get('deadlines',null);
@@ -1267,7 +1310,21 @@ function classifyTodos(){
   });
 }
 function isOtherCat(c){return c==='其他'||!['任务','教学','工作','学生','活动','生活','其他'].includes(c);}
-function save(){S._savedAt=Date.now();for(const k in DEFAULTS)store.set(k,S[k]);scheduleCloudPush();}
+function save(){
+  S._savedAt=Date.now();
+  // r93：比对当前 id 与上次同步基线，把被删除的条目写入墓碑(_tomb)，用于跨端删除同步
+  if(S._syncIds){
+    DATA_COLLS.forEach(k=>{
+      const cur=(S[k]||[]).filter(x=>x&&x.id).map(x=>x.id);
+      const removed=(S._syncIds[k]||[]).filter(id=>cur.indexOf(id)<0);
+      if(removed.length){S._tomb[k]=(S._tomb[k]||[]).concat(removed);S._tomb[k]=[...new Set(S._tomb[k])];}
+    });
+  }
+  S._syncIds=syncIdsSnapshot(S);
+  refreshLocalTomb();
+  for(const k in DEFAULTS)store.set(k,S[k]);
+  cloudDirty=true;setCloudDirtyFlag(true);scheduleCloudPush();
+}
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const todayISO=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
 const shiftDays=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
@@ -3313,13 +3370,37 @@ function openSubjStuHistory(name,sidOverride){
     <div class="sq"><div class="n">${maxE.scores[name]}</div><div class="l exn">${esc(maxE.name)}</div><div class="l">最高分</div></div>
     <div class="sq"><div class="n">${minE.scores[name]}</div><div class="l exn">${esc(minE.name)}</div><div class="l">最低分</div></div>
     <div class="sq"><div class="n">${scArr.length}</div><div class="l">参加考试</div></div></div>`;
-  /* 列序：考试名auto / 分数 45 / 排名 40 / 进退 50 / 日期 auto；列间距 4（.stu-history-table） */
+  /* 考试名列宽：按当前数据里最长考试名像素宽 + 8px 单元 padding 显式设列宽
+     （table-layout:auto 下 width:max-content 会被拉伸吃满剩余空间，必须像素宽才稳）
+     jsdom 等无 layout 引擎下 probe 宽度=0，回退按字符数估算（中 13 / 其它 7） */
+  const probe=document.createElement('span');
+  probe.style.cssText='position:absolute;visibility:hidden;left:-9999px;top:-9999px;white-space:nowrap;font-size:13px;font-family:inherit;font-weight:600';
+  document.body.appendChild(probe);
+  let longestNameW=0;
+  rows.forEach(r=>{
+    probe.textContent=r.e.name;
+    const probeW=probe.getBoundingClientRect().width;
+    if(probeW>0){
+      if(probeW>longestNameW)longestNameW=probeW;
+    }else{
+      // 字符数估算：每个汉字 ~13, 其它 ~7（jsdom fallback）
+      let est=0;
+      for(const ch of r.e.name) est+=/[\u4e00-\u9fa5]/.test(ch)?13:7;
+      if(est>longestNameW)longestNameW=est;
+    }
+  });
+  // 给表头预留 '▲▼' 标记位（h-ord 14-15px） + 4px 边距
+  const headerExtras=18;
+  // padding 4×2 = 8
+  const examColW=Math.round(longestNameW+headerExtras+8);
+  probe.remove();
+  /* 列序：考试名 = 像素自适应 / 分数 50 / 排名 50 / 进退 50 / 日期 auto */
   const ic=(active,dir)=>active?(dir==='asc'?' ▲':' ▼'):'';
   const nA=st.key==='name',sA=st.key==='score',rA=st.key==='rank',dA=st.key==='delta',dtA=st.key==='date';
   const table=`<table class="stu-history-table"><thead><tr>
-    <th style="text-align:left" data-action="history-sort" data-k="name" class="${nA?'active':''}">考试名<span class="h-ord">${ic(nA,st.dir)}</span></th>
-    <th style="width:45px;text-align:center" data-action="history-sort" data-k="score" class="${sA?'active':''}">分数<span class="h-ord">${ic(sA,st.dir)}</span></th>
-    <th style="width:40px;text-align:center" data-action="history-sort" data-k="rank" class="${rA?'active':''}">排名<span class="h-ord">${ic(rA,st.dir)}</span></th>
+    <th style="text-align:left;width:${examColW}px" data-action="history-sort" data-k="name" class="${nA?'active':''}">考试名<span class="h-ord">${ic(nA,st.dir)}</span></th>
+    <th style="width:50px;text-align:center" data-action="history-sort" data-k="score" class="${sA?'active':''}">分数<span class="h-ord">${ic(sA,st.dir)}</span></th>
+    <th style="width:50px;text-align:center" data-action="history-sort" data-k="rank" class="${rA?'active':''}">排名<span class="h-ord">${ic(rA,st.dir)}</span></th>
     <th style="width:50px;text-align:center" data-action="history-sort" data-k="delta" class="${dA?'active':''}">进退<span class="h-ord">${ic(dA,st.dir)}</span></th>
     <th data-action="history-sort" data-k="date" class="${dtA?'active':''}">日期<span class="h-ord">${ic(dtA,st.dir)}</span></th>
   </tr></thead><tbody>${rows.map(r=>r.html).join('')}</tbody></table>`;
@@ -7058,9 +7139,10 @@ function bkLibHtml(){const auto=(S.fullArchives=S.fullArchives||[]);
 const CLOUD_KEY='tw_cloud_cfg';
 const GH_API='https://api.github.com';
 const enc=s=>encodeURIComponent(s);
-let cloudReady=false, cloudPulling=false, cloudPushTimer=null, cloudPushing=false;
+let cloudReady=false, cloudPulling=false, cloudPushTimer=null, cloudPushing=false, cloudDirty=!!(cloudCfg().dirty);
 function cloudCfg(){try{return JSON.parse(localStorage.getItem(CLOUD_KEY))||{};}catch(e){return {};}}
 function cloudCfgSave(c){localStorage.setItem(CLOUD_KEY,JSON.stringify(c));}
+function setCloudDirtyFlag(v){const cc=cloudCfg();cc.dirty=!!v;cloudCfgSave(cc);}
 function b64enc(str){const b=new TextEncoder().encode(str);let s='';for(const x of b)s+=String.fromCharCode(x);return btoa(s);}
 function b64dec(b64){const bin=atob(b64);const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes);}
 function ghHeaders(token,extra){return Object.assign({'Accept':'application/vnd.github+json','Authorization':'Bearer '+token,'Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'},extra||{});}
@@ -7113,31 +7195,22 @@ async function cloudPush(){
   if(!c.enabled||!c.token||!c.owner||!c.repo||!c.path)return;
   if(cloudPushing){scheduleCloudPush();return;}  // 防并发：推送在途则重新排队，避免慢网下丢写
   cloudPushing=true;
-  updateCloudStatus('pulling','上传中…');
-  let lastErr=null, pushed=false, adopted=false;
-  // ★ 关键修复：在推送开始前冻结「本机真实写入时间」baseLocalAt（来自 save() 的 S._savedAt），
-  //   作为每次重试时与远端比较的基准。若每次都用「现在」去比，会永远认为自己较新，丢失 mid-flight 冲突检测。
-  const baseLocalAt=S._savedAt||0;
-  for(let attempt=0; attempt<6 && !pushed && !adopted; attempt++){
+  updateCloudStatus('pulling','同步中…');
+  let lastErr=null, pushed=false, mergedRemote=false;
+  for(let attempt=0; attempt<6 && !pushed; attempt++){
     try{
       const g=await cloudGetSha(c);              // 每次都重新取最新 sha，规避 409
-      // 真冲突：远端 _savedAt 比本机真实写入时间更新（另一设备刚保存），按 LWW 采用远端，绝不用本地陈旧数据覆盖
+      // r93 方案 B：推送前先把远端合并进本地（按 id 并集 + 墓碑删除），绝不整体覆盖，
+      // 因此「远端新增/删除」与「本地新增/删除」都不会在上传时被丢弃，双向收敛。
       if(g.exists && g.content){
         try{
           const rd=JSON.parse(b64dec((g.content||'').replace(/\s/g,'')));
-          const remoteAt=rd._savedAt||0;
-          if(remoteAt>baseLocalAt){
-            snapshotLocal('cloud-pull');
-            Object.assign(S,rd);S.examPoints=S.examPoints||[];
-            for(const k in DEFAULTS)store.set(k,S[k]);
-            const cfg=cloudCfg();cfg.lastSync=Date.now();cloudCfgSave(cfg);
-            cloudPushing=false;adopted=true;
-            updateCloudStatus('ok','已从云端同步（远端较新）');toast('已采用云端较新版本');router();return;
+          const m=mergeState(S,rd);
+          if(JSON.stringify(m)!==JSON.stringify(S)){
+            Object.assign(S,m);for(const k in DEFAULTS)store.set(k,S[k]);refreshSyncIds();refreshLocalTomb();mergedRemote=true;
           }
         }catch(_){/* 远端内容异常则按原样重试推送 */}
       }
-      // ★ 关键修复：真正要推送时，才把本机写入时间戳刷新为「现在」。这样落云的版本带真实推送时刻，
-      //   下一台设备拉取后能正确识别「这是最新版」，不会再被旧 _savedAt 误判而回滚覆盖（即本次上报的回滚 bug）。
       S._savedAt=Date.now();
       for(const k in DEFAULTS)store.set(k,S[k]);
       const payload=JSON.stringify(S);const b64=b64enc(payload);
@@ -7145,18 +7218,28 @@ async function cloudPush(){
       const body=JSON.stringify({message:'sync '+new Date().toISOString(),content:b64,branch:c.branch||'main',sha:g.sha||undefined});
       const r=await fetch(GH_API+ghContentsPath(c),{method:'PUT',headers:ghHeaders(c.token),body});
       if(r.status===401){lastErr='令牌无效或已过期，请在「设置-云端同步」重新填写 Access Token';break;}
-      if(r.status===409){                         // 并发写入致 sha 不一致 → 退避后重试；下次再 GET 时若发现对方已更新会更稳
+      if(r.status===409){                         // 并发写入致 sha 不一致 → 退避后重试；下次再 GET 时会先合并对方的新数据
         lastErr='HTTP 409 写入冲突';
         if(attempt<5){await new Promise(res=>setTimeout(res,400+Math.random()*1200));continue;}
         break;
       }
       if(!r.ok)throw new Error('HTTP '+r.status+' '+((await r.text().catch(()=> ''))||'').slice(0,80));
+      cloudDirty=false;setCloudDirtyFlag(false);
       const cfg=cloudCfg();cfg.lastSync=Date.now();cloudCfgSave(cfg);
-      updateCloudStatus('ok','已同步 '+new Date().toLocaleTimeString());pushed=true;break;
-    }catch(e){lastErr=e.message;break;}
+      updateCloudStatus('ok',(mergedRemote?'已合并并同步 ':'已同步 ')+new Date().toLocaleTimeString());
+      pushed=true;break;
+    }catch(e){
+      // 瞬时错误（网络抖动/限流 403）退避后重试，而非一次性放弃；仅 401 致命错误才中止
+      lastErr=e.message;
+      if(attempt<5){await new Promise(res=>setTimeout(res,500+Math.random()*1500));continue;}
+      break;
+    }
   }
   cloudPushing=false;
-  if(!pushed && !adopted){updateCloudStatus('error','同步失败：'+(lastErr||'未知错误'));toast('云端同步失败：'+(lastErr||'未知错误'));}
+  if(!pushed){
+    updateCloudStatus('error','同步失败：'+(lastErr||'未知错误'));toast('云端同步失败：'+(lastErr||'未知错误'));
+    scheduleCloudPush();   // 本次彻底失败也再排一次重试，避免「不再编辑就永不重推」
+  }
 }
 function hasLocalData(){return ['students','courses','classes','todos','notes','plan','timetable','reviews','exams','subjects'].some(k=>(S[k]||[]).length>0);}
 function snapshotLocal(tag){try{store.set('_syncBackup',{tag:tag||'cloud-pull',at:Date.now(),state:JSON.parse(JSON.stringify(S))});}catch(e){}}
@@ -7178,20 +7261,13 @@ async function cloudTest(c){
 async function cloudSyncNow(c){
   const r=await cloudPull();
   if(r.ok&&r.data){
-    // 手动同步：拉取后按「最后保存时间」择更新者，绝不盲目用远端覆盖本地未保存的编辑
-    const cloudAt=r.data._savedAt||0, localAt=S._savedAt||0;
-    if(cloudAt>localAt){
-      try{
-        snapshotLocal('cloud-pull');
-        Object.assign(S,r.data);S.examPoints=S.examPoints||[];
-        for(const k in DEFAULTS)store.set(k,S[k]);
-        updateCloudStatus('ok','已采用云端较新版本');router();
-      }catch(e){toast('云端数据解析失败，保持本地');}
-    }else{
-      updateCloudStatus('pulling','本地已是最新，上传中…');
-    }
+    // r93 方案 B：把远端按条目合并进本地（双方新增都保留、删除都同步），再上传合并结果保证双向收敛
+    const m=mergeState(S,r.data);
+    const changed=JSON.stringify(m)!==JSON.stringify(S);
+    Object.assign(S,m);for(const k in DEFAULTS)store.set(k,S[k]);refreshSyncIds();refreshLocalTomb();
+    updateCloudStatus('ok',(changed?'已与云端合并':'本地已是最新')+'，上传中…');router();
   }else if(!r.empty){toast('拉取失败：'+(r.reason||''));return;}
-  await cloudPush();   // cloudPush 内部会在推送前刷新 _savedAt，保证本机版本带最新时间戳
+  await cloudPush();   // cloudPush 会再次合并远端后上传，保证两端一致
 }
 function cloudDisconnect(){localStorage.removeItem(CLOUD_KEY);cloudReady=false;cloudPulling=false;viewReload('settings');toast('已断开云端同步');}
 async function bootCloudSync(){
@@ -7199,31 +7275,15 @@ async function bootCloudSync(){
   if(!c.enabled||!c.token||!c.owner||!c.repo||!c.path){cloudReady=true;return;}
   const r=await cloudPull();
   if(r.ok&&r.data){
-    // 跨设备同步：以「最后保存时间」为准（last-write-wins）。
-    // - 本地为空 → 直接拉云端（避免把空数据推上去覆盖云端）
-    // - 本地有数据且云端更新 → 拉取覆盖本地（覆盖前先快照本地，便于回滚）
-    // - 本地有数据且本地更新/持平 → 上传本地（避免同一设备刷新后刚改的内容被旧云端快照冲掉）
-    const cloudAt=r.data._savedAt||0, localAt=S._savedAt||0;
-    if(!hasLocalData()){
-      try{
-        Object.assign(S,r.data);S.examPoints=S.examPoints||[];
-        for(const k in DEFAULTS)store.set(k,S[k]);
-        const cfg=cloudCfg();cfg.lastSync=Date.now();cloudCfgSave(cfg);
-        updateCloudStatus('ok','已从云端同步');router();
-      }catch(e){toast('云端数据解析失败，使用本地数据');}
-      cloudReady=true;
-    }else if(cloudAt>localAt){
-      try{
-        snapshotLocal('cloud-pull');
-        Object.assign(S,r.data);S.examPoints=S.examPoints||[];
-        for(const k in DEFAULTS)store.set(k,S[k]);
-        const cfg=cloudCfg();cfg.lastSync=Date.now();cloudCfgSave(cfg);
-        updateCloudStatus('ok','已从云端同步');router();
-      }catch(e){toast('云端数据解析失败，使用本地数据');}
-      cloudReady=true;
-    }else{
-      cloudReady=true;updateCloudStatus('pulling','本地优先，已上传到云端');await cloudPush();
-    }
+    // r93 方案 B：启动即把云端按条目合并进本地（无论本地是否为空、哪边更新，都做并集+墓碑删除），
+    // 再上传合并结果，保证「A 端输入→关闭 B 重开 B 即见 A 内容」以及「A 删的 B 也删」。
+    const m=mergeState(S,r.data);
+    const changed=JSON.stringify(m)!==JSON.stringify(S);
+    Object.assign(S,m);for(const k in DEFAULTS)store.set(k,S[k]);refreshSyncIds();refreshLocalTomb();
+    const cfg=cloudCfg();cfg.lastSync=Date.now();cloudCfgSave(cfg);
+    updateCloudStatus('ok',changed?'已从云端合并同步':'已从云端同步');router();
+    cloudReady=true;
+    await cloudPush();   // 把合并结果回写云端，确保双向收敛
   }else if(r.empty){
     cloudReady=true;updateCloudStatus('pulling','初始化上传…');await cloudPush();
   }else{
@@ -7236,7 +7296,7 @@ function cloudSyncHtml(){
   return `<div class="collapsible" id="cloud_card" style="margin-top:16px">
     <div class="section-title clickable" onclick="toggleCollapse('cloud_card')" style="font-size:15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('保存/导出',22)}云端同步</span><span class="chev"></span></div>
     <div class="collapse-body" style="display:none">
-      <div class="sub" style="margin-bottom:10px">通过 GitHub 仓库多端同步全部资料。代码留本地，仅数据上云（最后保存的一方为准）。</div>
+      <div class="sub" style="margin-bottom:10px">通过 GitHub 仓库多端同步全部资料。代码留本地，仅数据上云。两端各自新增的内容都会保留，任一侧删除也会同步删除（按条目合并，不再互相覆盖）。</div>
       <div class="field row" style="align-items:center"><label style="flex:none;margin:0">启用同步</label>
         <input type="checkbox" ${on?'checked':''} onchange="cloudToggle(this.checked)" onclick="event.stopPropagation()" class="sw"></div>
       <div ${diss}>
@@ -7815,6 +7875,10 @@ if((S.todos||[]).some(t=>t.src==='unfinished')){S.todos=(S.todos||[]).filter(t=>
 if(!S.seeded||S.seedVer!==SEED_VER){seed();}save();
 applyTheme();buildNav();maybeAutoReview();cleanupPendingSubs();router();autoArchiveBySemester();
 bootCloudSync();
+/* r93：离开页面（切 App / 关标签页）即触发一次补推，确保本地未推送的编辑不丢（尤其 iOS 切走再回来） */
+function flushOnLeave(){const c=cloudCfg();if(c.enabled&&cloudReady&&!cloudPushing)cloudPush();}
+window.addEventListener('pagehide',flushOnLeave);
+window.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushOnLeave();});
 /* 双端同时在线的轮询拉取：每 25s 偷偷看一眼远端 _savedAt，比本地新就拉取并静默刷新（不弹 toast 避免打扰）
    用递归 setTimeout + unref，确保不阻止 Node 进程退出（否则在 jsdom 回归里会拖住退出） */
 (function schedulePoll(){
@@ -7826,14 +7890,15 @@ bootCloudSync();
           const r=await fetch(GH_API+ghContentsPath(c),{method:'GET',headers:ghHeaders(c.token)});
           if(r.ok){
             const j=await r.json();
-            const remoteAt=(j.content?(JSON.parse(b64dec((j.content||'').replace(/\s/g,'')))._savedAt||0):0);
+            const rd=(j.content?JSON.parse(b64dec((j.content||'').replace(/\s/g,''))):null);
+            const remoteAt=(rd?rd._savedAt||0:0);
             const localAt=S._savedAt||0;
-            if(remoteAt>localAt){            // 远端比本地新 → 静默拉取
-              const pr=await cloudPull();
-              if(pr.ok&&pr.data){
-                snapshotLocal('cloud-poll');
-                Object.assign(S,pr.data);S.examPoints=S.examPoints||[];
-                for(const k in DEFAULTS)store.set(k,S[k]);
+            // r93 方案 B：只要远端有内容就按条目合并进本地（并集+墓碑删除），不再仅以时间戳判断整体覆盖。
+            // 即便本端 _savedAt 更新，远端的「增量新增/删除」也应并入，避免双端各自为政。
+            if(rd && remoteAt>=0){
+              const m=mergeState(S,rd);
+              if(JSON.stringify(m)!==JSON.stringify(S)){
+                Object.assign(S,m);for(const k in DEFAULTS)store.set(k,S[k]);refreshSyncIds();refreshLocalTomb();
                 updateCloudStatus('ok','已自动从云端同步');reloadCur();          // 保持当前页
               }
             }
