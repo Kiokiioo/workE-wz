@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>工作E · v20260902-r93</title>
+<title>工作E · v20260902-r98</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1018,11 +1018,11 @@ svg{display:block;width:100%}
 .ex-chk-wrap input[type=checkbox]:hover{border-color:var(--primary)}
 .ex-chk-wrap input[type=checkbox]:checked{background:var(--primary);border-color:var(--primary)}
 .ex-chk-wrap input[type=checkbox]:checked::after{content:'';position:absolute;left:3px;top:0;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
-/* 教学任务安排列表：分隔线改虚线（与首页待办/抽签记录一致） */#planList .rec{border-bottom:1px dashed var(--border)}
+/* 教学进度安排列表：分隔线改虚线（与首页待办/抽签记录一致） */#planList .rec{border-bottom:1px dashed var(--border)}
 /* 移动端左滑功能键 */
 .rec-wrap{position:relative;overflow:hidden}
-/* 教学任务安排列表：操作键常驻行右（已取消左滑手势），沿用 .ic-btn 紧凑圆键，不再预留右侧空间 */
-/* 教学任务安排 ↑↓ 排序按钮：18×18 圆、底色 var(--surface-2)、无边框、字色 12px 居中；disabled 半透 */
+/* 教学进度安排列表：操作键常驻行右（已取消左滑手势），沿用 .ic-btn 紧凑圆键，不再预留右侧空间 */
+/* 教学进度安排 ↑↓ 排序按钮：18×18 圆、底色 var(--surface-2)、无边框、字色 12px 居中；disabled 半透 */
 .plan-move .btn{width:18px;height:18px;border-radius:50%;border:none;background:var(--surface-2);color:var(--text-2);padding:0;font-size:12px;line-height:1;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s ease,color .12s ease;flex-shrink:0;min-width:0;min-height:0}
 .plan-move .btn:hover:not(:disabled){background:var(--border);color:var(--text)}
 .plan-move .btn:disabled{opacity:.35;cursor:default}
@@ -1704,7 +1704,7 @@ function homeSchedule(){
       <div class="tl-card" data-lp="tt-card-course" data-cls="${cid}" data-subj="${esc(t.subject)}">
         <div class="tl-head"><span class="tl-subj">${esc(t.subject)}</span><span class="tl-meta">${esc(periodLabel(t))} · ${esc(classNameOf(cid))} · ${esc(t.classroom||'')}</span></div>
         ${done.length?`<div class="tl-meta" style="color:var(--ok)">✓ 今日已完成：${esc(done.join('、'))}</div>`:''}
-        ${doneNote?`<div class="tl-meta" style="color:var(--text-2)">↪ 备注：${esc(doneNote)}</div>`:''}
+        ${doneNote?`<div class="tl-meta" style="color:var(--text-2)">${noteArrowInline()}备注：${esc(doneNote)}</div>`:''}
         ${nt?`<div class="tl-meta" style="color:var(--primary)">▶ 下节课任务：${esc(nt)}</div>`:''}
         ${uf.length?`<div class="tl-meta" style="color:var(--danger)">⚠ 待完成：${esc(uf.join('、'))}</div>`:''}
       </div></div>`;
@@ -1993,14 +1993,14 @@ function viewCourses(){
   const cards=list.length?list.map(c=>`
   <div class="card" data-id="${c.id}">
     <div style="display:flex;gap:10px;align-items:center">
-      <span class="avatar" style="background:${c.color||'#4f6bed'};flex:none">${esc((c.name||'?')[0])}</span>
+      <span class="avatar" style="background:${c.color||'#4f6bed'};flex:none;overflow:hidden;cursor:pointer" data-action="course-progress" data-id="${c.id}">${classAvatarSvg(c.cls||c.id||c.name)}</span>
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:baseline;gap:8px">
           <h3 style="margin:0;flex:1;min-width:0;cursor:pointer" data-action="course-progress" data-id="${c.id}">${esc(c.name)}</h3>
-          <span class="sub" style="flex:2;min-width:0;text-align:left;line-height:1.3">下一步任务：${esc(c.nextTask||(coursePlan(c).find(p=>!p.done)||{}).title||'—')}</span>
+          <div class="sub" style="flex:none;text-align:right;line-height:1.3;white-space:nowrap">${esc(c.cls||'')}${c.subject?' · '+esc(c.subject):''}</div>
         </div>
         <div style="display:flex;align-items:baseline;gap:8px;margin-top:3px">
-          <div class="sub" style="flex:1;min-width:0;line-height:1.3">${esc(c.cls||'')}</div>
+          <div class="sub" style="flex:1;min-width:0;line-height:1.3">下一步任务：${esc(c.nextTask||(coursePlan(c).find(p=>!p.done)||{}).title||'—')}</div>
         </div>
       </div>
     </div>
@@ -2040,7 +2040,7 @@ function openClassProgress(clsName){const cl=S.classes.find(c=>c.name===clsName)
   const done=items.filter(p=>p.done),up=items.filter(p=>!p.done);
   const doneHtml=done.length?done.map(p=>`<div class="rec"><div class="ic" style="background:var(--ok)">✓</div>
     <div class="rc-body"><div class="rc-title">${esc(p.title)} ${p.tag?'<span class="tag">'+esc(p.tag)+'</span>':''}</div>
-    ${p.note?'<div class="rc-sub">↪ 备注：'+esc(p.note)+'</div>':''}
+    ${p.note?`<div class="rc-sub">${noteArrowInline()}备注：${esc(p.note)}</div>`:''}
     <div class="rc-sub">完成于 ${esc(p.doneDate||'—')}</div></div></div>`).join(''):`<div class="sub">暂无「${esc(clsName)}」已完成教学任务</div>`;
   /* r77：新增/额外 任务单独成块，紧贴「✅ 已完成」下方；其余为「将进行（本次任务）」 */
   const tagItems=up.filter(p=>p.tag).slice().sort((a,b)=>a.order-b.order);
@@ -2067,13 +2067,12 @@ function openCourseProgress(id){
         <div class="rc-title"><span class="rc-title-text">${esc(p.title)}${p.tag?'<span class="tag">'+esc(p.tag)+'</span>':''}</span>
           <input class="cp-ed" data-pid="${p.id}" style="display:none;width:100%;height:36px;margin-top:4px;padding:0 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px;box-sizing:border-box">
         </div>
-        ${p.note?`<div class="rc-sub" style="margin-top:2px">↪ 备注：${esc(p.note)}</div>`:''}
+        ${p.note?`<div class="rc-sub" style="margin-top:2px">${noteArrowInline()}备注：${esc(p.note)}</div>`:''}
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:0;flex-wrap:wrap">
           <span class="rc-sub" style="margin:0">完成于 ${esc(p.doneDate||'—')}</span>
-          <span style="display:flex;gap:4px;flex:none;flex-wrap:wrap">
-            <button class="btn sm danger" data-action="cp-del" data-pid="${p.id}" style="height:24px;border-radius:12px;padding:0 10px">🗑</button>
-            <button class="btn sm" data-action="cp-undone" data-pid="${p.id}" style="height:24px;border-radius:12px;padding:0 10px">未完成</button>
-            <button class="btn sm" data-action="cp-edit" data-pid="${p.id}" style="height:24px;border-radius:12px;padding:0 10px">修改</button>
+          <span style="display:flex;gap:12px;flex:none;flex-wrap:wrap;align-items:center">
+            <button class="ic-btn-del" type="button" data-action="cp-del" data-pid="${p.id}" title="删除（回到未记录状态，本次新增全部取消）" aria-label="删除">${iconSvg('x',12)}</button>
+            <button class="ic-btn" type="button" data-action="cp-edit" data-pid="${p.id}" title="修改" aria-label="修改">${iconSvg('edit',12)}</button>
           </span>
         </div>
       </div>
@@ -2101,7 +2100,7 @@ function openProgList(id){const c=course(id);if(!c)return;S._progCourse=id;const
     <div class="rc-body"><div class="rc-title">${esc(r.date)}${r.time?(' '+esc(r.time)):''} · ${r.progress}%</div>
     <div class="rc-sub">完成的教学任务：${(r.doneTasks&&r.doneTasks.length)?r.doneTasks.map(esc).join('、'):'未选择具体任务'}${r.unfinished&&r.unfinished.length?' · 未完成 '+r.unfinished.length+' 项':''}</div></div>
     <div style="text-align:right"><button class="btn sm" data-action="edit-prog-log" data-pid="${r.id}">修改</button></div></div>`).join(''):'<div class="sub">暂无已完成的教学进度记录</div>';
-  openModal('教学进度记录 · '+esc(c.name),`<div class="sub" style="margin-bottom:10px">上方为已完成的教学进度（时间-进度 / 具体完成的教学任务安排），点击「修改」编辑对应记录。</div>${html}
+  openModal('教学进度记录 · '+esc(c.name),`<div class="sub" style="margin-bottom:10px">上方为已完成的教学进度（时间-进度 / 具体完成的教学进度安排），点击「修改」编辑对应记录。</div>${html}
     <button class="btn primary block" style="margin-top:12px" onclick="modalProgress('${id}')">+ 新增进度</button>`);}
 function planClassJump(name){const c=S.classes.find(x=>x.name===name);if(c)S._planClass=c.id;location.hash='settings';}
 
@@ -2424,8 +2423,8 @@ function iconSvg(name,size){
   p['课表设置']='<rect x="3.5" y="4.5" width="17" height="16" rx="2"/><line x1="3.5" y1="9" x2="20.5" y2="9"/><line x1="8.5" y1="9" x2="8.5" y2="20.5"/><line x1="15.5" y1="9" x2="15.5" y2="20.5"/><line x1="8" y1="2.5" x2="8" y2="6.5"/><line x1="16" y1="2.5" x2="16" y2="6.5"/>';
   /* 成绩分析（方案D：条形图/周条，emoji 📈 替换） */
   p['成绩分析']='<line x1="4" y1="20" x2="20" y2="20"/><line x1="7" y1="20" x2="7" y2="12"/><line x1="11" y1="20" x2="11" y2="8"/><line x1="15" y1="20" x2="15" y2="14"/><line x1="19" y1="20" x2="19" y2="10"/>';
-  /* 教学任务安排（方案N：星标任务，emoji 📋 替换） */
-  p['教学任务安排']='<path transform="scale(0.5)" stroke-width="4" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/><path d="M11 5h9 M11 9h9 M4 14h16 M4 18h12"/>';
+  /* 教学进度安排（方案N：星标任务，emoji 📋 替换） */
+  p['教学进度安排']='<path transform="scale(0.5)" stroke-width="4" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/><path d="M11 5h9 M11 9h9 M4 14h16 M4 18h12"/>';
   /* 教学进度（方案B：滑块，emoji 📚 替换） */
   p['教学进度']='<path d="M4 21v-7 M4 10V3 M12 21v-9 M12 8V3 M20 21v-5 M20 12V3 M1 14h6 M9 8h6 M17 16h6"/>';
   /* 教学设置（方案AE：齿轮，emoji ⚙️ 替换） */
@@ -2478,6 +2477,9 @@ function iconSvg(name,size){
   p['分享']='<circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><line x1="8.2" y1="11" x2="15.8" y2="7"/><line x1="8.2" y1="13" x2="15.8" y2="17"/>';
   /* 重点关注同学（2026-08-29 定稿：候选 A「人像 + 星标」） */
   p['重点同学']='<circle cx="10" cy="8.6" r="3.2"/><path d="M4 19.6c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M18.6 3.2l1.1 2.3 2.5.35-1.8 1.75.42 2.5-2.22-1.2-2.22 1.2.42-2.5-1.8-1.75 2.5-.35z"/>';
+  /* "↪ 备注"前缀（教学进度安排 / 今日课表 / 教学进度 · xx班 / 课程进度）；
+     r97b：统一改用候选⑥ —— 圆润弧回勾箭头，与 noteArrowInline() 同 path，改一处必须同步两处 */
+  p['注-arrow']='<path d="M13 6 L19 12 L13 18"/><path d="M19 12 H8 a7 7 0 0 1 -7 -7"/>';
 /* 搜索·雷达波纹 8d（2026-08-30 升级：中心圆点+45°扫描针+轨道弧，保留镜片/柄；16px 下 4 元素清晰可辨，明显区别于经典放大镜） */
 p['搜索']='<circle cx="10.5" cy="10.5" r="7"/><path d="M10.5 6.6a3.9 3.9 0 0 1 0 7.8"/><path d="M15.6 15.6 20.5 20.5"/>';
   /* 成绩分析 tab 大图标（2026-08-29 落库：趋势/成绩/科目/对比/管理） */
@@ -2499,6 +2501,31 @@ p['搜索']='<circle cx="10.5" cy="10.5" r="7"/><path d="M10.5 6.6a3.9 3.9 0 0 1
   for(var k in _e2n){if(p[_e2n[k]]&&!p[k])p[k]=p[_e2n[k]];}
   var d=p[name]||'';
   return '<svg viewBox="0 0 24 24" width="'+size+'" height="'+size+'" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;width:'+size+'px;height:'+size+'px;flex-shrink:0">'+d+'</svg>';
+}
+/* 班级头像图标库：7 个班级语义图标（候选 1,2,3,4,8,9,12），48×48 viewBox，白色字形落在彩色圆圈上；
+   按 classId 哈希到 0..6，一班一图标（用 stable 的字符串哈希确保首屏渲染稳定） */
+var CLASS_AVATAR_ICONS=[
+  /* 1 三人小组·班级集体 */'<svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="15" r="6" fill="#fff"/><path d="M14 36 C14 29.5 18.5 26 24 26 C29.5 26 34 29.5 34 36 Z" fill="#fff"/><circle cx="10.5" cy="20" r="4.5" fill="#fff"/><path d="M2.5 36 C2.5 30.5 6 27.5 10.5 27.5 C11.6 27.5 12.6 27.7 13.5 28 C11.8 30.2 11 32.9 11 36 Z" fill="#fff"/><circle cx="37.5" cy="20" r="4.5" fill="#fff"/><path d="M45.5 36 C45.5 30.5 42 27.5 37.5 27.5 C36.4 27.5 35.4 27.7 34.5 28 C36.2 30.2 37 32.9 37 36 Z" fill="#fff"/></svg>',
+  /* 2 课桌座位·教室排布 */'<svg viewBox="0 0 48 48" fill="none"><rect x="14" y="7" width="20" height="7" rx="1.5" fill="#fff"/><rect x="9" y="20" width="12" height="6" rx="1.5" fill="#fff"/><rect x="27" y="20" width="12" height="6" rx="1.5" fill="#fff"/><rect x="9" y="31" width="12" height="6" rx="1.5" fill="#fff"/><rect x="27" y="31" width="12" height="6" rx="1.5" fill="#fff"/></svg>',
+  /* 3 班牌门牌·挂牌 */'<svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="5" r="2" fill="none" stroke="#fff" stroke-width="2"/><path d="M24 7 L24 12" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><rect x="8" y="12" width="32" height="21" rx="3.5" fill="none" stroke="#fff" stroke-width="3"/><line x1="15" y1="20" x2="33" y2="20" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><line x1="15" y1="26" x2="27" y2="26" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>',
+  /* 4 教学楼·校舍 */'<svg viewBox="0 0 48 48" fill="none"><line x1="24" y1="9" x2="24" y2="3" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M24 3 L31 5 L24 7.5 Z" fill="#fff"/><path d="M24 9 L40 18 L40 39 L8 39 L8 18 Z" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/><rect x="20" y="28" width="8" height="11" fill="#fff"/></svg>',
+  /* 8 教室门·进班（候选人 8） */'<svg viewBox="0 0 48 48" fill="none"><rect x="12" y="7" width="24" height="34" rx="2.5" fill="none" stroke="#fff" stroke-width="3"/><rect x="17" y="13" width="14" height="9" rx="1.5" fill="#fff"/><circle cx="30" cy="31" r="2" fill="#fff"/></svg>',
+  /* 9 班旗·燕尾旗 */'<svg viewBox="0 0 48 48" fill="none"><line x1="12" y1="7" x2="12" y2="42" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M12 9 H38 L33 16 L38 23 H12 Z" fill="#fff"/></svg>',
+  /* 12 一排学生·成员列表 */'<svg viewBox="0 0 48 48" fill="none"><circle cx="12" cy="19" r="5.5" fill="#fff"/><circle cx="24" cy="19" r="5.5" fill="#fff"/><circle cx="36" cy="19" r="5.5" fill="#fff"/><rect x="6" y="30" width="36" height="4" rx="2" fill="#fff"/></svg>'
+];
+function classAvatarSvg(id){
+  var s=String(id||'');var h=5381;
+  for(var i=0;i<s.length;i++){h=((h<<5)+h+s.charCodeAt(i))>>>0;}
+  var idx=h%CLASS_AVATAR_ICONS.length;
+  var raw=CLASS_AVATAR_ICONS[idx];
+  /* 头像圆圈 36×36，图标缩到 24×24 居中放置 */
+  return raw.replace('<svg viewBox="0 0 48 48" fill="none">','<svg viewBox="0 0 48 48" width="24" height="24" fill="none" style="display:block">');
+}
+/* 行内"↪ 备注"前缀 SVG（教学进度安排/今日课表/教学进度 · xx班 用，inline-block + 居中基线） */
+function noteArrowInline(){
+  /* r97b 修复：补 width/height —— 全局 svg{width:100%}（行 962）会覆盖 SVG 属性 width="11"，
+     不显式写在 inline style 里就会被拉伸成容器全宽，导致"备注"被挤到下一行 */
+  return '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;width:11px;height:11px;margin-right:3px;flex-shrink:0"><path d="M13 6 L19 12 L13 18"/><path d="M19 12 H8 a7 7 0 0 1 -7 -7"/></svg>';
 }
 function spinAddBtn(b){if(!b)return;b.classList.remove('spin');void b.offsetWidth;b.classList.add('spin');}
 function recView(){
@@ -4985,6 +5012,21 @@ function viewSettings(){
      历史 bug：S._planClass 未初始化(undefined)时，下拉按 `S._planClass||ALL_CLASS` 显示「全部班级」，
      列表却按 `activeClasses()[0]` 过滤 → 首次进入设置页列表可能为空，再手动选一次「全部班级」才显示。 */
   planScopeInit();
+  /* r98：首次进入设置页，若仍是「全部班级 + 全部科目」且 S.plan 有数据 → 自动跳到最近一次
+     记录进度的班级+科目（按 doneDate 降序；无 doneDate 时取数组末尾最近 push 项）。仅首次触发，
+     之后用户对下拉的任何操作（包括显式选回「全部」）都保留。 */
+  if(!S._planInited){
+    S._planInited=true;
+    if(S._planClass===ALL_CLASS && !S._planSubject && S.plan.length){
+      const dated=S.plan.filter(p=>p.doneDate).slice().sort((a,b)=>(b.doneDate||'').localeCompare(a.doneDate||''));
+      const pick=dated[0]||S.plan[S.plan.length-1];
+      if(pick && pick.classId && S.classes.some(c=>c.id===pick.classId && !c.archived)){
+        S._planClass=pick.classId;
+        if(pick.subject)S._planSubject=pick.subject;
+        save();
+      }
+    }
+  }
   const ttMatrix=ttMatrixHtml();const ttCards=ttCardsHtml();
   const arcRows=(S.archives||[]).map(a=>{const clsList=classArcList(a);return `<div class="sch-row"><div><strong style="line-height:1">${esc(classArcName(a))}</strong> ${a.auto?'<span class="sch-chip" style="background:var(--primary-soft);color:var(--primary)">自动</span>':''} ${clsList?'<span class="sch-chip semarc-info">'+esc(clsList)+'</span>':''}</div>
     <div style="display:flex;gap:12px"><button class="btn sm" data-action="res-arc" data-id="${a.id}" title="恢复" style="padding:0;border:0;background:transparent;width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center">${iconSvg('loop',14)}</button>
@@ -5044,7 +5086,7 @@ function viewSettings(){
   </div>
 
   <div class="card" style="margin-top:16px">
-    <div class="section-title clickable" onclick="toggleCollapse('plan_sec')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('教学任务安排',22)}教学任务安排</span> <span class="chev open"></span></div>
+    <div class="section-title clickable" onclick="toggleCollapse('plan_sec')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('教学进度安排',22)}教学进度安排</span> <span class="chev open"></span></div>
     <div class="collapse-body" style="display:block;padding-top:12px">
     <div class="field row" style="align-items:flex-end;flex-wrap:wrap;margin-bottom:8px">
       <div class="field" style="flex:1.2;margin-bottom:0;min-width:0">${selHtml('plan_sem',planSemSummary(),bkOpts([{k:ALL_CLASS,l:'全部学期',pick:'planSemSel'},...S.semesters.map(s=>({k:s.id,l:s.name+(s.current?'（当前）':'')}))],S._planSem||ALL_CLASS))}</div>
@@ -5158,14 +5200,14 @@ function planVisibleItems(){
 function planItemsHtml(){
   const explicitAll=S._planClass===ALL_CLASS;
   const vis=planVisibleItems();
-  if(!vis.length)return '<div class="sub">该筛选下暂无教学任务安排</div>';
+  if(!vis.length)return '<div class="sub">该筛选下暂无教学进度安排</div>';
   return vis.map((p,i)=>`<div class="rec-wrap" data-id="${p.id}">
-  <div class="rec" style="align-items:center;gap:8px" draggable="true" data-id="${p.id}"><input type="checkbox" ${p.done?'checked':''} onchange="planToggle('${p.id}')" style="width:auto;flex:none">
+  <div class="rec" style="align-items:baseline;gap:8px" draggable="true" data-id="${p.id}"><input type="checkbox" ${p.done?'checked':''} onchange="planToggle('${p.id}')" style="width:auto;flex:none;vertical-align:-2px">
     <span style="flex:1;min-width:0;display:block">${esc(p.title)}
     ${(S._planSubject===''||S._planSubject===undefined)?(p.subject?'<span class="tag" style="background:rgba(31,170,107,.12);color:var(--ok)">'+esc(p.subject)+'</span>':'<span class="tag" style="background:rgba(31,170,107,.12);color:var(--ok)">无科目</span>'):''}
     ${explicitAll?'<span class="tag" style="background:var(--primary-soft);color:var(--primary)">'+esc(classNameOf(p.classId))+'</span>':''}
     ${p.tag?'<span class="tag">'+esc(p.tag)+'</span>':''} ${p.done?'<span class="tag">'+esc(p.doneDate||'')+'</span>':''}
-    ${p.note?'<div style="margin-top:3px;font-size:12px;color:var(--text-2);line-height:1.3">↪ 备注：'+esc(p.note)+'</div>':''}</span>
+    ${p.note?`<div style="margin-top:3px;font-size:12px;color:var(--text-2);line-height:1.3">${noteArrowInline()}备注：${esc(p.note)}</div>`:''}</span>
     <span class="plan-move" style="display:flex;gap:2px"><button class="btn sm" onclick="planMove('${p.id}','up')" ${i===0?'disabled':''} title="上移">↑</button>
     <button class="btn sm" onclick="planMove('${p.id}','down')" ${i===vis.length-1?'disabled':''} title="下移">↓</button></span>
     <div class="rec-acts">
@@ -5500,7 +5542,7 @@ function modalProgress(id,pid){const c=course(id);if(!c)return;S._progCourse=id;
   const total=plan.length,doneN=plan.filter(p=>p.done).length,auto=total?Math.round(doneN/total*100):0;
   const doneSet=editRec&&editRec.doneTasks?new Set(editRec.doneTasks):null;
   const planForSelect=pid?plan:plan.filter(p=>!p.done);
-  const planChecks=planForSelect.length?planForSelect.map(p=>`<label class="prog-cb" style="margin-bottom:6px"><span class="ex-chk-wrap"><input type="checkbox" name="pdone_${p.id}" ${(doneSet?doneSet.has(p.title):p.done)?'checked':''}></span><span class="prog-cb-txt">${esc(p.title)} ${p.tag?'<span class="tag">'+esc(p.tag)+'</span>':''} ${p.done?'<span class="tag">'+esc(p.doneDate||'')+'</span>':''}</span></label>`).join(''):'<div class="sub" style="font-size:12px">暂无教学任务安排，可去「课程设置」添加</div>';
+  const planChecks=planForSelect.length?planForSelect.map(p=>`<label class="prog-cb" style="margin-bottom:6px"><span class="ex-chk-wrap"><input type="checkbox" name="pdone_${p.id}" ${(doneSet?doneSet.has(p.title):p.done)?'checked':''}></span><span class="prog-cb-txt">${esc(p.title)} ${p.tag?'<span class="tag">'+esc(p.tag)+'</span>':''} ${p.done?'<span class="tag">'+esc(p.doneDate||'')+'</span>':''}</span></label>`).join(''):'<div class="sub" style="font-size:12px">暂无教学进度安排，可去「课程设置」添加</div>';
   const whenDateV=editRec?(editRec.date||todayISO()):todayISO();
   const defTime=classTimeToday(c.cls);
   const whenTimeV=editRec?(editRec.time||defTime):defTime;
@@ -5586,7 +5628,7 @@ function semTargetWeek(cur){
 function autoReviewData(){
   const plan=S.plan||[];
   const donePlan=plan.filter(p=>p.done);
-  let tasks='教学任务安排共 '+plan.length+' 项，已完成 '+donePlan.length+' 项。';
+  let tasks='教学进度安排共 '+plan.length+' 项，已完成 '+donePlan.length+' 项。';
   if(donePlan.length)tasks+='\n已完成：'+donePlan.map(p=>p.title).join('、');
   const upPlan=plan.filter(p=>!p.done);
   if(upPlan.length)tasks+='\n待完成：'+upPlan.map(p=>p.title).join('、');
@@ -6002,8 +6044,8 @@ document.body.addEventListener('click',e=>{
   else if(a==='course-progress'){openCourseProgress(id);}
   else if(a==='cp-edit'){const pid=t.dataset.pid;const p=S.plan.find(x=>x.id===pid);if(!p)return;const row=t.closest('.rec');if(!row)return;const txt=row.querySelector('.rc-title-text');const inp=row.querySelector('.cp-ed');if(inp.style.display==='none'){inp.style.display='block';if(txt)txt.style.display='none';inp.value=p.title||'';inp.focus();t.textContent='保存';t.dataset.action='cp-save';}else{const v2=inp.value.trim();if(v2)p.title=v2;save();openCourseProgress(S._cpId);toast('已修改');}}
   else if(a==='cp-save'){const pid=t.dataset.pid;const p=S.plan.find(x=>x.id===pid);if(!p)return;const inp=document.querySelector('input.cp-ed[data-pid="'+pid+'"]');if(inp){const v2=inp.value.trim();if(v2)p.title=v2;}save();openCourseProgress(S._cpId);toast('已修改');}
-  else if(a==='cp-undone'){const pid=t.dataset.pid;const p=S.plan.find(x=>x.id===pid);if(p){p.done=false;p.doneDate='';save();openCourseProgress(S._cpId);toast('已标回未完成');}}
-  else if(a==='cp-del'){const pid=t.dataset.pid;S.plan=S.plan.filter(x=>x.id!==pid);save();openCourseProgress(S._cpId);toast('已删除该条');}
+  else if(a==='cp-undone'){/* r95：未完成键移除（删除键接管：回到未记录状态并取消本会话新增）；保留以防兼容旧链接 */const pid=t.dataset.pid;const p=S.plan.find(x=>x.id===pid);if(p){p.done=false;p.doneDate='';save();openCourseProgress(S._cpId);toast('已标回未完成');}}
+  else if(a==='cp-del'){const pid=t.dataset.pid;const p=S.plan.find(x=>x.id===pid);if(p){_pendingCpDelPid=pid;confirmModal('删除该教学任务','「'+esc(p.title)+'」将回到未记录状态，并取消本次新增的全部安排。此操作不可恢复。','do-cp-del','danger');}}
   else if(a==='del-course'){S.courses=S.courses.filter(y=>y.id!==id);save();viewReload('courses');}
   else if(a==='arc-course'){archiveCourse(id);}
   else if(a==='restore-course'){restoreCourse(id);}
@@ -6118,6 +6160,32 @@ document.body.addEventListener('click',e=>{
   else if(a==='plan-edit'){modalPlanAdd(id);}
   else if(a==='plan-del'){const p=S.plan.find(x=>x.id===id);if(p){_pendingPlanDel=id;confirmModal('删除教学任务','确定删除「'+esc(p.title)+'」？删除后其余任务顺序会自动重排。','do-plan-del','danger');}}
   else if(a==='do-plan-del'){S.plan=S.plan.filter(x=>x.id!==_pendingPlanDel);S.plan.forEach((p,k)=>p.order=k+1);_pendingPlanDel='';save();closeModal();planRender();toast('已删除');}
+  else if(a==='do-cp-del'){const pid=_pendingCpDelPid;_pendingCpDelPid='';closeModal();const p0=S.plan.find(x=>x.id===pid);if(!p0){openCourseProgress(S._cpId);return;}const when=p0.doneDate;const cid=p0.classId;const subj=(p0.subject||'');
+    let maxOrd=p0.order;let nRev=0;
+    if(when){
+      // r95：把同次会话(doneDate 相同、班级/科目相同)的所有已完成条目一并回到「未记录」状态
+      S.plan.forEach(x=>{
+        if(x.doneDate!==when)return;
+        if(x.classId!==cid&&x.classId!==ALL_CLASS)return;
+        if(subj&&x.subject&&x.subject!==subj)return;
+        if(!x.done)return;
+        x.done=false;x.doneDate='';x.note='';nRev++;
+        if(x.order>maxOrd)maxOrd=x.order;
+      });
+    }else{p0.done=false;p0.doneDate='';p0.note='';nRev=1;}
+    // r95：紧跟在最后一条【本次会话】之后插入的「额外/新增」临时任务（即本次新增安排）一并清除，按 order 连续删除直到非 temp 项
+    let ord=maxOrd+1;
+    while(true){
+      const next=S.plan.find(x=>x.order===ord&&(x.classId===cid||x.classId===ALL_CLASS)&&(!subj||!x.subject||x.subject===subj)&&x.temp);
+      if(!next)break;
+      S.plan=S.plan.filter(x=>x.id!==next.id);ord++;
+    }
+    // 重排同班级+科目顺序，保证 1..n 连续
+    const list=S.plan.filter(x=>(x.classId===cid||x.classId===ALL_CLASS)&&(!subj||!x.subject||x.subject===subj)).sort((a,b)=>a.order-b.order);
+    let i=1;list.forEach(x=>x.order=i++);
+    save();
+    openCourseProgress(S._cpId);
+    toast('已删除该教学任务并取消本次新增');}
   else if(a==='exp-plan'){exportPlan();}
   else if(a==='edit-sem'){modalSemester(id);}
   else if(a==='del-sem'){S.semesters=S.semesters.filter(y=>y.id!==id);save();viewReload('settings');toast('学期已删除');}
@@ -6849,7 +6917,7 @@ function archiveSheets(a){const nameOf=id2=>(a.students.find(s=>s.id===id2)||{})
   const pRows=[['任务','已完成'],[...(a.plan||[]).map(p=>[p.title,p.done?'是':'否'])]];
   const sheets=[{name:'学生',rows:sRows},{name:'违纪',rows:vRows},{name:'作业',rows:hRows},{name:'答题',rows:aRows}];
   if(exs.length)sheets.push({name:'成绩',rows:[gHeader,...gRows]});
-  if((a.plan||[]).length)sheets.push({name:'教学任务安排',rows:pRows});
+  if((a.plan||[]).length)sheets.push({name:'教学进度安排',rows:pRows});
   if((a.courses||[]).length){const prows=[['课程','日期','时间','进度','下节课任务','未完成']];(a.courses||[]).forEach(c=>(c.progressLog||[]).forEach(r=>prows.push([c.name,r.date,r.time||'',r.progress+'%',r.nextTask||'',(r.unfinished||[]).join('、')])));if(prows.length>1)sheets.push({name:'教学进度记录',rows:prows});}
   return {sheets,csv:toCsv(sRows)};}
 function exportArchive(id){const a=S.archives.find(x=>x.id===id);if(!a)return;const {sheets,csv}=archiveSheets(a);doExport((a.name||a.className||'班级')+'_归档记录',sheets,csv);}
@@ -7825,7 +7893,7 @@ function importPlan(defaultSubj){pickTable(sheets=>{const rows=(sheets[0].rows||
   save();viewReload('settings');toast('导入 '+added+' 条任务'+(def?('（科目：'+def+'）'):''));});}
 function exportPlan(){if(!S.plan.length){toast('暂无教学任务');return;}
   const rows=[['班级','科目','任务','已完成'],...S.plan.map(p=>[classNameOf(p.classId),p.subject||'',p.title,p.done?'是':'否'])];
-  doExport('教学任务安排',[{name:'安排',rows}],toCsv(rows));}
+  doExport('教学进度安排',[{name:'安排',rows}],toCsv(rows));}
 function exportNotes(){if(!S.notes.length){toast('暂无备课笔记');return;}
   const rows=[['课程','标题','标签','内容','创建时间'],...S.notes.map(n=>{const c=course(n.courseId)||{};return [c.name||'未分类',n.title||'',n.tags||'',n.content||'',n.created?new Date(n.created).toLocaleString():''];})];
   doExport('备课笔记',[{name:'笔记',rows}],toCsv(rows));}
