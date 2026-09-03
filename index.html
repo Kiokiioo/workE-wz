@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>工作E · v20260902-r86</title>
+<title>工作E · v20260902-r89</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -3048,16 +3048,22 @@ function gradeScoreHtml(ev){
   if(!subs.length)return emptyState('📈','该考试没有可显示的科目');
   const names=new Set();ev.exams.forEach(e=>Object.keys(e.scores).forEach(n=>{if(!f||f.has(n))names.add(n);}));
   let list=[...names];if(!list.length)return emptyState('📈','该考试没有成绩数据');
-  const subExams=subs.map(sid=>({sid,sub:subj(sid),e:ev.exams.find(x=>x.subjectId===sid),rk:null}));subExams.forEach(o=>{if(o.e)o.rk=examClassRank(o.e);});
-  const tot={};list.forEach(n=>{let s=0;subs.forEach((sid,i)=>{const e=subExams[i].e;if(e&&e.scores[n]!=null)s+=e.scores[n];});tot[n]=s;});
-  const prevExams=subExams.map(o=>o.e?S.exams.filter(x=>x.subjectId===o.sid&&x.date<o.e.date).sort((a,b)=>b.date.localeCompare(a.date))[0]:null);
+  /* r88：ev.exams 中同 sid 可能有多条（不同班级）。先按 sid 分组，all=该 sid 的所有 exam；行渲染时按学生所在班级挑。 */
+  const subExams=subs.map(sid=>{const all=ev.exams.filter(x=>x.subjectId===sid);return {sid,sub:subj(sid),all,rep:all[0]||null,rk:null};});
+  subExams.forEach(o=>{if(o.rep)o.rk=examClassRank(o.rep);});
+  /* 该生在该科目组里挑哪条 exam：首选 cid 匹配那条，否则用 rep 兜底 */
+  function pickSubExam(o,n){const c=stuByName(n)?stuByName(n).classId:'';if(!c)return o.rep;const m=o.all.find(e=>e.classId===c);return m||o.rep;}
+  const tot={};list.forEach(n=>{let s=0;subs.forEach((sid,i)=>{const e=pickSubExam(subExams[i],n);if(e&&e.scores[n]!=null)s+=e.scores[n];});tot[n]=s;});
+  /* 进退对比：该生所在班级那条 exam 的上一次同 sid 考试（不限 ev） */
+  const prevPickByStu={};
+  list.forEach(n=>{prevPickByStu[n]={};subs.forEach((sid,i)=>{const o=subExams[i];const e=pickSubExam(o,n);if(!e)return;const pe=S.exams.filter(x=>x.subjectId===sid&&x.date<e.date&&(!stuByName(n)||x.classId===(stuByName(n)?stuByName(n).classId:'')||!x.classId)).sort((a,b)=>b.date.localeCompare(a.date))[0]||null;prevPickByStu[n][sid]=pe;});});
   const st=gradeScoreSort();
   list.sort((a,b)=>{
     let c;
     if(st.key==='cls')c=classNameOf(stuByName(a)?stuByName(a).classId:'').localeCompare(classNameOf(stuByName(b)?stuByName(b).classId:''),'zh');
     else if(st.key==='name')c=a.localeCompare(b,'zh');
     else if(st.key==='total')c=tot[a]-tot[b];
-    else {const i=subs.indexOf(st.key);const e=subExams[i]&&subExams[i].e;c=(e?e.scores[a]||0:0)-(e?e.scores[b]||0:0);}
+    else {const i=subs.indexOf(st.key);const o=subExams[i];const ea=o?pickSubExam(o,a).scores[a]||0:0;const eb=o?pickSubExam(o,b).scores[b]||0:0;c=ea-eb;}
     return st.dir==='asc'?c:-c;
   });
   const totalRank={};list.slice().sort((a,b)=>tot[b]-tot[a]).forEach((n,i)=>totalRank[n]=i+1);
@@ -3067,7 +3073,7 @@ function gradeScoreHtml(ev){
     <th class="c-name" data-action="grade-score-sort" data-k="name" style="cursor:pointer${st.key==='name'?';color:var(--primary);font-weight:700':''}">学生${st.key==='name'?(st.dir==='asc'?' ▲':' ▼'):''}</th>
     ${subTh}
     <th class="c-total" data-action="grade-score-sort" data-k="total" style="cursor:pointer${st.key==='total'?';color:var(--primary);font-weight:700':''}">总分${st.key==='total'?(st.dir==='asc'?' ▲':' ▼'):''}</th><th class="c-trk" style="color:var(--text-2);font-weight:400;font-size:12px">排名</th></tr>`;
-  const rows=list.map(n=>{const cid0=stuByName(n)?stuByName(n).classId:'';const lpSid=subs[0]||'';const lpEv=`onpointerdown="lpSubjStuStart('${esc(n)}',event,'${esc(lpSid)}')" onpointerup="lpSubjStuCancel()" onpointerleave="lpSubjStuCancel()"`;const lpAttrs=lpEv+` style="cursor:pointer"`;const subCells=subs.map((sid,i)=>{const o=subExams[i];let sc=o.e?o.e.scores[n]:null;const rk=o.rk?o.rk[n]:null;const pe=prevExams[i];const ps=pe?pe.scores[n]:null;let ar='';if(ps!=null&&sc!=null){const d=sc-ps;const dim=Math.abs(d)<=5?'opacity:.7':'';if(d>0)ar='<span style="color:var(--ok);font-size:10px;margin-left:2px;'+dim+'">▲</span>';else if(d<0)ar='<span style="color:var(--danger);font-size:10px;margin-left:2px;'+dim+'">▼</span>';}if(sc!=null)sc=sc+ar;if(sc==null)return `<td>—</td><td>—</td>`;return `<td class="c-sub" ${lpAttrs}>${sc}</td><td class="c-rk" style="color:var(--text-2)">${rk!=null?rk:'—'}</td>`;}).join('');return `<tr data-name="${esc(n)}"><td class="c-cls" style="text-align:left">${esc(classNameOf(cid0))}</td><td class="c-name" ${lpAttrs}>${esc(n)}</td>${subCells}<td class="c-total" style="font-weight:700;cursor:pointer" ${lpEv}>${tot[n]}</td><td class="c-trk">${totalRank[n]!=null?totalRank[n]:'—'}</td></tr>`;}).join('');
+  const rows=list.map(n=>{const cid0=stuByName(n)?stuByName(n).classId:'';const lpSid=subs[0]||'';const lpEv=`onpointerdown="lpSubjStuStart('${esc(n)}',event,'${esc(lpSid)}')" onpointerup="lpSubjStuCancel()" onpointerleave="lpSubjStuCancel()"`;const lpAttrs=lpEv+` style="cursor:pointer"`;const subCells=subs.map((sid,i)=>{const o=subExams[i];const e=pickSubExam(o,n);let sc=e?e.scores[n]:null;const rkMap=o.rk;const rk=rkMap?rkMap[n]:null;const pe=(prevPickByStu[n]||{})[sid];const ps=pe?pe.scores[n]:null;let ar='';if(ps!=null&&sc!=null){const d=sc-ps;const dim=Math.abs(d)<=5?'opacity:.7':'';if(d>0)ar='<span style="color:var(--ok);font-size:10px;margin-left:2px;'+dim+'">▲</span>';else if(d<0)ar='<span style="color:var(--danger);font-size:10px;margin-left:2px;'+dim+'">▼</span>';}if(sc!=null)sc=sc+ar;if(sc==null)return `<td>—</td><td>—</td>`;return `<td class="c-sub" ${lpAttrs}>${sc}</td><td class="c-rk" style="color:var(--text-2)">${rk!=null?rk:'—'}</td>`;}).join('');return `<tr data-name="${esc(n)}"><td class="c-cls" style="text-align:left">${esc(classNameOf(cid0))}</td><td class="c-name" ${lpAttrs}>${esc(n)}</td>${subCells}<td class="c-total" style="font-weight:700;cursor:pointer" ${lpEv}>${tot[n]}</td><td class="c-trk">${totalRank[n]!=null?totalRank[n]:'—'}</td></tr>`;}).join('');
   const hint='';
   /* r86：长按绑定「姓名 / 分数 / 总分」三处；整行 <tr> 不绑（防左右滑误触）。
      班级/单科排名/总排名 格保持无长按。 */
@@ -3090,33 +3096,51 @@ function gradeSubjectHtml(ev){
   const sid=S._gradeSub||(ev.subjects[0]||'');const sub=subj(sid);
   if(!sid||!sub)return emptyState('📈','请选择科目');
   const f=gradeClassFilter();
-  let exs=S.exams.filter(e=>e.subjectId===sid);
-  /* r65：顶部选了具体某场 ev 时（S._gradeEvent 非空 + ev 存在）→ 表格只展示这场 ev 里的该科目；
-           S._gradeEvent 空字符串「全部考试」→ 维持旧行为，展示该科目全部考试 */
-  if(ev && ev.exams){
+  /* r88：数据源改用 ev.exams。ev.exams 已按 eventNameOf+sem+date 归组——
+     同名同时间的考试（即便按班级分多条录入）只算 1 次事件，表头只占 1 列；
+     行渲染时按学生所在班级从该事件组里挑对应那条 exam 取分数。
+     「全部考试」时 ev.id='' → gradeEventById('') 的 ev.exams 包含所有该科目 exams，
+     仍需在表头阶段按 eventKey(name+sem+date) 去重。 */
+  let exs;
+  if(ev && ev.exams && ev.exams.length){
     const evExSet=new Set(ev.exams.map(x=>x.id));
-    exs=exs.filter(e=>evExSet.has(e.id));
+    exs=S.exams.filter(e=>e.subjectId===sid && evExSet.has(e.id));
+  } else {
+    exs=S.exams.filter(e=>e.subjectId===sid);
   }
-  exs.sort((a,b)=>a.date.localeCompare(b.date));
-  if(!exs.length)return emptyState('📈','该科目还没有考试');
-  const names=new Set();exs.forEach(e=>Object.keys(e.scores).forEach(n=>{if(!f||f.has(n))names.add(n);}));
+  const eventKey=e=>(e.name||'')+'\u241F'+(e.sem||'')+'\u241F'+(e.date||'');
+  const groups=new Map();
+  exs.forEach(e=>{const k=eventKey(e);if(!groups.has(k))groups.set(k,{rep:e,all:[e]});else groups.get(k).all.push(e);});
+  const groupList=[...groups.entries()].sort((a,b)=>a[1].rep.date.localeCompare(b[1].rep.date)).map(([k,v])=>v);
+  if(!groupList.length)return emptyState('📈','该科目还没有考试');
+  /* 行渲染时按学生所在班级从组里挑对应 exam；找不到则用 rep 兜底 */
+  function pickExam(g,n){
+    const c=(typeof n==='string'&&stuByName(n))?stuByName(n).classId:'';
+    if(!c)return g.rep;
+    const m=g.all.find(e=>e.classId===c);
+    return m||g.rep;
+  }
+  /* 学生集合：union 各组所有 exam 的 scores keys（避免某学生只在 rep 里没出现的被漏掉） */
+  const names=new Set();
+  groupList.forEach(g=>g.all.forEach(e=>Object.keys(e.scores||{}).forEach(n=>{if(!f||f.has(n))names.add(n);})));
   let list=[...names];if(!list.length)return emptyState('📈','该科目没有成绩数据');
-  const ranks=exs.map(e=>examClassRank(e));const latest=exs[exs.length-1];
   const st=gradeSubjSort();
-  const avgMap={};list.forEach(n=>{let s=0,c=0;exs.forEach(e=>{const v=e.scores[n];if(v!=null){s+=v;c++;}});avgMap[n]=c?s/c:null;});
+  const avgMap={};list.forEach(n=>{let s=0,c=0;groupList.forEach(g=>{const e=pickExam(g,n);const v=e.scores[n];if(v!=null){s+=v;c++;}});avgMap[n]=c?s/c:null;});
   const avgRank={};list.filter(n=>avgMap[n]!=null).sort((a,b)=>avgMap[b]-avgMap[a]).forEach((n,i)=>{avgRank[n]=i+1;});
-  /* 排序：name（学生）/ avg（均分）/ ex:N（第 N 场考试分数）/ default=latest（最近一场考试分数） */
+  /* 默认排序键=最新一次事件（last group）按学生分数排；点击表头切到 ex:N 时按第 N 个事件组排序 */
   list.sort((a,b)=>{
     if(st.key==='name')return st.dir==='asc'?a.localeCompare(b,'zh'):b.localeCompare(a,'zh');
     if(st.key==='avg'){const ca=avgMap[a]||0,cb=avgMap[b]||0;return st.dir==='asc'?ca-cb:cb-ca;}
-    if(st.key&&st.key.indexOf('ex:')===0){const i=+st.key.slice(3);const e=exs[i];if(!e)return 0;const ca=e.scores[a]||0,cb=e.scores[b]||0;return st.dir==='asc'?ca-cb:cb-ca;}
-    const ca=latest.scores[a]||0,cb=latest.scores[b]||0;return st.dir==='asc'?ca-cb:cb-ca;
+    if(st.key&&st.key.indexOf('ex:')===0){const i=+st.key.slice(3);const g=groupList[i];if(!g)return 0;const ca=pickExam(g,a).scores[a]||0,cb=pickExam(g,b).scores[b]||0;return st.dir==='asc'?ca-cb:cb-ca;}
+    const g=groupList[groupList.length-1];if(!g)return 0;
+    const ca=pickExam(g,a).scores[a]||0,cb=pickExam(g,b).scores[b]||0;return st.dir==='asc'?ca-cb:cb-ca;
   });
   /* 表头：排序指示；可排序列（学生/考试名/均分）点表头切换 asc/desc（图标已按用户要求删除） */
   const icSort=(active,dir)=>active?(dir==='asc'?' ▲':' ▼'):'';
-  const exTh=exs.map((e,i)=>{
+  const exTh=groupList.map((g,i)=>{
     const active=st.key==='ex:'+i;
-    return `<th class="c-ex h-flex ${active?'active':''}" data-action="grade-subj-sort" data-k="ex:${i}"><span class="h-lb">${esc(e.name)}</span><span class="h-ord">${icSort(active,st.dir)}</span></th>
+    const eName=eventNameOf(g.rep);
+    return `<th class="c-ex h-flex ${active?'active':''}" data-action="grade-subj-sort" data-k="ex:${i}"><span class="h-lb">${esc(eName)}</span><span class="h-ord">${icSort(active,st.dir)}</span></th>
       <th class="c-jb"><span class="h-lb">进退</span></th>
       <th class="c-rk"><span class="h-lb">排名</span></th>`;
   }).join('');
@@ -3127,18 +3151,22 @@ function gradeSubjectHtml(ev){
     ${exTh}
     <th class="c-avg h-flex ${avgAct?'active':''}" data-action="grade-subj-sort" data-k="avg"><span class="h-lb">均分</span><span class="h-ord">${icSort(avgAct,st.dir)}</span></th>
     <th class="c-ark"><span class="h-lb">排名</span></th></tr>`;
-  const cols=`<colgroup><col class="c-cls"><col class="c-name">${exs.map(()=>'<col class="c-ex"><col class="c-jb"><col class="c-rk">').join('')}<col class="c-avg"><col class="c-ark"></colgroup>`;
+  const cols=`<colgroup><col class="c-cls"><col class="c-name">${groupList.map(()=>'<col class="c-ex"><col class="c-jb"><col class="c-rk">').join('')}<col class="c-avg"><col class="c-ark"></colgroup>`;
   const rows=list.map(n=>{
     const cid0=stuByName(n)?stuByName(n).classId:'';
     const lpEv=`onpointerdown="lpSubjStuStart('${esc(n)}',event)" onpointerup="lpSubjStuCancel()" onpointerleave="lpSubjStuCancel()"`;const lpAttrs=lpEv+` style="cursor:pointer"`;
     /* r86：长按绑定到「姓名 / 分数 / 均分」三处；整行 <tr> 不绑（防左右滑误触）。
-       班级/进退/均分排名 等格保持无长按。 */
-    const cells=exs.map((e,i)=>{
+       r88：行渲染时按学生所在班级挑对应 exam 取分；进退比上一事件组同 cid 那条；排名按该生班级 exam 算。 */
+    const cells=groupList.map((g,i)=>{
+      const e=pickExam(g,n);
       const sc=e.scores[n];
       if(sc==null)return `<td>—</td><td>—</td><td>—</td>`;
-      const prev=i>0?exs[i-1].scores[n]:null;
+      const prevG=i>0?groupList[i-1]:null;
+      const prevE=prevG?pickExam(prevG,n):null;
+      const prev=prevE?prevE.scores[n]:null;
       const d=prev!=null?sc-prev:0;
-      const rk=ranks[i][n];
+      const rkMap=examClassRank(e);
+      const rk=rkMap?rkMap[n]:null;
       return `<td ${lpAttrs}><b>${sc}</b></td><td style="color:${d>0?'var(--ok)':d<0?'var(--danger)':'var(--text-2)'}">${d>0?'▲+'+d:d<0?'▼'+d:'—'}</td><td>${rk!=null?rk:'—'}</td>`;
     }).join('');
     return `<tr data-name="${esc(n)}"><td style="text-align:left;color:var(--text-2)">${esc(classNameOf(cid0))}</td><td ${lpAttrs}>${esc(n)}</td>${cells}<td style="font-weight:700;cursor:pointer" ${lpEv}>${avgMap[n]!=null?avgMap[n].toFixed(1):'—'}</td><td>${avgRank[n]!=null?avgRank[n]:'—'}</td></tr>`;
@@ -3906,7 +3934,8 @@ function syncTeachPages(){
 function attachSwipe(){
   const HUBS=[
     {pages:'.teach-pages', tabs:'.teach-hub-tabs', order:['todos','courses','notes','reviews'], get:()=>S._teachTab||'courses', set:selectTeachTab, panel:null},
-    {pages:'.grade-pages', tabs:'.grade-tabs', order:['trend','score','subject','cmp','mgmt'], get:()=>S._gradeView, set:gradeView, panel:gradePanelHtmlFor},
+    /* r89：成绩分析页关闭手机版左右滑切换（保留 tab 点击切换）。swipe:false → begin() 直接 return，gesture 永不启动 */
+    {pages:'.grade-pages', tabs:'.grade-tabs', order:['trend','score','subject','cmp','mgmt'], get:()=>S._gradeView, set:gradeView, panel:gradePanelHtmlFor, swipe:false},
     {pages:'.stu-pages', tabs:'.view-students .grade-tabs', order:['stu','rec','draw','class','rules'], get:()=>stuTab, set:stuTabTo, panel:stuPanelHtmlFor},
   ];
   let active=null, sx=0, sy=0, t0=0, lock=false, vx=0, cur=0, dragging=false, pressed=false;
@@ -3917,7 +3946,7 @@ function attachSwipe(){
   function width(p){return p?(p.clientWidth||window.innerWidth):0;}
   function inter(t,h){return !!(t&&t.closest&&h&&t.closest('input,textarea,select,button,a,.btn,label,[contenteditable],'+h.tabs+',.no-swipe'));}
   function begin(h,x,y,t){
-    if(!mobile())return; const p=document.querySelector(h.pages); if(!p||inter(t,h))return;
+    if(!mobile()||h.swipe===false)return; const p=document.querySelector(h.pages); if(!p||inter(t,h))return;
     active=h; sx=x;sy=y;t0=Date.now();lock=false;dragging=false;vx=0;pressed=true;
     cur=Math.max(0,h.order.indexOf(h.get()));
   }
@@ -5023,10 +5052,15 @@ function viewSettings(){
 function planScopeInit(){
   if(S._planClass!==ALL_CLASS&&!S.classes.some(c=>c.id===S._planClass&&!c.archived))S._planClass=ALL_CLASS;
   if(S._planSubject===undefined||S._planSubject===null)S._planSubject='';
+  if(S._planSubject&&planSubjectOpts().indexOf(S._planSubject)<0)S._planSubject='';
   S._planSem=S._planSem||S._previewSem||(curSem()?curSem().id:ALL_CLASS);
   if(S._planSem&&S._planSem!==ALL_CLASS&&!S.semesters.some(s=>s.id===S._planSem))S._planSem=curSem()?curSem().id:ALL_CLASS;
 }
-function planScopeItems(){planScopeInit();return S._planClass===ALL_CLASS?S.plan.slice():classPlan(S._planClass);}
+/* 「全部班级」= 所有未归档班级的并集（与顶部班级下拉的选项列表一致，已归档班级的任务不显示） */
+function planScopeItems(){planScopeInit();
+  if(S._planClass!==ALL_CLASS)return classPlan(S._planClass);
+  return S.plan.filter(p=>{const c=S.classes.find(x=>x.id===p.classId);return !c||!c.archived;});
+}
 function planVisibleItems(){
   return planScopeItems().filter(p=>(S._planSem===ALL_CLASS||p.sem===S._planSem||!p.sem)
     &&(S._planSubject===''||(p.subject||'')===S._planSubject)).sort((a,b)=>a.order-b.order);
