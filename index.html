@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>工作E · v20260902-r91</title>
+<title>工作E · v20260902-r92</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -7114,19 +7114,19 @@ async function cloudPush(){
   if(cloudPushing){scheduleCloudPush();return;}  // 防并发：推送在途则重新排队，避免慢网下丢写
   cloudPushing=true;
   updateCloudStatus('pulling','上传中…');
-  const payload=JSON.stringify(S);const b64=b64enc(payload);
-  if(b64.length>1.4e6){cloudPushing=false;updateCloudStatus('error','数据超过单文件 1MB 上限，无法同步，请用「全部导出」');toast('同步失败：数据过大');return;}
   let lastErr=null, pushed=false, adopted=false;
+  // ★ 关键修复：在推送开始前冻结「本机真实写入时间」baseLocalAt（来自 save() 的 S._savedAt），
+  //   作为每次重试时与远端比较的基准。若每次都用「现在」去比，会永远认为自己较新，丢失 mid-flight 冲突检测。
+  const baseLocalAt=S._savedAt||0;
   for(let attempt=0; attempt<6 && !pushed && !adopted; attempt++){
     try{
       const g=await cloudGetSha(c);              // 每次都重新取最新 sha，规避 409
-      // 真冲突：远端 _savedAt 比本地更新（另一设备刚保存），按 LWW 采用远端
-      // 关键：每次重试都重新比对，避免推送过程中对方又写了一遍我们没察觉
+      // 真冲突：远端 _savedAt 比本机真实写入时间更新（另一设备刚保存），按 LWW 采用远端，绝不用本地陈旧数据覆盖
       if(g.exists && g.content){
         try{
           const rd=JSON.parse(b64dec((g.content||'').replace(/\s/g,'')));
-          const remoteAt=rd._savedAt||0, localAt=S._savedAt||0;
-          if(remoteAt>localAt){
+          const remoteAt=rd._savedAt||0;
+          if(remoteAt>baseLocalAt){
             snapshotLocal('cloud-pull');
             Object.assign(S,rd);S.examPoints=S.examPoints||[];
             for(const k in DEFAULTS)store.set(k,S[k]);
@@ -7136,6 +7136,12 @@ async function cloudPush(){
           }
         }catch(_){/* 远端内容异常则按原样重试推送 */}
       }
+      // ★ 关键修复：真正要推送时，才把本机写入时间戳刷新为「现在」。这样落云的版本带真实推送时刻，
+      //   下一台设备拉取后能正确识别「这是最新版」，不会再被旧 _savedAt 误判而回滚覆盖（即本次上报的回滚 bug）。
+      S._savedAt=Date.now();
+      for(const k in DEFAULTS)store.set(k,S[k]);
+      const payload=JSON.stringify(S);const b64=b64enc(payload);
+      if(b64.length>1.4e6){cloudPushing=false;updateCloudStatus('error','数据超过单文件 1MB 上限，无法同步，请用「全部导出」');toast('同步失败：数据过大');return;}
       const body=JSON.stringify({message:'sync '+new Date().toISOString(),content:b64,branch:c.branch||'main',sha:g.sha||undefined});
       const r=await fetch(GH_API+ghContentsPath(c),{method:'PUT',headers:ghHeaders(c.token),body});
       if(r.status===401){lastErr='令牌无效或已过期，请在「设置-云端同步」重新填写 Access Token';break;}
@@ -7172,10 +7178,20 @@ async function cloudTest(c){
 async function cloudSyncNow(c){
   const r=await cloudPull();
   if(r.ok&&r.data){
-    try{Object.assign(S,r.data);S.examPoints=S.examPoints||[];for(const k in DEFAULTS)store.set(k,S[k]);router();}catch(e){toast('云端数据解析失败，保持本地');}
-    updateCloudStatus('pulling','已拉取，上传中…');
+    // 手动同步：拉取后按「最后保存时间」择更新者，绝不盲目用远端覆盖本地未保存的编辑
+    const cloudAt=r.data._savedAt||0, localAt=S._savedAt||0;
+    if(cloudAt>localAt){
+      try{
+        snapshotLocal('cloud-pull');
+        Object.assign(S,r.data);S.examPoints=S.examPoints||[];
+        for(const k in DEFAULTS)store.set(k,S[k]);
+        updateCloudStatus('ok','已采用云端较新版本');router();
+      }catch(e){toast('云端数据解析失败，保持本地');}
+    }else{
+      updateCloudStatus('pulling','本地已是最新，上传中…');
+    }
   }else if(!r.empty){toast('拉取失败：'+(r.reason||''));return;}
-  await cloudPush();
+  await cloudPush();   // cloudPush 内部会在推送前刷新 _savedAt，保证本机版本带最新时间戳
 }
 function cloudDisconnect(){localStorage.removeItem(CLOUD_KEY);cloudReady=false;cloudPulling=false;viewReload('settings');toast('已断开云端同步');}
 async function bootCloudSync(){
