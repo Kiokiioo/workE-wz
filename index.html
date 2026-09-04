@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>工作E · v20260902-r98</title>
+<title>工作E · v20260902-r99</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -565,14 +565,15 @@ tbody tr:hover{background:var(--surface-2)}
   .tt-meta{font-size:11px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 }
 /* 课表矩阵（桌面）：行=上午/下午/晚上+第N节，列=星期；单元格堆叠 班级+科目(+时间) */
-.tt-matrix{width:100%;min-width:680px;border-collapse:separate;border-spacing:0;font-size:12px;table-layout:fixed;background:var(--surface)}
-.tt-matrix th,.tt-matrix td{border:1px solid var(--border);padding:0;text-align:center;vertical-align:top}
-.tt-matrix thead th{position:sticky;top:0;background:var(--surface);z-index:2;padding:6px 4px;font-weight:700;color:var(--text);font-size:12px}
-.tt-m-corner{width:62px;background:var(--bg,#f5f6f8);font-size:11px;color:var(--text-2);font-weight:600}
-.tt-m-day{font-size:12px}
-.tt-m-part{width:28px;background:var(--primary-soft,#eef1fe);color:var(--primary,#4f6bed);font-weight:700;font-size:13px;writing-mode:vertical-rl;letter-spacing:3px}
+.tt-matrix{width:100%;min-width:680px;border-collapse:separate;border-spacing:0;font-size:12px;table-layout:fixed;background:var(--surface);border-top:1px solid var(--border);border-left:1px solid var(--border)}
+.tt-matrix th,.tt-matrix td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:0;text-align:center;vertical-align:middle}
+.tt-matrix thead th{position:sticky;top:0;background:var(--bg,#f5f6f8);z-index:2;padding:6px 4px;font-weight:700;color:var(--text);font-size:12px;vertical-align:middle}
+.tt-m-corner{width:62px;background:var(--bg,#f5f6f8);font-size:11px;color:var(--text-2);font-weight:600;vertical-align:middle}
+.tt-m-day{font-size:12px;padding:6px 4px}
+.tt-m-part{width:32px;background:var(--bg,#f5f6f8);color:var(--text);font-weight:700;font-size:13px}
 .tt-m-pnum{width:28px;color:var(--text-2);font-size:11px;background:var(--bg,#f7f8fa)}
-.tt-m-cell{padding:3px!important}
+.tt-m-cell{padding:3px!important;background:var(--surface)}
+.tt-m-item{display:flex;flex-direction:column;gap:1px;align-items:flex-start;text-align:left;border-left:3px solid hsl(var(--dh,210),68%,56%);border-radius:6px;background:hsl(var(--dh,210),72%,97%);padding:3px 5px;margin:2px 0;cursor:pointer;min-width:0;box-shadow:0 1px 2px rgba(20,30,60,.06);transition:filter .12s}
 .tt-m-item{display:flex;flex-direction:column;gap:1px;align-items:flex-start;text-align:left;border-left:3px solid hsl(var(--dh,210),68%,56%);border-radius:6px;background:hsl(var(--dh,210),72%,97%);padding:3px 5px;margin:2px 0;cursor:pointer;min-width:0;box-shadow:0 1px 2px rgba(20,30,60,.06);transition:filter .12s}
 .tt-m-item:hover{filter:brightness(.97);background:hsl(var(--dh,210),72%,94%)}
 .tt-m-item.pick{outline:2px solid var(--primary);outline-offset:-1px;background:var(--primary-soft)}
@@ -580,7 +581,7 @@ tbody tr:hover{background:var(--surface-2)}
 .tt-mi-cls{font-size:10px;line-height:1.2;color:var(--text-2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tt-mi-time{font-size:10px;color:var(--text-2);opacity:.85}
 .tt-mi-bw{font-size:9px;color:var(--primary);background:var(--primary-soft);border-radius:99px;padding:0 4px;align-self:flex-start}
-.tt-m-empty{vertical-align:middle;background:var(--bg,#fafbfc);cursor:pointer}
+.tt-m-empty{vertical-align:middle;background:var(--surface,#ffffff);cursor:pointer}
 .tt-m-empty:hover{background:hsl(var(--primary,210),70%,98%)}
 .tt-m-add{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1px dashed var(--border);background:transparent;color:var(--text-2);font-size:16px;line-height:1}
 .tt-m-empty:hover .tt-m-add{border-color:var(--primary);color:var(--primary)}
@@ -4971,7 +4972,7 @@ function ttMatrixHtml(){
   const byCell={};
   list.forEach(t=>{const k=(t.period>=1?t.period:1)+'_'+(t.day!=null?t.day:1);(byCell[k]=byCell[k]||[]).push(t);});
   const PARTS=[['上午',1],['下午',6],['晚上',11]];
-  const DAYS=[1,2,3,4,5,6,0];
+  const DAYS=[1,2,3,4,5];
   let h='<table class="tt-matrix"><thead><tr><th class="tt-m-corner" colspan="2">节次＼星期</th>';
   DAYS.forEach(d=>{h+='<th class="tt-m-day">周'+WD[d]+'</th>';});
   h+='</tr></thead><tbody>';
@@ -5831,10 +5832,10 @@ function ttAddSemPick(v){const f=document.querySelector('form[data-form="tt"]');
 function ttAddClsLabel(v){if(!v||v===ALL_CLASS)return '全部班级';if(v==='__custom__')return '自定义班级…';const c=cls(v);return c?c.name:'全部班级';}
 function ttAddClsOpts(){return [{k:ALL_CLASS,l:'全部班级',pick:'ttAddClsPick'}].concat(S.classes.filter(c=>!c.archived).map(c=>({k:c.id,l:c.name,pick:'ttAddClsPick'}))).concat([{k:'__custom__',l:'自定义班级…',pick:'ttAddClsPick'}]);}
 function ttAddClsPick(v){const f=document.querySelector('form[data-form="tt"]');const hid=f&&f.querySelector('input[name="ttcls"]');if(hid)hid.value=v;const w=document.getElementById('ttadd_cls_wrap');const t=w&&w.querySelector('.bk-trigger-text');if(t)t.textContent=ttAddClsLabel(v);ttClsChange(v);closeAllBkPops();}
-function ttAddDayLabel(v){const DAYS=[['一',1],['二',2],['三',3],['四',4],['五',5],['六',6],['日',0]];const f=DAYS.find(([w,d])=>String(d)===String(v));return f?'周'+f[0]:'星期';}
+function ttAddDayLabel(v){const DAYS=[['一',1],['二',2],['三',3],['四',4],['五',5]];const f=DAYS.find(([w,d])=>String(d)===String(v));return f?'周'+f[0]:'星期';}
 /* r74：弹窗标题用的「周X 上午/下午/晚上第N节」位置上下文（modalTt 在编辑/带 prefill 的添加场景使用） */
 function ttPosCtx(day,part,pnum){if(day==null||day==='')return '';const WD=['日','一','二','三','四','五','六'];const wk='周'+(WD[+day]||'');const pt=['上午','下午','晚上'][+part];if(!pt&&!pnum)return wk;if(!pt)return wk+' 第'+(+pnum)+'节';if(!pnum)return wk+' '+pt;return wk+' '+pt+'第'+(+pnum)+'节';}
-function ttAddDayOpts(){const DAYS=[['一',1],['二',2],['三',3],['四',4],['五',5],['六',6],['日',0]];return DAYS.map(([w,v])=>({k:String(v),l:'周'+w,pick:'ttAddDayPick'}));}
+function ttAddDayOpts(){const DAYS=[['一',1],['二',2],['三',3],['四',4],['五',5]];return DAYS.map(([w,v])=>({k:String(v),l:'周'+w,pick:'ttAddDayPick'}));}
 function ttAddDayPick(v){const f=document.querySelector('form[data-form="tt"]');const hid=f&&f.querySelector('input[name="day"]');if(hid)hid.value=v;const w=document.getElementById('ttadd_day_wrap');const t=w&&w.querySelector('.bk-trigger-text');if(t)t.textContent=ttAddDayLabel(v);closeAllBkPops();}
 function ttAddPartLabel(v){const m=['上午','下午','晚上'];const i=+v;return m[i]!=null?m[i]:'节次';}
 function ttAddPartOpts(){return [['上午',0],['下午',1],['晚上',2]].map(([l,i])=>({k:String(i),l,pick:'ttAddPartPick'}));}
