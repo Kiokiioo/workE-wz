@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r109</title>
+<title>工作E · v20260902-r113</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -1660,7 +1660,7 @@ function viewHome(){
   /* r109 首页置顶笔记：置于 hero 文案下方（仅在有置顶笔记时渲染），点击行打开编辑弹窗 */
   const pinnedNotes=S.notes.filter(n=>n.pin).sort((a,b)=>(b.pinAt||0)-(a.pinAt||0));
   const pinNotesHtml=pinnedNotes.length?`<div class="card" style="margin-top:14px"><div class="section-title"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('置顶',18)}置顶笔记</span><span class="count">${pinnedNotes.length} 条</span></div>
-    ${pinnedNotes.map((n,i)=>`<div data-action="edit-note" data-id="${n.id}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;${i<pinnedNotes.length-1?'border-bottom:1px solid var(--border);':''}cursor:pointer"><span style="font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(n.title)}</span><span style="flex:none;font-size:12px;color:var(--text-2)">${esc((course(n.courseId)||{}).name||'未分类')} · ${new Date(n.created).toLocaleDateString()}</span></div>`).join('')}</div>`:'';
+    ${pinnedNotes.map((n,i)=>`<div data-action="edit-note" data-id="${n.id}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;${i<pinnedNotes.length-1?'border-bottom:1px solid var(--border);':''}cursor:pointer"><span style="font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(n.title)}</span><span style="flex:none;font-size:12px;color:var(--text-2)">${esc(noteCatOf(n))} · ${new Date(n.created).toLocaleDateString()}</span></div>`).join('')}</div>`:'';
   return `
   <div class="home-hero">
     <h2>今天，先把最重要的事做了</h2>
@@ -2181,9 +2181,9 @@ function viewNotes(){
     const noteTags=(n.tags||'').split(/[,，]/).map(s=>s.trim()).filter(Boolean);
     const tagHtml=noteTags.length?`<div style="margin-top:8px;line-height:1;display:flex;flex-wrap:wrap;gap:6px">${noteTags.map(t=>`<span class="tag clickable" data-action="filter-tag" data-tag="${esc(t)}">#${esc(t)}</span>`).join('')}</div>`:'';
     return `<div class="card" data-id="${n.id}"><div style="display:flex;justify-content:space-between;align-items:flex-start">
-    <div style="line-height:1"><h3 style="font-size:14px">${esc(n.title)}</h3><div class="sub">${esc((course(n.courseId)||{}).name||'未分类')} · ${new Date(n.created).toLocaleDateString()}</div></div>
+    <div style="line-height:1"><h3 style="font-size:14px">${esc(n.title)}</h3><div class="sub">${esc(noteCatOf(n))} · ${new Date(n.created).toLocaleDateString()}</div></div>
     <div class="row-actions"><button class="ic-btn-del" type="button" data-action="del-note" data-id="${n.id}" title="删除" aria-label="删除">${iconSvg('x',10)}</button>
-    <button class="ic-btn" type="button" data-action="pin-note" data-id="${n.id}" title="${n.pin?'取消置顶':'置顶'}" aria-label="置顶" ${n.pin?'style="color:var(--primary)"':''}>${iconSvg('置顶',10)}</button>
+    <button class="ic-btn" type="button" data-action="pin-note" data-id="${n.id}" title="${n.pin?'取消置顶':'置顶'}" aria-label="置顶" ${n.pin?'style="background:var(--primary);color:var(--primary-text)"':''}>${iconSvg('置顶',10)}</button>
     <button class="ic-btn" type="button" data-action="edit-note" data-id="${n.id}" title="编辑" aria-label="编辑">${iconSvg('edit',10)}</button></div></div>
     <p style="margin:12px 0 0;line-height:1;font-size:14px;color:var(--text-2);white-space:pre-wrap">${esc(n.content)}</p>
     ${tagHtml}</div>`;}).join(''):
@@ -4065,6 +4065,18 @@ function selectTeachTab(r){
     p.querySelectorAll('.tp').forEach(tp=>{if(tp.dataset.v!==r)tp.classList.add('tp-off');else tp.classList.remove('tp-off');});
   }
 }
+/* r109b：教学 hub 内原地刷新某个 panel（notes/reviews/todos/courses）。
+   不用 viewReload(r)——那会把 hash 切到独立页，hub 顶部「待办-进度-笔记-复盘」胶囊 tab 随之消失。
+   仅在当前路由是 #teach 且目标 panel 存在时原地重渲染，返回 true 表示已处理。 */
+function reloadPanelInHub(r){
+  if(location.hash.slice(1)!=='teach'||!TEACH_ORDER.includes(r))return false;
+  const tp=document.querySelector('.teach-pages .tp[data-v="'+r+'"]');
+  if(!tp)return false;
+  const fns={todos:viewTodos,courses:viewCourses,notes:viewNotes,reviews:viewReviews};
+  try{tp.innerHTML=fns[r]()||'';}
+  catch(e){tp.innerHTML='<div class="empty" style="color:var(--danger);font-size:12px">'+esc(r)+'渲染失败：'+esc((e&&e.message)||String(e))+'</div>';}
+  return true;
+}
 /* 教学 hub：初次渲染后同步 active class（手机版仅靠 class 切换显示，desktop 也不需要 transform） */
 function syncTeachPages(){
   const p=document.querySelector('.teach-pages');if(!p)return;
@@ -5619,20 +5631,31 @@ function modalProgress(id,pid){const c=course(id);if(!c)return;S._progCourse=id;
     // 实时进度（今日任务勾选变化）
     form.addEventListener('change',e=>{const t=e.target;if(t&&t.name&&t.name.startsWith('pdone_'))progUpdateProgress();});
   },0);}
-function modalNote(id){const n=id?S.notes.find(x=>x.id===id):{};const curCourse=n.courseId||(S.courses[0]&&S.courses[0].id)||'';
+function modalNote(id){const n=id?S.notes.find(x=>x.id===id):{};
+  /* r112：课程 → 分类（输入框+下拉二合一）。默认选项=科目（S.subjects）+ 已用分类；可自由输入。
+     旧笔记 courseId 保留（编辑时不覆盖），展示优先 cat，回退课程名。 */
+  const catVal=(n.cat&&n.cat.trim())||(n.courseId?(course(n.courseId)||{}).name:'')||'';
   openModal(id?'编辑笔记':'备课笔记',`<form data-form="note" data-id="${id||''}">
   <div class="field row" style="margin-bottom:8px">
-    <div class="field" style="flex:none;width:100px;margin-bottom:0"><label>课程</label>${selHtml('note_course',noteCourseLabel(curCourse),bkOpts(noteCourseOpts(),curCourse))}<input type="hidden" name="courseId" value="${esc(curCourse)}"></div>
+    <div class="field" style="flex:none;width:100px;margin-bottom:0"><label>分类</label>
+      <div class="bk-range-wrap" id="note_cat_wrap">
+        <div class="bk-range-trigger" onclick="bkSelOpen('note_cat_pop',event)"><input name="cat" id="note_cat_input" value="${esc(catVal)}" placeholder="分类" autocomplete="off" onclick="event.stopPropagation()" onfocus="bkSelOpen('note_cat_pop',event)" style="flex:1;min-width:0;border:0;outline:none;background:transparent;padding:0;height:100%;font-size:13px;color:var(--text);font-family:inherit"></div>
+        <div class="bk-range-pop" id="note_cat_pop" style="display:none">${noteCatOptsHtml(catVal)}</div>
+      </div>
+    </div>
     <div class="field" style="flex:1;margin-bottom:0">${field('标题','<input name="title" required value="'+esc(n.title||'')+'" placeholder="标题">')}</div>
   </div>
   ${field('内容','<textarea name="content">'+esc(n.content||'')+'</textarea>')}
   ${field('标签','<div class="tag-input-wrap" id="tag_input_wrap"><div class="tag-list" id="tag_list"></div><input type="text" id="tag_input" placeholder="输入后回车或逗号"><input type="hidden" name="tags" id="tags_hidden" value="'+esc(n.tags||'')+'"></div>')}
   <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">保存</button></div></form>`);
   setTimeout(initTagInput,30);}
+/* r112 分类下拉：默认选项 = 科目（S.subjects）+ 已用分类（去重，科目在前） */
+function noteCatItems(){const subj=(S.subjects||[]).map(s=>s.name).filter(Boolean);const used=(S.notes||[]).map(n=>n.cat).filter(Boolean);return [...new Set([...subj,...used])];}
+function noteCatOptsHtml(cur){const items=noteCatItems();return items.length?items.map(v=>`<div class="bk-range-opt" onclick="noteCatPick('${esc(v)}')" style="${v===cur?'background:var(--primary-soft);color:var(--primary);font-weight:600':''}">${esc(v)}</div>`).join(''):'<div class="bk-range-opt" style="color:var(--text-2)">暂无科目，可直接输入</div>';}
+function noteCatPick(v){const i=document.getElementById('note_cat_input');if(i)i.value=v;closeAllBkPops();}
+/* 分类展示：优先 cat，回退旧课程名，再回退「未分类」 */
+function noteCatOf(n){return (n.cat&&n.cat.trim())||(course(n.courseId)||{}).name||'未分类';}
 /* 备课笔记-添加弹窗：课程下拉改用 bk-range 弹层（与课表设置-学期同款） */
-function noteCourseLabel(v){if(!v)return '课程';const c=S.courses.find(x=>x.id===v);return c?c.name:'课程';}
-function noteCourseOpts(){return S.courses.length?S.courses.map(c=>({k:c.id,l:c.name,pick:'noteCoursePick'})):[{k:'',l:'先去添加课程',pick:'noteCoursePick'}];}
-function noteCoursePick(v){const f=document.querySelector('form[data-form="note"]');const hid=f&&f.querySelector('input[name="courseId"]');if(hid)hid.value=v;const w=document.getElementById('note_course_wrap');const t=w&&w.querySelector('.bk-trigger-text');if(t)t.textContent=noteCourseLabel(v);closeAllBkPops();}
 function initTagInput(){const wrap=document.getElementById('tag_input_wrap');if(!wrap)return;const list=wrap.querySelector('.tag-list');const input=wrap.querySelector('input[type=text]');const hidden=wrap.querySelector('input[type=hidden]');
   const get=()=>(hidden.value||'').split(/[,，]/).map(s=>s.trim()).filter(Boolean);
   const set=t=>{hidden.value=t.join(',');};
@@ -5911,12 +5934,13 @@ modal.addEventListener('submit',e=>{
     save();closeModal();viewReload(curView());toast('已保存');}
   else if(form==='course'){const id=f.dataset.id;const cur=id?course(id):{};const o={name:v('name'),cls:v('cls'),subject:(v('subject')||'').trim(),sem:(v('sem')||'').trim(),progress:cur.progress||0,next:cur.next||'',color:v('color')};
     if(id){Object.assign(course(id),o);}else S.courses.push({id:uid(),...o});save();closeModal();viewReload('courses');toast('已保存');}
-  else if(form==='note'){const id=f.dataset.id;const o={courseId:v('courseId'),title:v('title'),content:v('content'),tags:v('tags'),created:Date.now()};
-    if(id)Object.assign(S.notes.find(x=>x.id===id),o);else S.notes.push({id:uid(),...o});save();closeModal();viewReload('notes');toast('已保存');}
+  else if(form==='note'){const id=f.dataset.id;const o={cat:v('cat').trim(),title:v('title'),content:v('content'),tags:v('tags'),created:Date.now()};
+    /* r113：条目盖 _at 新鲜度戳——否则置顶/编辑走状态级 _savedAt 裁决，会被另一端「推得晚但内容旧」的副本回滚（置顶无法同步的根因） */
+    if(id){const t=S.notes.find(x=>x.id===id);Object.assign(t,o);t._at=Date.now();}else S.notes.push({id:uid(),...o,_at:Date.now()});save();closeModal();if(!reloadPanelInHub('notes'))viewReload('notes');toast('已保存');}
   else if(form==='review'){const id=f.dataset.id;const o={week:v('week'),done:v('done'),stuck:v('stuck'),next:v('next'),highlight:v('highlight')};
     if(id){const r=S.reviews.find(x=>x.id===id);Object.assign(r,o);
       if(r.autoTasks!=null){r.autoTasks=v('autoTasks');r.autoProgress=v('autoProgress');r.autoTodos=v('autoTodos');r.autoNotes=v('autoNotes');r.autoExams=v('autoExams');}}
-    else { S.reviews.push({id:uid(),...o}); foldAutoIntoManual(reviewDate(o)); save(); } closeModal();viewReload('reviews');toast('已保存');}
+    else { S.reviews.push({id:uid(),...o}); foldAutoIntoManual(reviewDate(o)); save(); } closeModal();if(!reloadPanelInHub('reviews'))viewReload('reviews');toast('已保存');}
   else if(form==='class'){const id=f.dataset.id;const nm=v('name').trim();if(!nm){toast('请输入班级名称');return;}
     const semName=v('sem').trim();const semId=S.semesters.find(s=>s.name===semName)?S.semesters.find(s=>s.name===semName).id:(curSem()?curSem().id:'');
     let cid,added=0;if(id){const c=cls(id);c.name=nm;c.stage=v('stage');c.grade=v('grade');c.sem=semId;cid=id;}
@@ -6123,8 +6147,8 @@ document.body.addEventListener('click',e=>{
   else if(a==='cal-day'){openDayDetail(t.dataset.iso);}
   else if(a==='teach-tab'){selectTeachTab(t.dataset.r);}
   else if(a==='edit-note'){modalNote(id);if(id)modalFill(id,'note');}
-  else if(a==='del-note'){S.notes=S.notes.filter(y=>y.id!==id);save();viewReload('notes');}
-  else if(a==='pin-note'){const n=S.notes.find(y=>y.id===id);if(n){n.pin=!n.pin;n.pinAt=n.pin?Date.now():0;save();viewReload('notes');}}
+  else if(a==='del-note'){S.notes=S.notes.filter(y=>y.id!==id);save();if(!reloadPanelInHub('notes'))viewReload('notes');}
+  else if(a==='pin-note'){const n=S.notes.find(y=>y.id===id);if(n){n.pin=!n.pin;n.pinAt=n.pin?Date.now():0;n._at=Date.now();save();if(!reloadPanelInHub('notes'))viewReload('notes');}}
   else if(a==='filter-tag'){noteTagFilter(t.dataset.tag);}
   else if(a==='clear-tag-filter'){clearNoteTagFilter();}
   else if(a==='imp-note'){importNotes();}
