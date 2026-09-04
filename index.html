@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r106</title>
+<title>工作E · v20260902-r107</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -5244,6 +5244,24 @@ function planItemsHtml(){
 function planMove(id,dir){const items=planScopeItems();const i=items.findIndex(p=>p.id===id);if(i<0)return;
   const j=dir==='up'?i-1:i+1;if(j<0||j>=items.length)return;
   const a=items[i].order,b=items[j].order;items[i].order=b;items[j].order=a;touchPlan([items[i],items[j]]);save();planRender();}
+/* r107：拖拽落定（桌面 drop 与移动端 touchend 共用，initPlanDrag 的 commit 委托到此）。
+   只调整当前可见条目的相对顺序：取可见项原有 order 值升序，按 DOM 顺序回填 —— 筛选外条目的
+   order 与 _at 一概不动。修复两点：
+   ① 旧 commit 把可见项排到 S.plan 数组最前并 forEach((p,k)=>p.order=k+1) 全表重编——其他班条目的
+      order 被按「数组位置」改写（↑/↓ 只换 order 值不换数组位），于是他班一次拖拽就把本班排序打回
+      修改前（2524 拖完 → 2526 再拖 → 2524 回退，正是用户复现路径）；
+   ② 旧 commit 缺 touchPlan——拖拽结果没有 _at 戳，r105 条目级合并会让对端「全表盖新戳的旧排序」
+      反压本端（拖 2524 → 对端任意编辑后补推 → 2524 排序回滚），且回滚态还会被再上传。
+   仅对 order 实际变化的条目盖 _at，其余条目的编辑新鲜度不被拖拽污染。 */
+function planCommitDrag(ids){
+  const vis=(ids||[]).map(id=>S.plan.find(p=>p.id===id)).filter(Boolean);
+  if(!vis.length)return;
+  const olds=vis.map(p=>p.order).slice().sort((a,b)=>a-b);
+  const changed=[];
+  vis.forEach((p,i)=>{if(p.order!==olds[i]){p.order=olds[i];changed.push(p);}});
+  if(changed.length){touchPlan(changed);save();}
+  planRender();
+}
 function planRender(){const el=document.getElementById('planList');if(el)el.innerHTML=planItemsHtml();}
 /* 拖拽排序：把 from 任务移到 to 任务之前/之后（after=false 之前 / true 之后），直接重排 S.plan 数组 */
 function planReorder(from,to,after){
@@ -5296,17 +5314,10 @@ function planReorder(from,to,after){
     if(after){if(target.nextElementSibling!==src)list.insertBefore(src,target.nextElementSibling);}
     else{if(target!==src)list.insertBefore(src,target);}
   };
-  /* 按当前 DOM 顺序落定数据（未显示的筛选外任务保持原相对顺序） */
+  /* r107：按当前 DOM 顺序落定数据 —— 委托给全局 planCommitDrag（手术式，只动可见条目），见其注释 */
   const commit=()=>{
     const list=document.getElementById('planList');if(!list)return;
-    const idx=new Map([...list.querySelectorAll('.rec-wrap')].map((w,i)=>[w.dataset.id,i]));
-    S.plan.sort((a,b)=>{
-      const ia=idx.has(a.id)?idx.get(a.id):1e9,ib=idx.has(b.id)?idx.get(b.id):1e9;
-      if(ia!==ib)return ia-ib;
-      return S.plan.indexOf(a)-S.plan.indexOf(b);
-    });
-    S.plan.forEach((p,k)=>p.order=k+1);
-    save();planRender();
+    planCommitDrag([...list.querySelectorAll('.rec-wrap')].map(w=>w.dataset.id));
   };
   const clearState=()=>{
     if(ghost&&ghost.parentNode)ghost.parentNode.removeChild(ghost);ghost=null;
@@ -5465,7 +5476,7 @@ function modalPlanAdd(id){const editing=!!id;const p=editing?S.plan.find(x=>x.id
     ${field('任务','<input name="ptitle" placeholder="输入教学任务…" required value="'+esc(p?p.title:'')+'">')}
     <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">${editing?'保存':'添加'}</button></div></form>`);}
 function planAddManual(){const cid=(S._planClass&&S._planClass!==ALL_CLASS)?S._planClass:((activeClasses()[0]&&activeClasses()[0].id)||ALL_CLASS);const i=document.getElementById('plan_new');const t=i.value.trim();if(!t)return;
-  S.plan.push({id:uid(),classId:cid,title:t,order:S.plan.filter(p=>p.classId===cid).length+1,done:false,temp:false,subject:S._planSubject||'',sem:S._planSem||(curSem()?curSem().id:ALL_CLASS),_at:Date.now()});save();planRender();i.value='';toast('已添加');}
+  S.plan.push({id:uid(),classId:cid,title:t,order:S.plan.filter(p=>p.classId===cid).reduce((m,p)=>Math.max(m,p.order||0),0)+1,done:false,temp:false,subject:S._planSubject||'',sem:S._planSem||(curSem()?curSem().id:ALL_CLASS),_at:Date.now()});save();planRender();i.value='';toast('已添加');}
 function planToggle(id){const p=S.plan.find(x=>x.id===id);if(p){p.done=!p.done;p.doneDate=p.done?(p.doneDate||todayISO()):'';touchPlan(p);save();viewReload('settings');}}
 function newSemester(){modalSemester();}
 /* 添加教学任务弹窗：班级/学期/科目 改用 bk-range 弹层（与课表设置-学期同款） */
@@ -5986,7 +5997,8 @@ modal.addEventListener('submit',e=>{
     const cp=coursePlan(c);const doneCp=cp.filter(p=>p.done);
     const ins=doneCp.length?Math.max(...doneCp.map(p=>p.order)):(cp.length?Math.max(...cp.map(p=>p.order)):0);
     const bumpN=extra.length+nts.length;
-    if(bumpN){S.plan.forEach(p=>{if((p.classId===cl||p.classId===ALL_CLASS)&&(!subj||(p.subject||'')===subj)&&p.order>ins)p.order+=bumpN;});}
+    /* r107：被挪位的条目也要盖 _at（旧写法只改 order 不盖戳 → 对端旧值可反压） */
+    if(bumpN){const bumped=[];S.plan.forEach(p=>{if((p.classId===cl||p.classId===ALL_CLASS)&&(!subj||(p.subject||'')===subj)&&p.order>ins){p.order+=bumpN;bumped.push(p);}});touchPlan(bumped);}
     let ord=ins+1;
     extra.forEach(t=>{S.plan.push({id:uid(),classId:cl,subject:subj,title:t,order:ord++,done:true,doneDate:when,temp:true,tag:'额外',_at:Date.now()});});
     nts.forEach(t=>{S.plan.push({id:uid(),classId:cl,subject:subj,title:t,order:ord++,done:false,temp:true,tag:'新增',_at:Date.now()});});
@@ -6186,8 +6198,10 @@ document.body.addEventListener('click',e=>{
   else if(a==='imp-plan'){modalImportPlan();}
   else if(a==='plan-add-modal'){modalPlanAdd();}
   else if(a==='plan-edit'){modalPlanAdd(id);}
-  else if(a==='plan-del'){const p=S.plan.find(x=>x.id===id);if(p){_pendingPlanDel=id;confirmModal('删除教学任务','确定删除「'+esc(p.title)+'」？删除后其余任务顺序会自动重排。','do-plan-del','danger');}}
-  else if(a==='do-plan-del'){S.plan=S.plan.filter(x=>x.id!==_pendingPlanDel);S.plan.forEach((p,k)=>p.order=k+1);touchPlan(S.plan);_pendingPlanDel='';save();closeModal();planRender();toast('已删除');}
+  else if(a==='plan-del'){const p=S.plan.find(x=>x.id===id);if(p){_pendingPlanDel=id;confirmModal('删除教学任务','确定删除「'+esc(p.title)+'」？','do-plan-del','danger');}}
+  /* r107：删除不再全表重编 order（展示按 order 相对排序，留空洞无碍）——旧写法 forEach(p,k)=>p.order=k+1
+     会按数组位置改写所有班条目的 order，把其他班 ↑/↓/拖拽造成的排序改动一并打回数组旧序。 */
+  else if(a==='do-plan-del'){S.plan=S.plan.filter(x=>x.id!==_pendingPlanDel);_pendingPlanDel='';save();closeModal();planRender();toast('已删除');}
   else if(a==='do-cp-del'){const pid=_pendingCpDelPid;_pendingCpDelPid='';closeModal();const p0=S.plan.find(x=>x.id===pid);if(!p0){openCourseProgress(S._cpId);return;}const when=p0.doneDate;const cid=p0.classId;const subj=(p0.subject||'');
     let maxOrd=p0.order;let nRev=0;
     if(when){
@@ -6601,7 +6615,8 @@ function deleteTimetable(ids){if(!ids.length){toast('没有可删除的课表');
   if(ids.length===1){run();save();viewReload('settings');toast('已删除 1 节课表');return;}
   delPendingDo(()=>{run();save();viewReload('settings');},'课表',ids.length);}
 function deletePlan(ids){if(!ids.length){toast('没有可删除的教学任务');return;}
-  const run=()=>{S.plan=S.plan.filter(p=>!ids.includes(p.id));S.plan.forEach((p,k)=>p.order=k+1);};
+  /* r107：不再全表重编 order（同 do-plan-del，留空洞无碍，避免打回其他班排序） */
+  const run=()=>{S.plan=S.plan.filter(p=>!ids.includes(p.id));};
   if(ids.length===1){run();save();viewReload('settings');toast('已删除 1 条教学任务');return;}
   delPendingDo(()=>{run();save();viewReload('settings');},'教学任务',ids.length);}
 
