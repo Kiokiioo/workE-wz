@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r104</title>
+<title>工作E · v20260902-r106</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -1219,10 +1219,14 @@ function mergeState(local,remote){
   // 非集合字段：取较新一侧；若较新侧缺该字段（如某端版本新增键），回退到另一侧，避免被 undefined 覆盖
   for(const k in DEFAULTS){if(DATA_COLLS.indexOf(k)>=0||SKIP.has(k))continue;const wv=(lw?local:remote)[k],ov=(lw?remote:local)[k];out[k]=wv!==undefined?wv:ov;}
   // 集合：按 id 并集 + 同 id 较新者 + 墓碑项移除
+  /* r105：同 id 冲突优先按「条目自身 _at」（写入时盖戳的新鲜度）择新——状态级 _savedAt 只是推送时间，
+     另一端「推得晚但内容旧」（如 iPhone 带着排序前的旧 plan 补推）会以新 _savedAt 整体压过本端新编辑，
+     造成 2524 拖拽排序被回滚且回滚态被再次上传。条目有 _at 时以 _at 择新；
+     双方都无 _at 的旧数据回退原 lw（状态级）裁决，行为与旧版兼容。 */
   DATA_COLLS.forEach(k=>{
     const L=local[k]||[],R=remote[k]||[],tb=tomb[k]||[],map={},noId=[];
     R.forEach(x=>{if(x&&x.id){if(tb.indexOf(x.id)<0&&!map[x.id])map[x.id]=x;}else if(x)noId.push(x);});
-    L.forEach(x=>{if(x&&x.id){if(tb.indexOf(x.id)<0){if(!map[x.id])map[x.id]=x;else map[x.id]=lw?x:map[x.id];}}else if(x)noId.push(x);});
+    L.forEach(x=>{if(x&&x.id){if(tb.indexOf(x.id)<0){if(!map[x.id])map[x.id]=x;else{const r0=map[x.id];const la=x._at||0,ra=r0._at||0;map[x.id]=(la||ra)?(la>=ra?x:r0):(lw?x:r0);}}}else if(x)noId.push(x);});
     out[k]=Object.keys(map).map(id=>map[id]).concat(noId);
   });
   out._tomb=tomb;
@@ -5201,6 +5205,9 @@ function viewSettings(){
    planMove、planAddManual、currentPlanIds、archivePlan 共用，避免各写一套兜底导致
    「下拉显示全部班级、列表却按第一个活跃班级过滤」的错位（首次进入列表为空的老 bug）。
    规则：未设置 / 指向已归档或已删除的班级 → 一律按 ALL_CLASS（全部班级）。 */
+/* r105：plan 条目级新鲜度戳 —— 任何内容写入（排序/勾选/备注/增删改）都盖 _at，
+   mergeState 同 id 冲突时按 _at 择新，杜绝「另一端推得晚但内容旧」压掉本端新编辑。 */
+function touchPlan(list){const t=Date.now();(Array.isArray(list)?list:[list]).forEach(p=>{if(p)p._at=t;});}
 function planScopeInit(){
   if(S._planClass!==ALL_CLASS&&!S.classes.some(c=>c.id===S._planClass&&!c.archived))S._planClass=ALL_CLASS;
   if(S._planSubject===undefined||S._planSubject===null)S._planSubject='';
@@ -5236,7 +5243,7 @@ function planItemsHtml(){
   </div></div>`).join('');}
 function planMove(id,dir){const items=planScopeItems();const i=items.findIndex(p=>p.id===id);if(i<0)return;
   const j=dir==='up'?i-1:i+1;if(j<0||j>=items.length)return;
-  const a=items[i].order,b=items[j].order;items[i].order=b;items[j].order=a;save();planRender();}
+  const a=items[i].order,b=items[j].order;items[i].order=b;items[j].order=a;touchPlan([items[i],items[j]]);save();planRender();}
 function planRender(){const el=document.getElementById('planList');if(el)el.innerHTML=planItemsHtml();}
 /* 拖拽排序：把 from 任务移到 to 任务之前/之后（after=false 之前 / true 之后），直接重排 S.plan 数组 */
 function planReorder(from,to,after){
@@ -5248,6 +5255,7 @@ function planReorder(from,to,after){
   if(after)j++;
   S.plan.splice(j,0,moved);
   S.plan.forEach((p,k)=>p.order=k+1);
+  touchPlan(S.plan);   /* r105：重排即全表盖戳——整个 plan 集合以本端为最新 */
   save();planRender();
 }
 /* 长按/拖拽初始化（桌面 HTML5 drag + 移动端长按 500ms 触发），一次性全局委托。
@@ -5457,8 +5465,8 @@ function modalPlanAdd(id){const editing=!!id;const p=editing?S.plan.find(x=>x.id
     ${field('任务','<input name="ptitle" placeholder="输入教学任务…" required value="'+esc(p?p.title:'')+'">')}
     <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">${editing?'保存':'添加'}</button></div></form>`);}
 function planAddManual(){const cid=(S._planClass&&S._planClass!==ALL_CLASS)?S._planClass:((activeClasses()[0]&&activeClasses()[0].id)||ALL_CLASS);const i=document.getElementById('plan_new');const t=i.value.trim();if(!t)return;
-  S.plan.push({id:uid(),classId:cid,title:t,order:S.plan.filter(p=>p.classId===cid).length+1,done:false,temp:false,subject:S._planSubject||'',sem:S._planSem||(curSem()?curSem().id:ALL_CLASS)});save();planRender();i.value='';toast('已添加');}
-function planToggle(id){const p=S.plan.find(x=>x.id===id);if(p){p.done=!p.done;p.doneDate=p.done?(p.doneDate||todayISO()):'';save();viewReload('settings');}}
+  S.plan.push({id:uid(),classId:cid,title:t,order:S.plan.filter(p=>p.classId===cid).length+1,done:false,temp:false,subject:S._planSubject||'',sem:S._planSem||(curSem()?curSem().id:ALL_CLASS),_at:Date.now()});save();planRender();i.value='';toast('已添加');}
+function planToggle(id){const p=S.plan.find(x=>x.id===id);if(p){p.done=!p.done;p.doneDate=p.done?(p.doneDate||todayISO()):'';touchPlan(p);save();viewReload('settings');}}
 function newSemester(){modalSemester();}
 /* 添加教学任务弹窗：班级/学期/科目 改用 bk-range 弹层（与课表设置-学期同款） */
 function planAddClsLabel(v){if(!v||v===ALL_CLASS)return '全部班级';const c=cls(v);return c?c.name:'全部班级';}
@@ -5969,8 +5977,8 @@ modal.addEventListener('submit',e=>{
     const newlyDone=[];const noteRaw=(v('note')||'').trim();
     coursePlan(c).forEach(p=>{const el=f.elements['pdone_'+p.id];const want=!!(el&&el.checked);if(want&&!p.done){p.done=true;p.doneDate=when;newlyDone.push(p);}});
     if(noteRaw){
-      if(newlyDone.length){newlyDone.forEach(p=>{p.note=noteRaw;});}
-      else{const undone=coursePlan(c).filter(p=>!p.done).sort((a,b)=>a.order-b.order);if(undone.length)undone[0].note=noteRaw;}
+      if(newlyDone.length){newlyDone.forEach(p=>{p.note=noteRaw;});touchPlan(newlyDone);}
+      else{const undone=coursePlan(c).filter(p=>!p.done).sort((a,b)=>a.order-b.order);if(undone.length){undone[0].note=noteRaw;touchPlan(undone[0]);}}
     }
     const nts=v('nextTask').split('\n').map(x=>x.trim()).filter(Boolean);
     const extra=v('extraDone').split('\n').map(x=>x.trim()).filter(Boolean);
@@ -5980,8 +5988,8 @@ modal.addEventListener('submit',e=>{
     const bumpN=extra.length+nts.length;
     if(bumpN){S.plan.forEach(p=>{if((p.classId===cl||p.classId===ALL_CLASS)&&(!subj||(p.subject||'')===subj)&&p.order>ins)p.order+=bumpN;});}
     let ord=ins+1;
-    extra.forEach(t=>{S.plan.push({id:uid(),classId:cl,subject:subj,title:t,order:ord++,done:true,doneDate:when,temp:true,tag:'额外'});});
-    nts.forEach(t=>{S.plan.push({id:uid(),classId:cl,subject:subj,title:t,order:ord++,done:false,temp:true,tag:'新增'});});
+    extra.forEach(t=>{S.plan.push({id:uid(),classId:cl,subject:subj,title:t,order:ord++,done:true,doneDate:when,temp:true,tag:'额外',_at:Date.now()});});
+    nts.forEach(t=>{S.plan.push({id:uid(),classId:cl,subject:subj,title:t,order:ord++,done:false,temp:true,tag:'新增',_at:Date.now()});});
     c.unfinished=v('unfinished').split('\n').map(x=>x.trim()).filter(Boolean);
     const plan=coursePlan(c);const tot=plan.length,dn=plan.filter(p=>p.done).length;
     c.progress=tot?Math.round(dn/tot*100):0;
@@ -5999,9 +6007,9 @@ modal.addEventListener('submit',e=>{
       S.timetable=[];S.settings.semStart=start;S.settings.semEnd=end;save();closeModal();viewReload('settings');
       toast('新学期已设置（原学期保留未归档；课表与教学任务按学期保留，可在「班级-学期-科目」切回查看）');}}
   else if(form==='plan-add'){const rawCls=f.elements['pcls'].value||ALL_CLASS;const sem=f.elements['psem'].value||ALL_CLASS;const subj=(f.elements['psubj'].value||'').trim();const title=v('ptitle').trim();if(!title){toast('请输入任务');return;}
-    if(f.dataset.id){const p=S.plan.find(x=>x.id===f.dataset.id);if(p){p.classId=rawCls;p.sem=sem;p.subject=subj;p.title=title;save();closeModal();viewReload('settings');toast('已保存');return;}}
+    if(f.dataset.id){const p=S.plan.find(x=>x.id===f.dataset.id);if(p){p.classId=rawCls;p.sem=sem;p.subject=subj;p.title=title;touchPlan(p);save();closeModal();viewReload('settings');toast('已保存');return;}}
     const clsIds=rawCls===ALL_CLASS?S.classes.filter(c=>!c.archived).map(c=>c.id):[rawCls];
-    clsIds.forEach(cid=>{const order=S.plan.filter(p=>p.classId===cid).length+1;S.plan.push({id:uid(),classId:cid,title,order,done:false,temp:false,subject:subj,sem});});
+    clsIds.forEach(cid=>{const order=S.plan.filter(p=>p.classId===cid).length+1;S.plan.push({id:uid(),classId:cid,title,order,done:false,temp:false,subject:subj,sem,_at:Date.now()});});
     S._planClass=rawCls;S._planSem=sem;S._planSubject=subj;save();closeModal();viewReload('settings');toast('已添加');}
 });
 
@@ -6064,7 +6072,7 @@ document.body.addEventListener('click',e=>{
   else if(a==='course-progress'){openCourseProgress(id);}
   else if(a==='cp-edit'){const pid=t.dataset.pid;const p=S.plan.find(x=>x.id===pid);if(!p)return;const row=t.closest('.rec');if(!row)return;const txt=row.querySelector('.rc-title-text');const inp=row.querySelector('.cp-ed');if(inp.style.display==='none'){inp.style.display='block';if(txt)txt.style.display='none';inp.value=p.title||'';inp.focus();t.textContent='保存';t.dataset.action='cp-save';}else{const v2=inp.value.trim();if(v2)p.title=v2;save();openCourseProgress(S._cpId);toast('已修改');}}
   else if(a==='cp-save'){const pid=t.dataset.pid;const p=S.plan.find(x=>x.id===pid);if(!p)return;const inp=document.querySelector('input.cp-ed[data-pid="'+pid+'"]');if(inp){const v2=inp.value.trim();if(v2)p.title=v2;}save();openCourseProgress(S._cpId);toast('已修改');}
-  else if(a==='cp-undone'){/* r95：未完成键移除（删除键接管：回到未记录状态并取消本会话新增）；保留以防兼容旧链接 */const pid=t.dataset.pid;const p=S.plan.find(x=>x.id===pid);if(p){p.done=false;p.doneDate='';save();openCourseProgress(S._cpId);toast('已标回未完成');}}
+  else if(a==='cp-undone'){/* r95：未完成键移除（删除键接管：回到未记录状态并取消本会话新增）；保留以防兼容旧链接 */const pid=t.dataset.pid;const p=S.plan.find(x=>x.id===pid);if(p){p.done=false;p.doneDate='';touchPlan(p);save();openCourseProgress(S._cpId);toast('已标回未完成');}}
   else if(a==='cp-del'){const pid=t.dataset.pid;const p=S.plan.find(x=>x.id===pid);if(p){_pendingCpDelPid=pid;confirmModal('删除该教学任务','「'+esc(p.title)+'」将回到未记录状态，并取消本次新增的全部安排。此操作不可恢复。','do-cp-del','danger');}}
   else if(a==='del-course'){S.courses=S.courses.filter(y=>y.id!==id);save();viewReload('courses');}
   else if(a==='arc-course'){archiveCourse(id);}
@@ -6179,7 +6187,7 @@ document.body.addEventListener('click',e=>{
   else if(a==='plan-add-modal'){modalPlanAdd();}
   else if(a==='plan-edit'){modalPlanAdd(id);}
   else if(a==='plan-del'){const p=S.plan.find(x=>x.id===id);if(p){_pendingPlanDel=id;confirmModal('删除教学任务','确定删除「'+esc(p.title)+'」？删除后其余任务顺序会自动重排。','do-plan-del','danger');}}
-  else if(a==='do-plan-del'){S.plan=S.plan.filter(x=>x.id!==_pendingPlanDel);S.plan.forEach((p,k)=>p.order=k+1);_pendingPlanDel='';save();closeModal();planRender();toast('已删除');}
+  else if(a==='do-plan-del'){S.plan=S.plan.filter(x=>x.id!==_pendingPlanDel);S.plan.forEach((p,k)=>p.order=k+1);touchPlan(S.plan);_pendingPlanDel='';save();closeModal();planRender();toast('已删除');}
   else if(a==='do-cp-del'){const pid=_pendingCpDelPid;_pendingCpDelPid='';closeModal();const p0=S.plan.find(x=>x.id===pid);if(!p0){openCourseProgress(S._cpId);return;}const when=p0.doneDate;const cid=p0.classId;const subj=(p0.subject||'');
     let maxOrd=p0.order;let nRev=0;
     if(when){
@@ -6189,10 +6197,10 @@ document.body.addEventListener('click',e=>{
         if(x.classId!==cid&&x.classId!==ALL_CLASS)return;
         if(subj&&x.subject&&x.subject!==subj)return;
         if(!x.done)return;
-        x.done=false;x.doneDate='';x.note='';nRev++;
+        x.done=false;x.doneDate='';x.note='';nRev++;x._at=Date.now();
         if(x.order>maxOrd)maxOrd=x.order;
       });
-    }else{p0.done=false;p0.doneDate='';p0.note='';nRev=1;}
+    }else{p0.done=false;p0.doneDate='';p0.note='';p0._at=Date.now();nRev=1;}
     // r95：紧跟在最后一条【本次会话】之后插入的「额外/新增」临时任务（即本次新增安排）一并清除，按 order 连续删除直到非 temp 项
     let ord=maxOrd+1;
     while(true){
@@ -7925,7 +7933,7 @@ function importPlan(defaultSubj){pickTable(sheets=>{const rows=(sheets[0].rows||
   const start=hasHeader?1:0;const sem=S._planSem||(curSem()?curSem().id:ALL_CLASS);const def=defaultSubj||S._planSubject||'';let added=0;
   rows.slice(start).forEach(r=>{const cn=String(r[classIdx>=0?classIdx:0]||'').trim();const t=String(r[titleIdx>=0?titleIdx:1]||'').trim();if(!cn||!t)return;
     let subj=(hasSubjCol&&subjIdx>=0)?String(r[subjIdx]||'').trim():'';if(!subj)subj=def;
-    const cid=resolveClass(cn);S.plan.push({id:uid(),classId:cid,title:t,order:S.plan.length+1,done:false,temp:false,subject:subj,sem});added++;});
+    const cid=resolveClass(cn);S.plan.push({id:uid(),classId:cid,title:t,order:S.plan.length+1,done:false,temp:false,subject:subj,sem,_at:Date.now()});added++;});
   save();viewReload('settings');toast('导入 '+added+' 条任务'+(def?('（科目：'+def+'）'):''));});}
 function exportPlan(){if(!S.plan.length){toast('暂无教学任务');return;}
   const rows=[['班级','科目','任务','已完成'],...S.plan.map(p=>[classNameOf(p.classId),p.subject||'',p.title,p.done?'是':'否'])];
@@ -7977,6 +7985,10 @@ load();
 /* 一次性清理：旧版本会把「记录进度-未完成任务」自动写进教学待办（title 前缀【未完成·…】，src='unfinished'）。现改为不再写入，启动顺带清掉历史残留；幂等，无残留时不写盘以免触发云同步 */
 if((S.todos||[]).some(t=>t.src==='unfinished')){S.todos=(S.todos||[]).filter(t=>t.src!=='unfinished');save();}
 if(!S.seeded||S.seedVer!==SEED_VER){seed();}save();
+/* r106：打开页面一律落在首页 —— iOS Safari 重开标签页会原样恢复上次离开时的完整 URL（含 #settings 等
+   hash），导致 iPhone 打开默认进设置页而电脑是首页。启动时清掉残留 hash 再做首次渲染，双端行为一致。
+   replaceState 不留历史记录；file:// 等不支持的环境退回 location.hash=''（同样清空，多触发一次 router 无害）。 */
+if(location.hash){try{history.replaceState(null,'',location.pathname+location.search);}catch(e){location.hash='';}}
 applyTheme();buildNav();maybeAutoReview();cleanupPendingSubs();router();autoArchiveBySemester();
 bootCloudSync();
 /* r93：离开页面（切 App / 关标签页）即触发一次补推，确保本地未推送的编辑不丢（尤其 iOS 切走再回来） */
