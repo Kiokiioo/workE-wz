@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r107</title>
+<title>工作E · v20260902-r109</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -1657,12 +1657,17 @@ function viewHome(){
   const todoHtml=homeTodoListHtml();
   const schedHtml=homeSchedule();
   const focusCardHtml=homeFocusCardHtml();
+  /* r109 首页置顶笔记：置于 hero 文案下方（仅在有置顶笔记时渲染），点击行打开编辑弹窗 */
+  const pinnedNotes=S.notes.filter(n=>n.pin).sort((a,b)=>(b.pinAt||0)-(a.pinAt||0));
+  const pinNotesHtml=pinnedNotes.length?`<div class="card" style="margin-top:14px"><div class="section-title"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('置顶',18)}置顶笔记</span><span class="count">${pinnedNotes.length} 条</span></div>
+    ${pinnedNotes.map((n,i)=>`<div data-action="edit-note" data-id="${n.id}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;${i<pinnedNotes.length-1?'border-bottom:1px solid var(--border);':''}cursor:pointer"><span style="font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(n.title)}</span><span style="flex:none;font-size:12px;color:var(--text-2)">${esc((course(n.courseId)||{}).name||'未分类')} · ${new Date(n.created).toLocaleDateString()}</span></div>`).join('')}</div>`:'';
   return `
   <div class="home-hero">
     <h2>今天，先把最重要的事做了</h2>
     <div class="date">${dateStr}</div>
     <div class="counts">${activeTodos.length}项教学待办，${homeTodayClassCount()}节课，<span class="count-link" onclick="goStuStudents()">${homeStuTodoCount()}项学生待办</span>，<span class="count-link" onclick="goStuStudents()">${homeContactCount()}项沟通</span></div>
   </div>
+  ${pinNotesHtml}
   <div class="grid cols-2" style="margin-top:18px;align-items:start">
     <div class="card"><div class="section-title"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('教学待办',22)}教学待办</span> <span class="count">${activeTodos.length} 项</span><button class="home-add-btn add-spin" type="button" onclick="spinAddBtn(this);modalTodo()" title="新增待办" aria-label="新增待办"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M11 4 V18 M4 11 H18"/></svg></button></div><div class="home-todo-list">${todoHtml}</div>
       <button class="btn sm ghost home-todo-more" data-action="nav" data-r="todos" style="margin-top:6px">全部</button></div>
@@ -2168,6 +2173,9 @@ function viewNotes(){
   const courseOpts=S.courses.map(c=>`<option value="${c.id}" ${filter===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
   let list=filter?S.notes.filter(n=>n.courseId===filter):S.notes.slice();
   if(tagFilter)list=list.filter(n=>(n.tags||'').split(/[,，]/).map(s=>s.trim()).includes(tagFilter));
+  /* r109 置顶：置顶笔记排最前（同置顶按 pinAt 新→旧；pinAt 仅在双方都置顶时参与，
+     避免取消置顶后残留 pinAt 影响普通顺序），其余保持原顺序（sort 稳定） */
+  list.sort((a,b)=>(b.pin?1:0)-(a.pin?1:0)||((a.pin&&b.pin)?((b.pinAt||0)-(a.pinAt||0)):0));
   const tagFilterHtml=tagFilter?`<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:12px;color:var(--text-2)">已筛选标签：<span class="tag-filter-chip">#${esc(tagFilter)}<span class="x" data-action="clear-tag-filter">×</span></span></div>`:'';
   const cards=list.length?list.map(n=>{
     const noteTags=(n.tags||'').split(/[,，]/).map(s=>s.trim()).filter(Boolean);
@@ -2175,6 +2183,7 @@ function viewNotes(){
     return `<div class="card" data-id="${n.id}"><div style="display:flex;justify-content:space-between;align-items:flex-start">
     <div style="line-height:1"><h3 style="font-size:14px">${esc(n.title)}</h3><div class="sub">${esc((course(n.courseId)||{}).name||'未分类')} · ${new Date(n.created).toLocaleDateString()}</div></div>
     <div class="row-actions"><button class="ic-btn-del" type="button" data-action="del-note" data-id="${n.id}" title="删除" aria-label="删除">${iconSvg('x',10)}</button>
+    <button class="ic-btn" type="button" data-action="pin-note" data-id="${n.id}" title="${n.pin?'取消置顶':'置顶'}" aria-label="置顶" ${n.pin?'style="color:var(--primary)"':''}>${iconSvg('置顶',10)}</button>
     <button class="ic-btn" type="button" data-action="edit-note" data-id="${n.id}" title="编辑" aria-label="编辑">${iconSvg('edit',10)}</button></div></div>
     <p style="margin:12px 0 0;line-height:1;font-size:14px;color:var(--text-2);white-space:pre-wrap">${esc(n.content)}</p>
     ${tagHtml}</div>`;}).join(''):
@@ -2410,6 +2419,8 @@ function iconSvg(name,size){
   p['trash']='<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>';
   p['archive']='<rect x="2" y="3" width="20" height="5" rx="1"/><polyline points="4 8 4 21 20 21 20 8"/><line x1="10" y1="13" x2="14" y2="13"/>';
   p['edit']='<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>';
+  /* 备课笔记-置顶（2026-09-04 落库：候选⑨「定位针」原样保存，水滴倒置+内圆） */
+  p['置顶']='<path d="M12 20.5 C 12 20.5 6 13.6 6 9.5 a6 6 0 0 1 12 0 C 18 13.6 12 20.5 12 20.5 Z"/><circle cx="12" cy="9.5" r="2.1"/>';
   p['plus']='<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>';
   p['empty']='<circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/>';
   p['x']='<line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>';
@@ -5229,12 +5240,15 @@ function planItemsHtml(){
   const vis=planVisibleItems();
   if(!vis.length)return '<div class="sub">该筛选下暂无教学进度安排</div>';
   return vis.map((p,i)=>`<div class="rec-wrap" data-id="${p.id}">
-  <div class="rec" style="align-items:baseline;gap:8px" draggable="true" data-id="${p.id}"><input type="checkbox" ${p.done?'checked':''} onchange="planToggle('${p.id}')" style="width:auto;flex:none;vertical-align:-2px">
-    <span style="flex:1;min-width:0;display:block">${esc(p.title)}
+  <div class="rec" style="align-items:flex-start;gap:8px" draggable="true" data-id="${p.id}"><input type="checkbox" ${p.done?'checked':''} onchange="planToggle('${p.id}')" style="width:auto;flex:none;vertical-align:-2px;margin-top:2px">
+    <span style="flex:1;min-width:0;display:block">
+    <div style="line-height:1.35">${esc(p.title)}</div>
+    ${p.note?`<div style="margin-top:3px;font-size:12px;color:var(--text-2);line-height:1.3">${noteArrowInline()}备注：${esc(p.note)}</div>`:''}
+    <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:3px">
     ${(S._planSubject===''||S._planSubject===undefined)?(p.subject?'<span class="tag" style="background:rgba(31,170,107,.12);color:var(--ok)">'+esc(p.subject)+'</span>':'<span class="tag" style="background:rgba(31,170,107,.12);color:var(--ok)">无科目</span>'):''}
     ${explicitAll?'<span class="tag" style="background:var(--primary-soft);color:var(--primary)">'+esc(classNameOf(p.classId))+'</span>':''}
     ${p.tag?'<span class="tag">'+esc(p.tag)+'</span>':''} ${p.done?'<span class="tag">'+esc(p.doneDate||'')+'</span>':''}
-    ${p.note?`<div style="margin-top:3px;font-size:12px;color:var(--text-2);line-height:1.3">${noteArrowInline()}备注：${esc(p.note)}</div>`:''}</span>
+    </div></span>
     <span class="plan-move" style="display:flex;gap:2px"><button class="btn sm" onclick="planMove('${p.id}','up')" ${i===0?'disabled':''} title="上移">↑</button>
     <button class="btn sm" onclick="planMove('${p.id}','down')" ${i===vis.length-1?'disabled':''} title="下移">↓</button></span>
     <div class="rec-acts">
@@ -6110,6 +6124,7 @@ document.body.addEventListener('click',e=>{
   else if(a==='teach-tab'){selectTeachTab(t.dataset.r);}
   else if(a==='edit-note'){modalNote(id);if(id)modalFill(id,'note');}
   else if(a==='del-note'){S.notes=S.notes.filter(y=>y.id!==id);save();viewReload('notes');}
+  else if(a==='pin-note'){const n=S.notes.find(y=>y.id===id);if(n){n.pin=!n.pin;n.pinAt=n.pin?Date.now():0;save();viewReload('notes');}}
   else if(a==='filter-tag'){noteTagFilter(t.dataset.tag);}
   else if(a==='clear-tag-filter'){clearNoteTagFilter();}
   else if(a==='imp-note'){importNotes();}
