@@ -461,16 +461,16 @@ tbody tr:hover{background:var(--surface-2)}
 @media(max-width:640px){
   .rec-table{table-layout:fixed}
   .rec-card{border-top:none;border-bottom:none}
-  .rec-table th,.rec-table td{padding:10px 8px} /* r116y：列左右间距 4→8 */
+  .rec-table th,.rec-table td{padding:10px 4px} /* r117d：列左右间距回调 4 */
   .rec-table col.rec-c1{width:50px}
   .rec-table col.rec-c2{width:70px}
-  .rec-table col.rec-c5{width:50px}
+  .rec-table col.rec-c5{width:60px}
   .rec-table col.rec-c6{width:32px}
   .rec-table th.rec-c1,.rec-table td.rec-c1{width:50px;font-size:12px;font-weight:600;line-height:1.15;white-space:normal;word-break:break-all;text-align:center}
   .rec-table td.rec-c1{font-size:15px}
   .rec-table th.rec-c2,.rec-table td.rec-c2{width:70px;font-size:13px}
   .rec-table th.rec-c4,.rec-table td.rec-c4{width:70px;font-size:13px;text-align:right}
-  .rec-table th.rec-c5,.rec-table td.rec-c5{width:50px;font-weight:600;white-space:normal;text-align:right}
+  .rec-table th.rec-c5,.rec-table td.rec-c5{width:60px;font-weight:600;white-space:normal;text-align:right}
   .rec-table th.rec-c6,.rec-table td.rec-c6{width:32px;text-align:center}
   .rec-table td.rec-c4{font-size:13px}
   .rec-table th:not(.rec-c1):not(.rec-c5):not(.rec-c6),.rec-table td:not(.rec-c1):not(.rec-c5):not(.rec-c6){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -2808,7 +2808,7 @@ function recView(){
 function recClsSummary(){const v=S._recCls||'all';if(v==='all')return '全部班级';const c=S.classes.find(x=>x.id===v);return c?c.name:'全部班级';}
 function recClsBk(v){recClsSel(v);}
 function recTimeItems(){const items=S.semesters.filter(s=>!s.archived).map(s=>({k:'sem:'+s.id,l:s.name,pick:'recTimeBk'}));items.push({k:'all',l:'全部时间',pick:'recTimeBk'});items.push({k:'custom',l:'自定义…',pick:'recTimeBk'});return items;}
-function recTimeSummary(){const tv=S._recTime;if(tv==='all')return '全部时间';if(tv==='custom')return '自定义…';if(tv&&tv.indexOf('sem:')===0){const s=S.semesters.find(x=>x.id===tv.slice(4));return s?s.name:'学期';}const cur=curSem();return cur?cur.name:'全部时间';}
+function recTimeSummary(){const tv=S._recTime;if(tv==='all')return '全部时间';if(tv==='custom')return '自定义…';if(tv&&tv.indexOf('sem:')===0){const s=S.semesters.find(x=>x.id===tv.slice(4));return s?s.name:'学期';}return '全部时间';} /* r117c：未选时默认显示「全部时间」 */
 function recTimeBk(v){recTimeSel(v);}
 function recClsSel(v){S._recCls=v;viewReload('students');}
 function recTimeSel(v){S._recTime=v;viewReload('students');}
