@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r116q</title>
+<title>工作E · v20260902-r116r</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -2354,15 +2354,28 @@ function noteEditDelete(id){S.notes=S.notes.filter(y=>y.id!==id);save();location
   function fsBump(t){
     if(!t||(t.tagName!=='INPUT'&&t.tagName!=='TEXTAREA'))return;
     const fs=parseFloat(getComputedStyle(t).fontSize)||16;
-    if(fs<16){t.style.setProperty('font-size','16px','important');t.__fsBump=1;}
+    if(fs<16){t.style.setProperty('font-size','16px','important');t.__fsBump=1;
+      /* r116r：无边框组合框（bk-trigger-input）用 transform 等比缩回原字号，视觉全程 13px 不跳动（缩放判定只看 computed font-size=16，不触发页面缩放） */
+      if(t.classList&&t.classList.contains('bk-trigger-input')){t.__fsScale=1;t.style.setProperty('transform','scale('+(fs/16)+')','important');t.style.setProperty('transform-origin','left center','important');}
+    }
   }
-  function fsRestore(t){if(t&&t.__fsBump){t.style.removeProperty('font-size');delete t.__fsBump;}}
+  function fsRestore(t){if(t&&t.__fsBump){t.style.removeProperty('font-size');delete t.__fsBump;}
+    if(t&&t.__fsScale){t.style.removeProperty('transform');t.style.removeProperty('transform-origin');delete t.__fsScale;}}
   document.addEventListener('touchstart',e=>{ /* 触碰前置提升，赶在系统判定缩放之前 */
     const t=e.target;
     if(t&&t.closest){const el=t.closest('input,textarea');if(el)fsBump(el);}
   },{passive:true});
+  document.addEventListener('touchend',e=>{ /* r116r 兜底：tap 结束瞬间再补一次（防个别路径 touchstart 未命中） */
+    const t=e.target;
+    if(t&&t.closest){const el=t.closest('input,textarea');if(el)fsBump(el);}
+  },{passive:true,capture:true});
   document.addEventListener('focusin',e=>fsBump(e.target),true);   /* 兜底：外接键盘等无 touch 路径 */
   document.addEventListener('focusout',e=>fsRestore(e.target),true);
+  document.addEventListener('blur',e=>fsRestore(e.target),true);   /* r116r：原生日期 picker 选中后可能不走 focusout，blur 直接还原 */
+  document.addEventListener('change',e=>{ /* r116r：日期/选择器选定即刻还原 13px（聚焦中改字号不会再触发缩放） */
+    const t=e.target;
+    if(t&&t.tagName==='INPUT'&&t.type&&/^(date|time|month|week)$/.test(t.type))fsRestore(t);
+  },true);
 })();
 function noteFilter(v){S._noteFilter=v;viewReload('notes');}
 function noteFilterSummary(){const v=S._noteFilter||'';if(!v)return '全部课程';const c=S.courses.find(x=>x.id===v);return c?c.name:'全部课程';}
