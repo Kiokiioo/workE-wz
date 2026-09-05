@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r116w</title>
+<title>工作E · v20260902-r117b</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -2616,7 +2616,8 @@ function buildRecTable(){
   const rg=tv==='custom'?{from:S._recFrom||'0000-01-01',to:S._recTo||'9999-12-31'}:rangeOf(tv);
   const recs=[
     ...S.violations.map(r=>({id:r.id,src:'viol',studentId:r.studentId,type:r.type,date:r.date,delta:r.delta})),
-    ...S.homeworks.map(r=>({id:r.id,src:'hw',studentId:r.studentId,type:'作业·'+r.status,date:r.date,delta:r.delta}))
+    ...S.homeworks.map(r=>({id:r.id,src:'hw',studentId:r.studentId,type:'作业·'+r.status,date:r.date,delta:r.delta})),
+    ...(S.examPoints||[]).map(r=>({id:r.id,src:'ep',studentId:r.studentId,type:r.reason||'考试积分',examName:r.examName||'',date:r.date,delta:r.delta})) /* r116y：成绩产生的加减积分也进入记录列表（删除随考试，无单独删除钮） */
   ].filter(r=>{
     const s=stu(r.studentId);if(!s)return false;
     if(clsVal!=='all'&&s.classId!==clsVal)return false;
@@ -2625,10 +2626,10 @@ function buildRecTable(){
     return r.date>=rg.from&&r.date<=rg.to;
   }).sort((a,b)=>b.date.localeCompare(a.date));
   const rows=recs.length?recs.map(r=>{const s=stu(r.studentId);return `
-  <tr><td class="rec-c1"><span class="s-name" data-action="stu-detail" data-id="${r.studentId}">${esc(s.name)}</span></td><td class="rec-c2">${esc(classNameOf(s.classId))}</td><td>${esc(r.type)}</td>
+  <tr><td class="rec-c1"><span class="s-name" data-action="stu-detail" data-id="${r.studentId}">${esc(s.name)}</span></td><td class="rec-c2">${esc(classNameOf(s.classId))}</td><td>${esc(r.type)}${r.examName?`<div style="font-size:11px;color:var(--text-2);margin-top:2px">${esc(r.examName)}</div>`:''}</td>
   <td class="rec-c5" style="color:${r.delta>=0?'var(--ok)':'var(--danger)'}">${r.delta>0?'+':''}${r.delta} 分</td>
   <td class="rec-c4">${esc(r.date.slice(2))}</td>
-  <td><button class="rec-del" data-action="${r.src==='viol'?'del-viol':'del-hw'}" data-id="${r.id}" aria-label="删除" title="删除">✕</button></td></tr>`;}).join(''):
+  <td>${r.src==='ep'?'':`<button class="rec-del" data-action="${r.src==='viol'?'del-viol':'del-hw'}" data-id="${r.id}" aria-label="删除" title="删除">✕</button>`}</td></tr>`;}).join(''):
   `<tr><td colspan="6">${emptyState('🗒','暂无记录')}</td></tr>`;
   return `<div class="card rec-card" style="padding:0;overflow:hidden"><table class="rec-table"><colgroup><col class="rec-c1"><col class="rec-c2"><col><col class="rec-c5"><col class="rec-c4"><col class="rec-c6"></colgroup><thead><tr><th class="rec-c1">学生</th><th class="rec-c2">班级</th><th>类型</th><th class="rec-c5">积分</th><th class="rec-c4">时间</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
@@ -5420,7 +5421,7 @@ function viewSettings(){
       </div>
     </div>
     <div class="field row set-act bk-ops" style="margin-bottom:12px">
-      <button class="btn danger" data-action="do-reset-scope" title="重置" aria-label="重置" style="border-color:var(--danger);background:var(--surface)">${iconSvg('broom',20)}</button>
+      <button class="btn danger" data-action="confirm-reset-all" title="重置" aria-label="重置" style="border-color:var(--danger);background:var(--surface)">${iconSvg('broom',20)}</button><!-- r117a：重置=重置全部数据（不再按时间/班级/范围局限），范围选择器仅供 归档/备份 使用 -->
       <button class="btn" data-action="do-arc-archive" title="归档" aria-label="归档">${iconSvg('package',20)}</button>
       <button class="btn" data-action="do-manual-backup" title="备份" aria-label="备份">${iconSvg('cloud-download',20)}</button>
       <button class="btn" data-action="do-restore-import" title="恢复" aria-label="恢复">${iconSvg('inbox',20)}</button>
@@ -7582,6 +7583,34 @@ function cloudCfgSave(c){localStorage.setItem(CLOUD_KEY,JSON.stringify(c));}
 function setCloudDirtyFlag(v){const cc=cloudCfg();cc.dirty=!!v;cloudCfgSave(cc);}
 function b64enc(str){const b=new TextEncoder().encode(str);let s='';for(const x of b)s+=String.fromCharCode(x);return btoa(s);}
 function b64dec(b64){const bin=atob(b64);const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));return new TextDecoder().decode(bytes);}
+/* r117b：云上数据 gzip 压缩（CompressionStream，iOS Safari 16.4+/Chrome 80+ 原生支持，无需外部库）。
+   GitHub Contents API 单文件安全阈值 ~1MB（b64 1.4e6 守卫），JSON 压缩率通常 5-10 倍，
+   1MB+ 资料压后约 100-300KB，远低于上限；请求结构与合并逻辑完全不变。
+   上传格式：'WBGZ1:'+b64(gzip(json))；无压缩能力或压缩无收益时回退纯 JSON。
+   下载兼容两种格式（旧版远端为纯 JSON 也能解析）。 */
+const WB_GZ_TAG='WBGZ1:';
+async function gzPayload(json){
+  try{
+    if(typeof CompressionStream==='undefined')return json;
+    const cs=new CompressionStream('gzip');
+    const w=cs.writable.getWriter();w.write(new TextEncoder().encode(json));w.close();
+    const bytes=new Uint8Array(await new Response(cs.readable).arrayBuffer());
+    let s='';for(const x of bytes)s+=String.fromCharCode(x);
+    const b64=btoa(s);
+    return (WB_GZ_TAG.length+b64.length<json.length*1.05)?(WB_GZ_TAG+b64):json;
+  }catch(_){return json;}
+}
+async function gzParse(text){
+  let raw=text;
+  if(raw.startsWith(WB_GZ_TAG)){
+    const bin=atob(raw.slice(WB_GZ_TAG.length));
+    const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
+    const ds=new DecompressionStream('gzip');
+    const w=ds.writable.getWriter();w.write(bytes);w.close();
+    raw=await new Response(ds.readable).text();
+  }
+  return JSON.parse(raw);
+}
 function ghHeaders(token,extra){return Object.assign({'Accept':'application/vnd.github+json','Authorization':'Bearer '+token,'Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'},extra||{});}
 function ghContentsPath(c){const segs=c.path.split('/').map(enc).join('/');return `/repos/${enc(c.owner)}/${enc(c.repo)}/contents/${segs}?ref=${enc(c.branch||'main')}`;}
 /* r104：所有云端 fetch 带超时（AbortController）——iOS 从后台恢复时 socket 常假死，
@@ -7635,7 +7664,7 @@ async function cloudPull(){
     const g=await cloudGetSha(c);
     if(!g.exists)return {ok:false,reason:'empty',empty:true};
     const raw=b64dec((g.content||'').replace(/\s/g,''));
-    const data=JSON.parse(raw);
+    const data=await gzParse(raw);
     return {ok:true,data,sha:g.sha};
   }catch(e){return {ok:false,reason:e.message};}
   finally{cloudPulling=false;}
@@ -7655,7 +7684,7 @@ async function cloudPush(){
       // 因此「远端新增/删除」与「本地新增/删除」都不会在上传时被丢弃，双向收敛。
       if(g.exists && g.content){
         try{
-          const rd=JSON.parse(b64dec((g.content||'').replace(/\s/g,'')));
+          const rd=await gzParse(b64dec((g.content||'').replace(/\s/g,'')));
           const m=mergeState(S,rd);
           if(JSON.stringify(m)!==JSON.stringify(S)){
             Object.assign(S,m);for(const k in DEFAULTS)store.set(k,S[k]);refreshSyncIds();refreshLocalTomb();mergedRemote=true;
@@ -7666,8 +7695,10 @@ async function cloudPush(){
       for(const k in DEFAULTS)store.set(k,S[k]);
       /* r103：上传只含业务字段（DEFAULTS 键）。_planClass 等纯 UI 会话状态不进云端，
          否则会成为对端下次合并时拿来覆盖本端筛选的「污染源」（拖拽排序即被顶掉的 bug）。 */
-      const payload=JSON.stringify(bizState(S));const b64=b64enc(payload);
-      if(b64.length>1.4e6){cloudPushing=false;updateCloudStatus('error','数据超过单文件 1MB 上限，无法同步，请用「全部导出」');toast('同步失败：数据过大');return;}
+      const payload=JSON.stringify(bizState(S));
+      const up=await gzPayload(payload); /* r117b：gzip 压缩上传（带 WBGZ1: 标记，兼容旧端纯 JSON 解析已有合并侧 gzParse） */
+      const b64=b64enc(up);
+      if(b64.length>1.4e6){cloudPushing=false;updateCloudStatus('error','数据压缩后仍超过单文件 1MB 上限，无法同步，请用「全部导出」');toast('同步失败：数据过大');return;}
       const body=JSON.stringify({message:'sync '+new Date().toISOString(),content:b64,branch:c.branch||'main',sha:g.sha||undefined});
       const r=await ghFetch(GH_API+ghContentsPath(c),{method:'PUT',headers:ghHeaders(c.token),body},25000);
       if(r.status===401){lastErr='令牌无效或已过期，请在「设置-云端同步」重新填写 Access Token';break;}
@@ -7719,7 +7750,7 @@ async function cloudSyncNow(c){
     const changed=JSON.stringify(m)!==JSON.stringify(S);
     Object.assign(S,m);for(const k in DEFAULTS)store.set(k,S[k]);refreshSyncIds();refreshLocalTomb();
     updateCloudStatus('ok',(changed?'已与云端合并':'本地已是最新')+'，上传中…');router();
-  }else if(!r.empty){toast('拉取失败：'+(r.reason||''));return;}
+  }else if(!r.empty){updateCloudStatus('error','拉取失败：'+(r.reason||''));toast('拉取失败：'+(r.reason||''));return;} /* r116x：失败时状态条也要落地，否则永远卡在「拉取中…」 */
   await cloudPush();   // cloudPush 会再次合并远端后上传，保证两端一致
 }
 function cloudDisconnect(){localStorage.removeItem(CLOUD_KEY);cloudReady=false;cloudPulling=false;viewReload('settings');toast('已断开云端同步');}
@@ -8215,8 +8246,8 @@ function exportExams(ids){
 }
 /* 成绩归档：按科目把全部考试移入「成绩归档」，可恢复 / 永久删除 */
 function archiveGrade(subId){const exs=S.exams.filter(e=>e.subjectId===subId);if(!exs.length){toast('该科目没有可归档的成绩');return;}const s=subj(subId);const gsem=S._gradeSem&&S._gradeSem.indexOf('sem:')===0?S._gradeSem.slice(4):(curSem()?curSem().id:'');const gcls=S._gradeClass||ALL_CLASS;const exsSorted=exs.slice().sort((a,b)=>a.date.localeCompare(b.date));const firstName=exsSorted[0]?exsSorted[0].name:(s?s.name:'未命名科目');const gname=archiveName(gsem,gcls,'成绩分析',firstName);const obj={id:uid(),subjectId:subId,subjectName:s?s.name:'未命名科目',archivedAt:todayISO(),sem:gsem,classId:gcls,name:gname,exams:exs.slice()};const before=(S.gradeArchives=S.gradeArchives||[]).length;S.gradeArchives=upsertArc(S.gradeArchives,o=>o.sem+'\u0000'+o.subjectId+'\u0000'+o.classId,obj);S.exams=S.exams.filter(e=>e.subjectId!==subId);recomputeExamPoints();S._gradeSub='';save();viewReload('grades');toast((before&&(S.gradeArchives.length===before)?'已覆盖更新':'已归档')+'「'+(s?s.name:'')+'」成绩到成绩归档（同科目同学期唯一，重复自动覆盖）');}
-function restoreGrade(id){const a=(S.gradeArchives=S.gradeArchives||[]).find(x=>x.id===id);if(!a)return;S.exams=S.exams.concat(a.exams);recomputeExamPoints();S.gradeArchives=S.gradeArchives.filter(x=>x.id!==id);save();viewReload('grades');toast('已恢复 '+a.subjectName+' 成绩');}
-function delGradePerm(id){const a=(S.gradeArchives=S.gradeArchives||[]).find(x=>x.id===id);if(!a)return;S.gradeArchives=S.gradeArchives.filter(x=>x.id!==id);save();viewReload('grades');toast('已永久删除成绩归档');}
+function restoreGrade(id){const a=(S.gradeArchives=S.gradeArchives||[]).find(x=>x.id===id);if(!a)return;S.exams=S.exams.concat(a.exams);recomputeExamPoints();S.gradeArchives=S.gradeArchives.filter(x=>x.id!==id);save();viewReload(curView());toast('已恢复 '+a.subjectName+' 成绩');} /* r116z：归档库入口删除/恢复不再跳成绩页，停留当前页 */
+function delGradePerm(id){const a=(S.gradeArchives=S.gradeArchives||[]).find(x=>x.id===id);if(!a)return;S.gradeArchives=S.gradeArchives.filter(x=>x.id!==id);save();viewReload(curView());toast('已永久删除成绩归档');}
 
 /* timetable import-export */
 function dayNum(w){const s=String(w||'').replace(/["'\u201C\u201D]/g,'').replace(/星期|周/g,'').trim();if(/^\d$/.test(s)){const n=+s;if(n===7)return 0;return n;}const m={'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'日':0,'天':0};return m[s];}
@@ -8357,7 +8388,7 @@ async function cloudPollOnce(){
     const r=await ghFetch(GH_API+ghContentsPath(c),{method:'GET',headers:ghHeaders(c.token)},12000);
     if(r.ok){
       const j=await r.json();
-      const rd=(j.content?JSON.parse(b64dec((j.content||'').replace(/\s/g,''))):null);
+      const rd=(j.content?await gzParse(b64dec((j.content||'').replace(/\s/g,''))):null);
       const remoteAt=(rd?rd._savedAt||0:0);
       const localAt=S._savedAt||0;
       // r93 方案 B：只要远端有内容就按条目合并进本地（并集+墓碑删除），不再仅以时间戳判断整体覆盖。
