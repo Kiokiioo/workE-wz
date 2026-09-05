@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r116b</title>
+<title>工作E · v20260902-r116g</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -482,7 +482,8 @@ tbody tr:hover{background:var(--surface-2)}
    - 桌面布局：类别+优先级 / 截止日期□+重复□ / 日期+每 数字单位 各两列一行
    - 手机策略：减内边距给两列腾空间；日期与「每」保持同行（与桌面一致） */
 @media(max-width:640px){
-  .modal-back{padding:20px 8px}
+  /* r116d：弹窗左右边距统一 16px（原 8px 挤压内容易出框） */
+  .modal-back{padding:20px 16px}
   .modal-body:has(form[data-form="todo"]){padding:12px 16px}
   form[data-form="todo"] .tf-grid{gap:8px}
   form[data-form="todo"] .tf-cell{min-width:0}
@@ -652,7 +653,10 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 .ic-btn-del svg{width:12px;height:12px}
 /* 备课笔记-全屏编辑页（r116：替代原弹窗，转入独立全屏页面） */
 .note-edit-page{position:relative;display:flex;flex-direction:column;height:100vh;height:100dvh;background:var(--surface)}
-.note-edit-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);flex:none}
+/* r116f：进度记录全屏编辑页复用笔记页骨架（bar 沿用 .note-edit-bar/.ne-back/.ne-done） */
+.prog-edit-page{position:relative;display:flex;flex-direction:column;height:100vh;height:100dvh;background:var(--surface)}
+.prog-edit-body{padding:16px;overflow:auto;flex:1;-webkit-overflow-scrolling:touch}
+.note-edit-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;flex:none}
 .ne-back{display:inline-flex;align-items:center;gap:2px;border:0;background:transparent;color:var(--primary);font-size:15px;font-weight:600;cursor:pointer;padding:6px 2px;font-family:inherit}
 .ne-back svg{width:20px;height:20px}
 .ne-right{display:flex;align-items:center;gap:6px}
@@ -670,8 +674,12 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 .ne-cat-pill-wrap{margin:0 0 16px}
 .ne-cat-pill{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);border-radius:99px;padding:6px 12px;font-size:13px;cursor:pointer;font-family:inherit;user-select:none}
 .ne-cat-pill svg{width:12px;height:12px;opacity:.6}
-.ne-content{border:0;outline:none;width:100%;min-height:60vh;font-size:16px;line-height:1.65;color:var(--text);background:transparent;resize:none;font-family:inherit;padding:0}
-.ne-content::placeholder{color:var(--text-2)}
+.ne-title,input.ne-title,form .ne-title{border:0;outline:none;width:100%;font-size:24px;font-weight:600;color:var(--text);background:transparent;padding:0;margin:0 0 10px;font-family:inherit}
+.note-edit-body input.ne-title{font-size:24px!important} /* r114 移动端 input 16px!important 会压掉标题字号；24>16 不违背防 iOS 聚焦缩放初衷 */
+.ne-title::placeholder{color:var(--text-3)}
+.ne-content{border:0;outline:none;width:100%;min-height:60vh;font-size:15px;line-height:1.65;color:var(--text);background:transparent;resize:none;font-family:inherit;padding:0}
+.note-edit-body textarea.ne-content{font-size:15px!important} /* r114 移动端 textarea 16px!important 对冲；15<16 在 iOS 上聚焦可能触发轻微页面缩放（用户选择 15） */
+.ne-content::placeholder{color:var(--text-3);opacity:.62}
 /* 添加规则弹窗：类型-积分同排，两个框统一 高度38 + 圆角99 */
 form[data-form="addrule"] .field input{height:38px;border-radius:99px;box-sizing:border-box}
 form[data-form="addrule"] .field input[name="type"]{padding:0 14px}
@@ -830,6 +838,15 @@ form[data-form="progress"] input:not([type=hidden]):not([type=checkbox]){height:
 form[data-form="rec"] .bk-range-trigger{height:38px;border-radius:99px}
 form[data-form="rec"] input:not([type=hidden]):not([type=checkbox]):not(.bk-trigger-input){height:38px;box-sizing:border-box;border-radius:99px;padding:0 14px}
 form[data-form="rec"] input[type="date"]{min-height:38px;font-size:13px}
+/* r116d：手机版弹窗第一行 班级/学生/日期 三列等分——flex 子项默认 min-width:auto 按内容固有宽度撑破弹窗右边距，统一允许收缩 + 文本省略 */
+form[data-form="rec"] .field.row>.field{min-width:0}
+form[data-form="rec"] .field.row{gap:8px}
+#rec_modal_stu_slot{display:block;min-width:0}
+form[data-form="rec"] .field.row .bk-range-wrap{min-width:0;max-width:100%}
+form[data-form="rec"] .field.row .bk-range-trigger{min-width:0;max-width:100%}
+form[data-form="rec"] .field.row .bk-trigger-text{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+form[data-form="rec"] .field.row input[type="date"]{width:100%;min-width:0;padding:0 8px}
+form[data-form="rec"] .field.row input[type="text"]{width:100%;min-width:0}
 
 /* 胶囊组合：输入框 + 右侧确认按钮视觉合成一个 pill（学生详情「违纪-输入-确认」用） */
 .combo-pill{display:flex;align-items:stretch;border:1px solid var(--border);border-radius:99px;overflow:hidden;background:var(--surface);height:36px;box-sizing:border-box}
@@ -1563,7 +1580,7 @@ function setActive(r){
 }
 
 /* ============ router ============ */
-const VIEWS={home:viewHome,todos:viewTodos,courses:viewCourses,notes:viewNotes,note:viewNote,
+const VIEWS={home:viewHome,todos:viewTodos,courses:viewCourses,notes:viewNotes,note:viewNote,prog:viewProgEdit,
   students:viewStudents,reviews:viewReviews,grades:viewGrades,settings:viewSettings,teach:viewTeach};
 let _prevRoute='';
 function router(){if(DEL_MODE){const b=document.getElementById(DEL_MODE.btnId);if(b)b.classList.remove('active');DEL_MODE=null;}
@@ -1576,9 +1593,13 @@ function router(){if(DEL_MODE){const b=document.getElementById(DEL_MODE.btnId);i
   _prevRoute=r;
   if(r!=='grades')cleanupPendingSubs();
   document.getElementById('app').innerHTML=VIEWS[r](_np);setActive(r);closeDrawer();reopenCols();if(!samePage)window.scrollTo(0,0);
-  /* r116：进入笔记编辑页时隐藏底部 nav，匹配 iOS 备忘录全屏感 */
-  const bn=document.getElementById('bottomNav');if(bn)bn.style.display=(r==='note')?'none':'';
+  /* r116：进入笔记/进度编辑页时隐藏底部 nav，匹配 iOS 备忘录全屏感 */
+  const bn=document.getElementById('bottomNav');if(bn)bn.style.display=(r==='note'||r==='prog')?'none':'';
   if(r==='note'){const _fe=document.getElementById('note_content');if(_fe)_fe.focus();}
+  /* r116f：进度编辑页渲染后——绑勾选实时进度条 + 记录初始签名（返回时比对判定「有无操作」） */
+  if(r==='prog'){const _pf=document.querySelector('form[data-form="progress"]');
+    if(_pf){_pf.addEventListener('change',e=>{const t=e.target;if(t&&t.name&&t.name.startsWith('pdone_'))progUpdateProgress();});}
+    _progInitSig=progFormSig();}
   /* 成绩趋势/科目：app 重建后（含强刷新/切换班级科目视图）默认滚动到最右（最新考试） */
   if(r==='grades'){if((S._gradeView||'trend')==='trend')scrollTrendRight();if(S._gradeView==='subject')scrollSubjectRight();gradeTabsThumb();if((S._gradeView||'trend')==='score')attachTopHScroll('scoreScroll','scoreHScroll');if((S._gradeView||'trend')==='subject')attachTopHScroll('subjScroll','subjHScroll');}
   if(r==='students')stuTabsThumb();
@@ -2229,15 +2250,15 @@ function viewNotes(){
 }
 /* r116：备课笔记「添加/编辑」改为全屏编辑页（不再弹窗）。
    顶栏：左 < 返回（保存并返回列表）/ 右 完成（仅收起键盘，不保存）+ ···（含删除，新建笔记隐藏）。
-   主体：标题 + 分类 pill + 大 textarea（点击文字即编辑，新建自动聚焦）；标签沿用原 tag-input。
-   保存仅在「返回」时执行；空白新笔记返回时直接丢弃。 */
+   主体：标题输入（占位「添加标题」20px，空则正文首行作标题）+ 大 textarea（新建自动聚焦正文）。
+   保存仅在「返回」/右滑时执行；空白新笔记返回时直接丢弃。 */
 function viewNote(id){
   const isNew=!id||id==='new';
   const n=isNew?{}:(S.notes.find(x=>x.id===id)||{});
   const contentVal=n.content||'';
+  const titleVal=n.title||'';
   const moreBtn=isNew?'':`<button type="button" class="ne-more" data-action="note-menu" aria-label="更多">${iconSvg('more',18)}</button>`;
   const delItem=isNew?'':`<div class="note-edit-menu-item" data-action="note-edit-del" data-id="${n.id}">${iconSvg('trash',16)}<span>删除</span></div>`;
-  /* r116：参考 iOS 备忘录——只一个大编辑区，无标题/分类/标签输入框；首行作标题，分类/标签保留卡片编辑入口 */
   return `<div class="note-edit-page">
     <div class="note-edit-bar">
       <button type="button" class="ne-back" data-action="note-back" aria-label="返回">${iconSvg('arrow-left',18)}<span>返回</span></button>
@@ -2248,6 +2269,7 @@ function viewNote(id){
     </div>
     <div class="note-edit-menu" id="note_edit_menu" style="display:none">${delItem}</div>
     <div class="note-edit-body">
+      <input class="ne-title" id="note_title" placeholder="添加标题" value="${esc(titleVal)}">
       <textarea class="ne-content" id="note_content" placeholder="点击文字开始输入…">${esc(contentVal)}</textarea>
     </div>
     <input type="hidden" id="note_edit_id" value="${isNew?'':esc(n.id)}">
@@ -2260,9 +2282,12 @@ function goNoteEdit(id){_noteFrom=(location.hash||'').replace(/^#/,'').split('/'
 function saveNoteEdit(){
   const idEl=document.getElementById('note_edit_id');const id=idEl?idEl.value:'';
   const content=document.getElementById('note_content').value||'';
+  /* r116e：标题输入行优先；未填则正文首行作标题（截 40 字） */
+  const titleEl=document.getElementById('note_title');
+  const titleIn=(titleEl?titleEl.value:'').trim();
   const firstLine=(content.split('\n')[0]||'').trim();
-  if(!firstLine){location.hash=_noteFrom;return;} /* 空白新笔记直接丢弃 */
-  const title=firstLine.slice(0,40);
+  if(!titleIn&&!firstLine){location.hash=_noteFrom;return;} /* 空白新笔记直接丢弃 */
+  const title=titleIn||firstLine.slice(0,40);
   /* 保留未在编辑页暴露的字段（cat/courseId/tags 等） */
   const prev=id?(S.notes.find(x=>x.id===id)||{}):{};
   const created=id?(prev.created||Date.now()):Date.now();
@@ -2274,6 +2299,27 @@ function saveNoteEdit(){
 function noteEditDone(){if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();}
 function noteEditToggleMenu(){const m=document.getElementById('note_edit_menu');if(m)m.style.display=m.style.display==='none'?'block':'none';}
 function noteEditDelete(id){S.notes=S.notes.filter(y=>y.id!==id);save();location.hash=_noteFrom;toast('已删除');}
+/* r116e：笔记/进度编辑页右滑 = 「返回」键同款语义。
+   仅在 .note-edit-page / .prog-edit-page 内起判；dx>80 / |dy|<50 / 时长<700ms；正在选中文本（textarea 划选）不触发。
+   笔记页→saveNoteEdit（保存回来源，空白丢弃）；进度页→progBack（脏=保存返回，净=取消）。 */
+(function(){
+  let _sx=0,_sy=0,_st=0,_on=false;
+  const SEL='.note-edit-page,.prog-edit-page';
+  document.addEventListener('touchstart',e=>{
+    if(!e.target.closest||!e.target.closest(SEL)){_on=false;return;}
+    _sx=e.touches[0].clientX;_sy=e.touches[0].clientY;_st=Date.now();_on=true;
+  },{passive:true});
+  document.addEventListener('touchend',e=>{
+    if(!_on)return;_on=false;
+    if(!document.querySelector(SEL))return;
+    const sel=(window.getSelection&&window.getSelection())?String(window.getSelection()):'';
+    if(sel)return; /* 划选文字不算滑动 */
+    const dx=e.changedTouches[0].clientX-_sx,dy=e.changedTouches[0].clientY-_sy;
+    if(dx>80&&Math.abs(dy)<50&&Date.now()-_st<700){
+      if(document.querySelector('.prog-edit-page'))progBack();else saveNoteEdit();
+    }
+  },{passive:true});
+})();
 function noteFilter(v){S._noteFilter=v;viewReload('notes');}
 function noteFilterSummary(){const v=S._noteFilter||'';if(!v)return '全部课程';const c=S.courses.find(x=>x.id===v);return c?c.name:'全部课程';}
 function noteTagFilter(tag){S._noteTagFilter=tag;viewReload('notes');}
@@ -5710,6 +5756,78 @@ function modalProgress(id,pid){const c=course(id);if(!c)return;S._progCourse=id;
     // 实时进度（今日任务勾选变化）
     form.addEventListener('change',e=>{const t=e.target;if(t&&t.name&&t.name.startsWith('pdone_'))progUpdateProgress();});
   },0);}
+/* r116f：进度保存逻辑（modalProgress 弹窗与 viewProgEdit 全屏页共用）。返回 false=课程不存在；否则完成持久化（含 toast），由调用方负责关弹窗/跳转 */
+function saveProgressForm(f){
+  const v=n=>f.elements[n]?f.elements[n].value:'';
+  const cid=f.dataset.id;const c=course(cid);if(!c){toast('课程不存在');return false;}
+  const when=v('whenDate')||todayISO();const whenTime=v('whenTime')||classTimeToday(c.cls);const cl=resolveClass(c.cls);const subj=(c.subject||'').trim();const editing=!!S._progEditPid;
+  // 只追加完成，绝不清除已完成的任务
+  const newlyDone=[];const noteRaw=(v('note')||'').trim();
+  coursePlan(c).forEach(p=>{const el=f.elements['pdone_'+p.id];const want=!!(el&&el.checked);if(want&&!p.done){p.done=true;p.doneDate=when;newlyDone.push(p);}});
+  if(noteRaw){
+    if(newlyDone.length){newlyDone.forEach(p=>{p.note=noteRaw;});touchPlan(newlyDone);}
+    else{const undone=coursePlan(c).filter(p=>!p.done).sort((a,b)=>a.order-b.order);if(undone.length){undone[0].note=noteRaw;touchPlan(undone[0]);}}
+  }
+  const nts=v('nextTask').split('\n').map(x=>x.trim()).filter(Boolean);
+  const extra=v('extraDone').split('\n').map(x=>x.trim()).filter(Boolean);
+  // 插入位置：最近一次完成任务的下一列（在标记完成之后计算）
+  const cp=coursePlan(c);const doneCp=cp.filter(p=>p.done);
+  const ins=doneCp.length?Math.max(...doneCp.map(p=>p.order)):(cp.length?Math.max(...cp.map(p=>p.order)):0);
+  const bumpN=extra.length+nts.length;
+  /* r107：被挪位的条目也要盖 _at（旧写法只改 order 不盖戳 → 对端旧值可反压） */
+  if(bumpN){const bumped=[];S.plan.forEach(p=>{if((p.classId===cl||p.classId===ALL_CLASS)&&(!subj||(p.subject||'')===subj)&&p.order>ins){p.order+=bumpN;bumped.push(p);}});touchPlan(bumped);}
+  let ord=ins+1;
+  extra.forEach(t=>{S.plan.push({id:uid(),classId:cl,subject:subj,title:t,order:ord++,done:true,doneDate:when,temp:true,tag:'额外',_at:Date.now()});});
+  nts.forEach(t=>{S.plan.push({id:uid(),classId:cl,subject:subj,title:t,order:ord++,done:false,temp:true,tag:'新增',_at:Date.now()});});
+  c.unfinished=v('unfinished').split('\n').map(x=>x.trim()).filter(Boolean);
+  const plan=coursePlan(c);const tot=plan.length,dn=plan.filter(p=>p.done).length;
+  c.progress=tot?Math.round(dn/tot*100):0;
+  const doneTitles=plan.filter(p=>p.done).map(p=>p.title);
+  c.nextTask='';
+  if(editing){const ex=(c.progressLog||[]).find(r=>r.id===S._progEditPid);if(ex){ex.date=when;ex.time=whenTime;ex.progress=c.progress;ex.nextTask=nts.slice();ex.doneTasks=doneTitles;ex.unfinished=c.unfinished.slice();ex.extraDone=extra.slice();ex.note=noteRaw;}toast('已更新该进度记录');}
+  else{c.progressLog=c.progressLog||[];c.progressLog.push({id:uid(),date:when,time:whenTime,progress:c.progress,nextTask:nts.slice(),doneTasks:doneTitles,unfinished:c.unfinished.slice(),extraDone:extra.slice(),note:noteRaw});toast('进度已记录（'+c.progress+'%）');}
+  S.todos=S.todos.filter(t=>!(t.src==='unfinished'&&t.courseId===cid));
+  save();return true;
+}
+/* r116f：进度记录改全屏编辑页（原「+」弹窗入口改此页；进度详情内编辑旧记录仍走 modalProgress）。
+   顶栏：左 返回（有改动=保存并回来源页；无改动=直接返回）/ 右 取消（丢弃改动返回）。
+   返回目标 = 来源路由（首页进度卡→home；教学-进度→teach hub 进度 tab；独立进度页→courses）。 */
+let _progFrom='courses';let _progInitSig='';
+function goProgEdit(id){_progFrom=(location.hash||'').replace(/^#/,'').split('/')[0]||'home';location.hash='prog/'+id;}
+function progGoBack(){location.hash=_progFrom;}
+function progFormSig(){const f=document.querySelector('form[data-form="progress"]');if(!f)return '';
+  return Array.from(f.elements).filter(el=>el.name).map(el=>el.name+':'+(el.type==='checkbox'?el.checked:el.value)).join('|');}
+function progDirty(){return progFormSig()!==_progInitSig;}
+function progBack(){if(progDirty())saveProgressForm(document.querySelector('form[data-form="progress"]'));progGoBack();}
+function viewProgEdit(cid){
+  const c=course(cid);if(!c)return viewCourses();
+  S._progEditPid=null; /* 全屏页只做新记录；编辑旧记录仍走进度详情弹窗 */
+  const cl=resolveClass(c.cls);
+  const plan=coursePlan(c);
+  const total=plan.length,doneN=plan.filter(p=>p.done).length,auto=total?Math.round(doneN/total*100):0;
+  const planForSelect=plan.filter(p=>!p.done);
+  const planChecks=planForSelect.length?planForSelect.map(p=>`<label class="prog-cb" style="margin-bottom:6px"><span class="ex-chk-wrap"><input type="checkbox" name="pdone_${p.id}"></span><span class="prog-cb-txt">${esc(p.title)} ${p.tag?'<span class="tag">'+esc(p.tag)+'</span>':''}</span></label>`).join(''):'<div class="sub" style="font-size:12px">暂无教学进度安排，可去「课程设置」添加</div>';
+  const defTime=classTimeToday(c.cls);
+  return `<div class="prog-edit-page">
+    <div class="note-edit-bar">
+      <button type="button" class="ne-back" data-action="prog-back" aria-label="返回">${iconSvg('arrow-left',18)}<span>返回</span></button>
+      <div class="ne-right"><button type="button" class="ne-done" data-action="prog-cancel">取消</button></div>
+    </div>
+    <div class="prog-edit-body">
+      <div style="font-size:15px;font-weight:600;margin-bottom:8px">${esc(c.name)}</div>
+      <div class="sub" id="prog_progress_bar" style="margin-bottom:10px">完成进度：<strong style="color:var(--primary);font-size:18px">${auto}%</strong>　已完成 ${doneN}/${total}。</div>
+      <form data-form="progress" data-id="${cid}">
+        <div class="field"><label>完成时间</label>
+          <div class="field row" style="margin-top:4px;gap:8px"><input type="date" name="whenDate" value="${todayISO()}" style="flex:1;min-width:0">${selHtml('prog_whenTime', defTime||'选择时间', bkOpts(progTimeOpts(cl).map(t=>({k:t.k,l:t.l,pick:'progWhenTimePick'})), defTime))}<input type="hidden" name="whenTime" value="${defTime}"></div>
+          <div class="sub" style="margin-top:4px;font-size:12px">默认时间：${esc(defTime)}（当天课表首节课）</div></div>
+        <div class="field"><label>今日任务</label><div id="prog_today_wrap" style="max-height:200px;overflow:auto">${planChecks}</div></div>
+        <div class="field"><label>超额完成</label><textarea name="extraDone" class="prog-ta" placeholder="每行一项，自动同步"></textarea></div>
+        <div class="field"><label>待完成</label><textarea name="nextTask" class="prog-ta" placeholder="每行一项，自动同步">${esc(c.nextTask||'')}</textarea></div>
+        <div class="field"><label>备注（关联本次勾选的教学任务）</label><textarea name="note" class="prog-ta" placeholder="写下本节课的备注，会出现在「教学进度」弹窗与首页教学进度卡片"></textarea></div>
+      </form>
+    </div>
+  </div>`;
+}
 /* r116：备课笔记「添加/编辑」改为全屏编辑页 viewNote()（见 viewNotes 之后），原 modalNote 弹窗已移除。
    分类/标题/内容/标签字段与交互沿用 viewNote + noteCatOptsHtml / initTagInput。 */
 /* r112 分类下拉：默认选项 = 科目（S.subjects）+ 已用分类（去重，科目在前） */
@@ -5892,7 +6010,7 @@ function modalRec(){
   <div class="field row" style="margin-bottom:12px">
     <div class="field" style="flex:1;margin-bottom:0">${selHtml('rec_modal_cls',clsName,bkOpts(classes.map(c=>({k:c.id,l:c.name,pick:'recModalClsPick'})),defCls))}<input type="hidden" name="cls" value="${esc(clsName)}"></div>
     <div class="field" style="flex:1;margin-bottom:0"><span id="rec_modal_stu_slot">${recModalStuHtml(defCls)}</span></div>
-    <div class="field" style="flex:1;margin-bottom:0"><input type="date" name="date" value="${todayISO()}"></div></div>
+    <div class="field" style="flex:1.3;margin-bottom:0"><input type="date" name="date" value="${todayISO()}"></div></div>
   <div class="field row" style="margin-bottom:12px">
     <div style="flex:none;width:80px">${selHtml('rec_modal_type',defTypeLbl||'类型',bkOpts(recTypeItems(),defKind))}<input type="hidden" name="type" value="${esc(defTypeLbl)}"></div>
     <div class="field" style="flex:1;margin-bottom:0"><input type="text" name="note" placeholder="内容 / 说明（可选）"></div></div>
@@ -6083,35 +6201,8 @@ modal.addEventListener('submit',e=>{
   else if(form==='tt'){const id=f.dataset.id;const rawCls=f.elements['ttcls'].value;let clsIds=[];if(rawCls==='__custom__'){const nm=(f.elements['className']?f.elements['className'].value:'').trim();if(!nm){toast('请输入班级名称');return;}const cid=resolveClass(nm);clsIds=[cid];}else if(rawCls===ALL_CLASS){clsIds=S.classes.filter(c=>!c.archived).map(c=>c.id);}else clsIds=[rawCls];let sbj=(f.elements['ttsubj'].value||'').trim();const part=+f.elements['ttpart'].value;const pnum=+f.elements['ttpnum'].value;const period=part*5+pnum;const biweekly=!!(f.elements['ttbiweekly']&&f.elements['ttbiweekly'].checked);const base={day:+f.elements['day'].value,part,period,time:v('time'),subject:sbj,classroom:v('classroom'),note:v('note'),sem:f.elements['ttsem'].value,biweekly};
     S._ttLastCls=rawCls;S._ttLastSubj=sbj;
     if(id){const cur=S.timetable.find(x=>x.id===id);Object.assign(cur,Object.assign({},base,{classId:clsIds[0]||''}));if(biweekly&&!cur.biweeklyRefWeek){cur.biweeklyRefWeek=isoWeekOfYear(new Date());}else if(!biweekly){delete cur.biweeklyRefWeek;}}else{const refW=biweekly?isoWeekOfYear(new Date()):null;clsIds.forEach(cid=>S.timetable.push({id:uid(),...base,classId:cid,biweeklyRefWeek:refW}));}save();closeModal();viewReload('settings');toast('已保存');}
-  else if(form==='progress'){const cid=f.dataset.id;const c=course(cid);if(!c){toast('课程不存在');return;}
-    const when=v('whenDate')||todayISO();const whenTime=v('whenTime')||classTimeToday(c.cls);const cl=resolveClass(c.cls);const subj=(c.subject||'').trim();const editing=!!S._progEditPid;
-    // 只追加完成，绝不清除已完成的任务
-    const newlyDone=[];const noteRaw=(v('note')||'').trim();
-    coursePlan(c).forEach(p=>{const el=f.elements['pdone_'+p.id];const want=!!(el&&el.checked);if(want&&!p.done){p.done=true;p.doneDate=when;newlyDone.push(p);}});
-    if(noteRaw){
-      if(newlyDone.length){newlyDone.forEach(p=>{p.note=noteRaw;});touchPlan(newlyDone);}
-      else{const undone=coursePlan(c).filter(p=>!p.done).sort((a,b)=>a.order-b.order);if(undone.length){undone[0].note=noteRaw;touchPlan(undone[0]);}}
-    }
-    const nts=v('nextTask').split('\n').map(x=>x.trim()).filter(Boolean);
-    const extra=v('extraDone').split('\n').map(x=>x.trim()).filter(Boolean);
-    // 插入位置：最近一次完成任务的下一列（在标记完成之后计算）
-    const cp=coursePlan(c);const doneCp=cp.filter(p=>p.done);
-    const ins=doneCp.length?Math.max(...doneCp.map(p=>p.order)):(cp.length?Math.max(...cp.map(p=>p.order)):0);
-    const bumpN=extra.length+nts.length;
-    /* r107：被挪位的条目也要盖 _at（旧写法只改 order 不盖戳 → 对端旧值可反压） */
-    if(bumpN){const bumped=[];S.plan.forEach(p=>{if((p.classId===cl||p.classId===ALL_CLASS)&&(!subj||(p.subject||'')===subj)&&p.order>ins){p.order+=bumpN;bumped.push(p);}});touchPlan(bumped);}
-    let ord=ins+1;
-    extra.forEach(t=>{S.plan.push({id:uid(),classId:cl,subject:subj,title:t,order:ord++,done:true,doneDate:when,temp:true,tag:'额外',_at:Date.now()});});
-    nts.forEach(t=>{S.plan.push({id:uid(),classId:cl,subject:subj,title:t,order:ord++,done:false,temp:true,tag:'新增',_at:Date.now()});});
-    c.unfinished=v('unfinished').split('\n').map(x=>x.trim()).filter(Boolean);
-    const plan=coursePlan(c);const tot=plan.length,dn=plan.filter(p=>p.done).length;
-    c.progress=tot?Math.round(dn/tot*100):0;
-    const doneTitles=plan.filter(p=>p.done).map(p=>p.title);
-    c.nextTask='';
-    if(editing){const ex=(c.progressLog||[]).find(r=>r.id===S._progEditPid);if(ex){ex.date=when;ex.time=whenTime;ex.progress=c.progress;ex.nextTask=nts.slice();ex.doneTasks=doneTitles;ex.unfinished=c.unfinished.slice();ex.extraDone=extra.slice();ex.note=noteRaw;}toast('已更新该进度记录');}
-    else{c.progressLog=c.progressLog||[];c.progressLog.push({id:uid(),date:when,time:whenTime,progress:c.progress,nextTask:nts.slice(),doneTasks:doneTitles,unfinished:c.unfinished.slice(),extraDone:extra.slice(),note:noteRaw});toast('进度已记录（'+c.progress+'%）');}
-    S.todos=S.todos.filter(t=>!(t.src==='unfinished'&&t.courseId===cid));
-    save();closeModal();viewReload('courses');}
+  /* r116f：保存逻辑抽成 saveProgressForm(f)（弹窗与全屏进度编辑页共用）；此处只负责关弹窗+刷新 */
+  else if(form==='progress'){if(saveProgressForm(f)!==false){closeModal();viewReload('courses');}}
   else if(form==='semester'){const id=f.dataset.id;const start=v('start'),end=v('end'),nm=v('name').trim();
     if(id){const s=S.semesters.find(x=>x.id===id);if(s){s.name=nm||autoSemName(start,end);s.start=start;s.end=end;if(s.current)syncSemSettings();}save();closeModal();viewReload('settings');toast('学期已更新');}
     else{const oldCur=S.semesters.find(x=>x.current&&!x.archived)||S.semesters.find(x=>x.current);S.ttBySem=S.ttBySem||{};if(oldCur)S.ttBySem[oldCur.id]=S.timetable.slice();
@@ -6183,7 +6274,9 @@ document.body.addEventListener('click',e=>{
   else if(a==='edit-todo'){if(id){modalTodo(id);}else if(t.dataset.iso){modalTodo(null,t.dataset.iso);}else if(S._calISO){modalTodo(null,S._calISO);}else modalTodo();}
   else if(a==='todo-tab'){S._todoTab=t.dataset.t;viewReload('todos');}
   else if(a==='edit-course'){modalCourse(id);if(id)modalFill(id,'course');}
-  else if(a==='prog-course'){modalProgress(id);}
+  else if(a==='prog-course'){goProgEdit(id);}
+  else if(a==='prog-back'){progBack();}
+  else if(a==='prog-cancel'){progGoBack();}
   else if(a==='mod-prog'){openProgList(id);}
   else if(a==='edit-prog-log'){modalProgress(S._progCourse,id);}
   else if(a==='course-progress'){openCourseProgress(id);}
