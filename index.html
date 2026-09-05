@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r113</title>
+<title>工作E · v20260902-r116</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -102,7 +102,7 @@ a{color:inherit;text-decoration:none}
 .page-head{margin-bottom:18px}
 .page-head h1{font-size:23px;margin:0 0 4px}
 .page-head p{margin:0;color:var(--text-2);font-size:14px}
-.section-title{font-size:15px;font-weight:700;margin:0 0 10px;display:flex;align-items:center;gap:8px;min-height:0}
+.section-title{font-size:15px;font-weight:700;margin:0;display:flex;align-items:center;gap:8px;min-height:0}
 /* 成绩分析页：所有标题与图标的间距统一为 4px（覆盖默认 gap:8px，不影响其他视图） */
 #grade_body .section-title,#grade_row2 .section-title{gap:4px}
 #hist_grades>.section-title,#hist_courses>.section-title,#hist_classes>.section-title{margin-bottom:0}
@@ -650,6 +650,28 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 .ic-btn-del:hover{background:#fbd9d2}
 .ic-btn-del:active{transform:scale(.92)}
 .ic-btn-del svg{width:12px;height:12px}
+/* 备课笔记-全屏编辑页（r116：替代原弹窗，转入独立全屏页面） */
+.note-edit-page{position:relative;display:flex;flex-direction:column;height:100vh;height:100dvh;background:var(--surface)}
+.note-edit-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border);flex:none}
+.ne-back{display:inline-flex;align-items:center;gap:2px;border:0;background:transparent;color:var(--primary);font-size:15px;font-weight:600;cursor:pointer;padding:6px 2px;font-family:inherit}
+.ne-back svg{width:20px;height:20px}
+.ne-right{display:flex;align-items:center;gap:6px}
+.ne-done{border:0;background:transparent;color:var(--primary);font-size:15px;font-weight:600;cursor:pointer;padding:6px 8px;font-family:inherit}
+.ne-more{width:34px;height:34px;border:0;background:transparent;color:var(--text-2);border-radius:50%;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0}
+.ne-more:active{background:var(--surface-2)}
+.ne-more svg{width:20px;height:20px}
+.note-edit-menu{position:absolute;top:54px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.14);z-index:60;min-width:150px;overflow:hidden}
+.note-edit-menu-item{display:flex;align-items:center;gap:10px;padding:13px 16px;font-size:14px;color:var(--danger);cursor:pointer;background:transparent;border:0;width:100%;text-align:left;font-family:inherit}
+.note-edit-menu-item:active{background:var(--surface-2)}
+.note-edit-menu-item svg{width:16px;height:16px}
+.note-edit-body{padding:16px;overflow:auto;flex:1;-webkit-overflow-scrolling:touch}
+.ne-title{border:0;outline:none;width:100%;font-size:20px;font-weight:700;color:var(--text);background:transparent;font-family:inherit;padding:0;margin:0 0 14px}
+.ne-title::placeholder{color:var(--text-2)}
+.ne-cat-pill-wrap{margin:0 0 16px}
+.ne-cat-pill{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);border-radius:99px;padding:6px 12px;font-size:13px;cursor:pointer;font-family:inherit;user-select:none}
+.ne-cat-pill svg{width:12px;height:12px;opacity:.6}
+.ne-content{border:0;outline:none;width:100%;min-height:60vh;font-size:16px;line-height:1.65;color:var(--text);background:transparent;resize:none;font-family:inherit;padding:0}
+.ne-content::placeholder{color:var(--text-2)}
 /* 添加规则弹窗：类型-积分同排，两个框统一 高度38 + 圆角99 */
 form[data-form="addrule"] .field input{height:38px;border-radius:99px;box-sizing:border-box}
 form[data-form="addrule"] .field input[name="type"]{padding:0 14px}
@@ -937,6 +959,11 @@ form[data-form="rec"] input[type="date"]{min-height:38px;font-size:13px}
   #grade_head{grid-template-columns:repeat(4, minmax(0,1fr))!important;column-gap:8px!important;row-gap:8px!important;margin-bottom:8px!important}
   #grade_search_wrap{grid-column:1 / -1 !important}
   .trend-toggle-nums{display:none!important}
+}
+/* r114：手机端文本类输入框字号≥16px，避免 iOS 点输入框（分类/标题/内容等）整页自动放大且 SPA 返回后缩放不复位；双指缩放不受影响 */
+@media(max-width:767px){
+  input:not(.cmp-thr),textarea,select,.bk-sel-trigger,.bk-range-trigger{font-size:16px!important}
+  .cmp-thr{font-size:12px!important}
 }
 .cmp-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .cmp-card{border:0.5px solid var(--border);border-radius:12px;padding:12px;background:var(--surface)}
@@ -1540,11 +1567,11 @@ function setActive(r){
 }
 
 /* ============ router ============ */
-const VIEWS={home:viewHome,todos:viewTodos,courses:viewCourses,notes:viewNotes,
+const VIEWS={home:viewHome,todos:viewTodos,courses:viewCourses,notes:viewNotes,note:viewNote,
   students:viewStudents,reviews:viewReviews,grades:viewGrades,settings:viewSettings,teach:viewTeach};
 let _prevRoute='';
 function router(){if(DEL_MODE){const b=document.getElementById(DEL_MODE.btnId);if(b)b.classList.remove('active');DEL_MODE=null;}
-  const r=location.hash.slice(1)||'home';if(!VIEWS[r]){location.hash='home';return;}
+  let r=location.hash.slice(1)||'home';let _np='';const _sl=r.indexOf('/');if(_sl>=0){_np=r.slice(_sl+1);r=r.slice(0,_sl);}if(!VIEWS[r]){location.hash='home';return;}
   /* 重新进入成绩页：视图与筛选重置为「趋势」tab 的默认（全部学期/全部考试/全部班级/最近考试科目）；页内切换子视图不受影响 */
   if(r==='grades'&&_prevRoute!=='grades'){S._gradeView='trend';gradeDefaultFor('trend');S._cmpItems=[];S._stuCmp=[];S._gradeScoreSort=undefined;S._gradeSubjSort=undefined;S._trendNums=false;_gradeThumbPrev=null;}
   /* 重新进入学情跟进：子标签与筛选恢复默认（班级/记录均默认全部班级）；页内切换子标签不受影响 */
@@ -1552,7 +1579,8 @@ function router(){if(DEL_MODE){const b=document.getElementById(DEL_MODE.btnId);i
   const samePage=_prevRoute===r;
   _prevRoute=r;
   if(r!=='grades')cleanupPendingSubs();
-  document.getElementById('app').innerHTML=VIEWS[r]();setActive(r);closeDrawer();reopenCols();if(!samePage)window.scrollTo(0,0);
+  document.getElementById('app').innerHTML=VIEWS[r](_np);setActive(r);closeDrawer();reopenCols();if(!samePage)window.scrollTo(0,0);
+  if(r==='note'){const _fe=document.getElementById(_np&&_np!=='new'?'note_title':'note_content');if(_fe)_fe.focus();initTagInput();}
   /* 成绩趋势/科目：app 重建后（含强刷新/切换班级科目视图）默认滚动到最右（最新考试） */
   if(r==='grades'){if((S._gradeView||'trend')==='trend')scrollTrendRight();if(S._gradeView==='subject')scrollSubjectRight();gradeTabsThumb();if((S._gradeView||'trend')==='score')attachTopHScroll('scoreScroll','scoreHScroll');if((S._gradeView||'trend')==='subject')attachTopHScroll('subjScroll','subjHScroll');}
   if(r==='students')stuTabsThumb();
@@ -2180,7 +2208,7 @@ function viewNotes(){
   const cards=list.length?list.map(n=>{
     const noteTags=(n.tags||'').split(/[,，]/).map(s=>s.trim()).filter(Boolean);
     const tagHtml=noteTags.length?`<div style="margin-top:8px;line-height:1;display:flex;flex-wrap:wrap;gap:6px">${noteTags.map(t=>`<span class="tag clickable" data-action="filter-tag" data-tag="${esc(t)}">#${esc(t)}</span>`).join('')}</div>`:'';
-    return `<div class="card" data-id="${n.id}"><div style="display:flex;justify-content:space-between;align-items:flex-start">
+    return `<div class="card" data-id="${n.id}" data-action="open-note"><div style="display:flex;justify-content:space-between;align-items:flex-start">
     <div style="line-height:1"><h3 style="font-size:14px">${esc(n.title)}</h3><div class="sub">${esc(noteCatOf(n))} · ${new Date(n.created).toLocaleDateString()}</div></div>
     <div class="row-actions"><button class="ic-btn-del" type="button" data-action="del-note" data-id="${n.id}" title="删除" aria-label="删除">${iconSvg('x',10)}</button>
     <button class="ic-btn" type="button" data-action="pin-note" data-id="${n.id}" title="${n.pin?'取消置顶':'置顶'}" aria-label="置顶" ${n.pin?'style="background:var(--primary);color:var(--primary-text)"':''}>${iconSvg('置顶',10)}</button>
@@ -2195,12 +2223,65 @@ function viewNotes(){
       <button class="btn sm stu-ie-btn" data-action="note-del" data-lp="note-del" id="note_del_btn" style="flex:none;width:38px;height:38px;border-radius:99px;border:1px solid var(--border);background:#fff;padding:0;display:inline-flex;align-items:center;justify-content:center;color:#444441" aria-label="删除">${iconSvg('trash',16)}</button>
       <button class="btn sm" style="flex:none;width:38px;height:38px;border-radius:99px;border:1px solid var(--border);background:#fff;padding:0;display:inline-flex;align-items:center;justify-content:center;color:#444441" data-action="imp-note" aria-label="导入">${iconSvg('download',16)}</button>
       <button class="btn sm" style="flex:none;width:38px;height:38px;border-radius:99px;border:1px solid var(--border);background:#fff;padding:0;display:inline-flex;align-items:center;justify-content:center;color:#444441" data-action="exp-note" data-lp="note-exp" id="note_exp_btn" aria-label="导出">${iconSvg('upload',16)}</button>
-      <button class="btn primary sm add-spin" data-action="edit-note" onclick="spinAddBtn(this)" style="flex:none;width:38px;height:38px;border-radius:50%;padding:0;display:inline-flex;align-items:center;justify-content:center" aria-label="新增">${addIconSvg()}</button>
+      <button class="btn primary sm add-spin" data-action="add-note" onclick="goNoteEdit()" style="flex:none;width:38px;height:38px;border-radius:50%;padding:0;display:inline-flex;align-items:center;justify-content:center" aria-label="新增">${addIconSvg()}</button>
     </div>
   </div>
   ${tagFilterHtml}
   <div class="grid cols-2 notes-grid">${cards}</div>`;
 }
+/* r116：备课笔记「添加/编辑」改为全屏编辑页（不再弹窗）。
+   顶栏：左 < 返回（保存并返回列表）/ 右 完成（仅收起键盘，不保存）+ ···（含删除，新建笔记隐藏）。
+   主体：标题 + 分类 pill + 大 textarea（点击文字即编辑，新建自动聚焦）；标签沿用原 tag-input。
+   保存仅在「返回」时执行；空白新笔记返回时直接丢弃。 */
+function viewNote(id){
+  const isNew=!id||id==='new';
+  const n=isNew?{}:(S.notes.find(x=>x.id===id)||{});
+  const catVal=(n.cat&&n.cat.trim())||(n.courseId?(course(n.courseId)||{}).name:'')||'';
+  const titleVal=n.title||'';
+  const contentVal=n.content||'';
+  const tagsVal=n.tags||'';
+  const moreBtn=isNew?'':`<button type="button" class="ne-more" data-action="note-menu" aria-label="更多">${iconSvg('more',18)}</button>`;
+  const delItem=isNew?'':`<div class="note-edit-menu-item" data-action="note-edit-del" data-id="${n.id}">${iconSvg('trash',16)}<span>删除</span></div>`;
+  return `<div class="note-edit-page">
+    <div class="note-edit-bar">
+      <button type="button" class="ne-back" data-action="note-back" aria-label="返回">${iconSvg('arrow-left',18)}<span>返回</span></button>
+      <div class="ne-right">
+        <button type="button" class="ne-done" data-action="note-done">完成</button>
+        ${moreBtn}
+      </div>
+    </div>
+    <div class="note-edit-menu" id="note_edit_menu" style="display:none">${delItem}</div>
+    <div class="note-edit-body">
+      <input class="ne-title" id="note_title" placeholder="标题" value="${esc(titleVal)}">
+      <div class="bk-range-wrap ne-cat-pill-wrap">
+        <div class="ne-cat-pill" onclick="bkSelOpen('note_cat_pop',event)">${esc(catVal)||'分类'}${iconSvg('chev-down',12)}</div>
+        <div class="bk-range-pop" id="note_cat_pop" style="display:none">${noteCatOptsHtml(catVal)}</div>
+      </div>
+      <input type="hidden" id="note_cat_input" value="${esc(catVal)}">
+      <textarea class="ne-content" id="note_content" placeholder="点击文字开始输入…">${esc(contentVal)}</textarea>
+      <div class="tag-input-wrap" id="tag_input_wrap"><div class="tag-list" id="tag_list"></div><input type="text" id="tag_input" placeholder="输入标签后回车或逗号"><input type="hidden" name="tags" id="tags_hidden" value="${esc(tagsVal)}"></div>
+    </div>
+    <input type="hidden" id="note_edit_id" value="${isNew?'':esc(n.id)}">
+  </div>`;
+}
+function goNoteEdit(id){location.hash='note/'+(id||'new');}
+function saveNoteEdit(){
+  const idEl=document.getElementById('note_edit_id');const id=idEl?idEl.value:'';
+  const cat=(document.getElementById('note_cat_input').value||'').trim();
+  const title=(document.getElementById('note_title').value||'').trim();
+  const content=document.getElementById('note_content').value||'';
+  const tags=(document.getElementById('tags_hidden').value||'').trim();
+  if(!title&&!content.trim()){location.hash='notes';return;} /* 空白新笔记直接丢弃 */
+  const finalTitle=title||content.split('\n')[0].slice(0,40);
+  const created=id?((S.notes.find(x=>x.id===id)||{}).created||Date.now()):Date.now();
+  const o={cat,title:finalTitle,content,tags,created};
+  if(id){const t=S.notes.find(x=>x.id===id);if(t){Object.assign(t,o);t._at=Date.now();}}
+  else S.notes.push({id:uid(),...o,_at:Date.now()});
+  save();location.hash='notes';toast('已保存');
+}
+function noteEditDone(){if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();}
+function noteEditToggleMenu(){const m=document.getElementById('note_edit_menu');if(m)m.style.display=m.style.display==='none'?'block':'none';}
+function noteEditDelete(id){S.notes=S.notes.filter(y=>y.id!==id);save();location.hash='notes';toast('已删除');}
 function noteFilter(v){S._noteFilter=v;viewReload('notes');}
 function noteFilterSummary(){const v=S._noteFilter||'';if(!v)return '全部课程';const c=S.courses.find(x=>x.id===v);return c?c.name:'全部课程';}
 function noteTagFilter(tag){S._noteTagFilter=tag;viewReload('notes');}
@@ -2244,7 +2325,7 @@ function stuPanelHtmlFor(v){
   stuTab=saved;
   /* r42 铁律一（同 gradePanelHtmlFor）—— 保留原始 id，绝不做 id→data-pid 替换。
      学情侧受影响的规则：#hist_classes>.section-title{margin-bottom:0} 与
-     #hist_classes.open>.section-title{margin-bottom:16px}（默认 .section-title 是 margin:0 0 10px），
+     #hist_classes.open>.section-title{margin-bottom:16px}（基线 .section-title 是 margin:0，r115 把 10 改 0），
      替换后失配 → 「滑向班级界面时，班级归档的下边距和实际班级归档页面不一样」。
      各 tab 的 body id 集合互不重叠（stu/rec/draw/class/rules 各自独立），不存在实际冲突。 */
   return '<div class="tp tp-shown" data-v="'+esc(v)+'">'+body+'</div>';
@@ -2530,6 +2611,10 @@ p['搜索']='<circle cx="10.5" cy="10.5" r="7"/><path d="M10.5 6.6a3.9 3.9 0 0 1
   p['抽签·骰子']='<rect x="5" y="5" width="14" height="14" rx="3"/><circle cx="9" cy="9" r="1.2"/><circle cx="15" cy="9" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="9" cy="15" r="1.2"/><circle cx="15" cy="15" r="1.2"/>';
   p['班级·群体']='<circle cx="7" cy="9" r="2.4"/><path d="M4 18 L7 13.5 L10 18"/><circle cx="12" cy="8" r="2.6"/><path d="M8.8 18 L12 12.5 L15.2 18"/><circle cx="17" cy="9" r="2.4"/><path d="M14 18 L17 13.5 L20 18"/>';
   p['规则·规约']='<rect x="5" y="4" width="14" height="16" rx="1.5"/><polyline points="14 4 14 10 11 7 8 10 8 4"/><line x1="8" y1="14" x2="16" y2="14"/>';
+  /* 备课笔记-全屏编辑页（r116）：返回箭头 / ··· 更多 / 分类下拉箭头 */
+  p['arrow-left']='<line x1="19" y1="12" x2="5" y2="12"/><polyline points="11 18 5 12 11 6"/>';
+  p['more']='<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>';
+  p['chev-down']='<polyline points="6 9 12 15 18 9"/>';
   /* emoji 自识别：传入 emoji 字符自动解析为 SVG（当前仅试点 📅） */
   var _e2n={'📅':'日历'};
   for(var k in _e2n){if(p[_e2n[k]]&&!p[k])p[k]=p[_e2n[k]];}
@@ -5631,28 +5716,12 @@ function modalProgress(id,pid){const c=course(id);if(!c)return;S._progCourse=id;
     // 实时进度（今日任务勾选变化）
     form.addEventListener('change',e=>{const t=e.target;if(t&&t.name&&t.name.startsWith('pdone_'))progUpdateProgress();});
   },0);}
-function modalNote(id){const n=id?S.notes.find(x=>x.id===id):{};
-  /* r112：课程 → 分类（输入框+下拉二合一）。默认选项=科目（S.subjects）+ 已用分类；可自由输入。
-     旧笔记 courseId 保留（编辑时不覆盖），展示优先 cat，回退课程名。 */
-  const catVal=(n.cat&&n.cat.trim())||(n.courseId?(course(n.courseId)||{}).name:'')||'';
-  openModal(id?'编辑笔记':'备课笔记',`<form data-form="note" data-id="${id||''}">
-  <div class="field row" style="margin-bottom:8px">
-    <div class="field" style="flex:none;width:100px;margin-bottom:0"><label>分类</label>
-      <div class="bk-range-wrap" id="note_cat_wrap">
-        <div class="bk-range-trigger" onclick="bkSelOpen('note_cat_pop',event)"><input name="cat" id="note_cat_input" value="${esc(catVal)}" placeholder="分类" autocomplete="off" onclick="event.stopPropagation()" onfocus="bkSelOpen('note_cat_pop',event)" style="flex:1;min-width:0;border:0;outline:none;background:transparent;padding:0;height:100%;font-size:13px;color:var(--text);font-family:inherit"></div>
-        <div class="bk-range-pop" id="note_cat_pop" style="display:none">${noteCatOptsHtml(catVal)}</div>
-      </div>
-    </div>
-    <div class="field" style="flex:1;margin-bottom:0">${field('标题','<input name="title" required value="'+esc(n.title||'')+'" placeholder="标题">')}</div>
-  </div>
-  ${field('内容','<textarea name="content">'+esc(n.content||'')+'</textarea>')}
-  ${field('标签','<div class="tag-input-wrap" id="tag_input_wrap"><div class="tag-list" id="tag_list"></div><input type="text" id="tag_input" placeholder="输入后回车或逗号"><input type="hidden" name="tags" id="tags_hidden" value="'+esc(n.tags||'')+'"></div>')}
-  <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">保存</button></div></form>`);
-  setTimeout(initTagInput,30);}
+/* r116：备课笔记「添加/编辑」改为全屏编辑页 viewNote()（见 viewNotes 之后），原 modalNote 弹窗已移除。
+   分类/标题/内容/标签字段与交互沿用 viewNote + noteCatOptsHtml / initTagInput。 */
 /* r112 分类下拉：默认选项 = 科目（S.subjects）+ 已用分类（去重，科目在前） */
 function noteCatItems(){const subj=(S.subjects||[]).map(s=>s.name).filter(Boolean);const used=(S.notes||[]).map(n=>n.cat).filter(Boolean);return [...new Set([...subj,...used])];}
 function noteCatOptsHtml(cur){const items=noteCatItems();return items.length?items.map(v=>`<div class="bk-range-opt" onclick="noteCatPick('${esc(v)}')" style="${v===cur?'background:var(--primary-soft);color:var(--primary);font-weight:600':''}">${esc(v)}</div>`).join(''):'<div class="bk-range-opt" style="color:var(--text-2)">暂无科目，可直接输入</div>';}
-function noteCatPick(v){const i=document.getElementById('note_cat_input');if(i)i.value=v;closeAllBkPops();}
+function noteCatPick(v){const i=document.getElementById('note_cat_input');if(i)i.value=v;const pill=document.querySelector('.ne-cat-pill');if(pill&&pill.firstChild)pill.firstChild.nodeValue=v||'分类';closeAllBkPops();}
 /* 分类展示：优先 cat，回退旧课程名，再回退「未分类」 */
 function noteCatOf(n){return (n.cat&&n.cat.trim())||(course(n.courseId)||{}).name||'未分类';}
 /* 备课笔记-添加弹窗：课程下拉改用 bk-range 弹层（与课表设置-学期同款） */
@@ -6068,6 +6137,7 @@ var LP_MODE=['imp-note','exp-note','grade-imp','imp-tt','exp-tt','imp-plan','exp
 var LP_FLASH=['imp-review','exp-review-all','todo-imp','do-arc-archive','do-manual-backup','do-restore-import','do-reset-scope'];
 document.body.addEventListener('click',e=>{
   const t=e.target.closest('[data-action]');if(!t)return;const a=t.dataset.action,id=t.dataset.id;
+  {const _nm=document.getElementById('note_edit_menu');if(_nm&&a!=='note-menu')_nm.style.display='none';}
   /* 短按「模式蓝」：指定的导入/导出按钮按下即实色蓝，动作一执行（弹窗/下载）约 500ms 后自动消失；点别的也消失。无淡底按压态 */
   if(LP_MODE.includes(a)){lpClearModeBlue();t.classList.add('active');setTimeout(function(){if(t)t.classList.remove('active');},500);}
   /* 短按「蓝闪」：每周复盘-导入/导出 按下即实色蓝闪一下（约 400ms，与长按触发蓝闪同款），不常驻 */
@@ -6146,7 +6216,12 @@ document.body.addEventListener('click',e=>{
   else if(a==='cal-next'){calM++;if(calM>11){calM=0;calY++;}router();}
   else if(a==='cal-day'){openDayDetail(t.dataset.iso);}
   else if(a==='teach-tab'){selectTeachTab(t.dataset.r);}
-  else if(a==='edit-note'){modalNote(id);if(id)modalFill(id,'note');}
+  else if(a==='edit-note'||a==='open-note'){goNoteEdit(id);}
+  else if(a==='add-note'){goNoteEdit();}
+  else if(a==='note-back'){saveNoteEdit();}
+  else if(a==='note-done'){noteEditDone();}
+  else if(a==='note-menu'){noteEditToggleMenu();}
+  else if(a==='note-edit-del'){noteEditDelete(id);}
   else if(a==='del-note'){S.notes=S.notes.filter(y=>y.id!==id);save();if(!reloadPanelInHub('notes'))viewReload('notes');}
   else if(a==='pin-note'){const n=S.notes.find(y=>y.id===id);if(n){n.pin=!n.pin;n.pinAt=n.pin?Date.now():0;n._at=Date.now();save();if(!reloadPanelInHub('notes'))viewReload('notes');}}
   else if(a==='filter-tag'){noteTagFilter(t.dataset.tag);}
