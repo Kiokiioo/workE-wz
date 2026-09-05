@@ -461,16 +461,16 @@ tbody tr:hover{background:var(--surface-2)}
 @media(max-width:640px){
   .rec-table{table-layout:fixed}
   .rec-card{border-top:none;border-bottom:none}
-  .rec-table th,.rec-table td{padding:10px 4px}
-  .rec-table col.rec-c1{width:46px}
+  .rec-table th,.rec-table td{padding:10px 8px} /* r116y：列左右间距 4→8 */
+  .rec-table col.rec-c1{width:50px}
   .rec-table col.rec-c2{width:70px}
-  .rec-table col.rec-c5{width:48px}
+  .rec-table col.rec-c5{width:50px}
   .rec-table col.rec-c6{width:32px}
-  .rec-table th.rec-c1,.rec-table td.rec-c1{width:46px;font-size:12px;font-weight:600;line-height:1.15;white-space:normal;word-break:break-all;text-align:center}
+  .rec-table th.rec-c1,.rec-table td.rec-c1{width:50px;font-size:12px;font-weight:600;line-height:1.15;white-space:normal;word-break:break-all;text-align:center}
   .rec-table td.rec-c1{font-size:15px}
   .rec-table th.rec-c2,.rec-table td.rec-c2{width:70px;font-size:13px}
   .rec-table th.rec-c4,.rec-table td.rec-c4{width:70px;font-size:13px;text-align:right}
-  .rec-table th.rec-c5,.rec-table td.rec-c5{width:48px;font-weight:600;white-space:normal;text-align:right}
+  .rec-table th.rec-c5,.rec-table td.rec-c5{width:50px;font-weight:600;white-space:normal;text-align:right}
   .rec-table th.rec-c6,.rec-table td.rec-c6{width:32px;text-align:center}
   .rec-table td.rec-c4{font-size:13px}
   .rec-table th:not(.rec-c1):not(.rec-c5):not(.rec-c6),.rec-table td:not(.rec-c1):not(.rec-c5):not(.rec-c6){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -2612,7 +2612,7 @@ function stuSearch(v){S._stuSearch=v;save();
 function buildRecTable(){
   const nonArch=S.classes.filter(c=>!c.archived);
   const clsVal=S._recCls||'all';
-  const tv=S._recTime||(curSem()?('sem:'+curSem().id):'all');
+  const tv=S._recTime||'all'; /* r117c：记录时间筛选默认「全部时间」（原默认当前学期） */
   const rg=tv==='custom'?{from:S._recFrom||'0000-01-01',to:S._recTo||'9999-12-31'}:rangeOf(tv);
   const recs=[
     ...S.violations.map(r=>({id:r.id,src:'viol',studentId:r.studentId,type:r.type,date:r.date,delta:r.delta})),
@@ -2792,8 +2792,7 @@ function noteArrowInline(){
 function spinAddBtn(b){if(!b)return;b.classList.remove('spin');void b.offsetWidth;b.classList.add('spin');}
 function recView(){
   const nonArch=S.classes.filter(c=>!c.archived);
-  const cur=curSem();
-  const tv=S._recTime||(cur?('sem:'+cur.id):'all');
+  const tv=S._recTime||'all'; /* r117c：默认「全部时间」，与列表过滤一致 */
   const customRow=tv==='custom'?`<div class="field row" style="margin-bottom:6px">
     <div class="field" style="flex:1;margin-bottom:0"><label>从</label><input type="date" value="${S._recFrom||''}" onchange="recFromSel(this.value)"></div>
     <div class="field" style="flex:1;margin-bottom:0"><label>到</label><input type="date" value="${S._recTo||''}" onchange="recToSel(this.value)"></div></div>`:'';
