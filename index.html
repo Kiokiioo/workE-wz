@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r116g</title>
+<title>工作E · v20260902-r116i</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -973,9 +973,12 @@ form[data-form="rec"] .field.row input[type="text"]{width:100%;min-width:0}
   #grade_search_wrap{grid-column:1 / -1 !important}
   .trend-toggle-nums{display:none!important}
 }
-/* r114：手机端文本类输入框字号≥16px，避免 iOS 点输入框（分类/标题/内容等）整页自动放大且 SPA 返回后缩放不复位；双指缩放不受影响 */
+/* r114：手机端文本类输入框字号≥16px，避免 iOS 点输入框（分类/标题/内容等）整页自动放大且 SPA 返回后缩放不复位；双指缩放不受影响。
+   r116h：.bk-range-trigger 是 button（点按不开键盘，不会触发 iOS 缩放）移出强制列表，回落设计字号 13px；
+   占位文字经 ::placeholder 单独 13px——auto-zoom 只看输入框自身字号，占位小字不触发。 */
 @media(max-width:767px){
-  input:not(.cmp-thr),textarea,select,.bk-sel-trigger,.bk-range-trigger{font-size:16px!important}
+  input:not(.cmp-thr),textarea,select,.bk-sel-trigger{font-size:16px!important}
+  input:not(.cmp-thr)::placeholder,textarea::placeholder{font-size:13px}
   .cmp-thr{font-size:12px!important}
 }
 .cmp-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
@@ -3334,7 +3337,16 @@ function gradeScoreHtml(ev){
     </div></div>`;
 }
 function gradeScoreSort(){return S._gradeScoreSort||(S._gradeScoreSort={key:'total',dir:'desc'});}
-function gradeScoreSortToggle(k){const s=gradeScoreSort();if(s.key===k)s.dir=s.dir==='asc'?'desc':'asc';else{s.key=k;s.dir=(k==='total'?'desc':'asc');}save();renderGradesBody();}
+function gradeScoreSortToggle(k){const s=gradeScoreSort();if(s.key===k)s.dir=s.dir==='asc'?'desc':'asc';else{s.key=k;s.dir=(k==='total'?'desc':'asc');}save();renderGradesBodyKeepScroll();}
+/* r116i：排序/搜索重渲染保留横向滚动位置——innerHTML 替换与 scrollLeft 写回在同一任务内完成（中间不产生绘制帧），
+   否则容器重建后 scrollLeft 归零：内容先跳最左，iOS Safari 再异步恢复旧位置，呈现为「滚条和内容迅速左右晃一下」。 */
+function renderGradesBodyKeepScroll(){
+  const prev=document.getElementById('scoreScroll')||document.getElementById('subjScroll');
+  const sl=prev?prev.scrollLeft:0;
+  renderGradesBody();
+  const sc=document.getElementById('scoreScroll')||document.getElementById('subjScroll');
+  if(sc&&sl)sc.scrollLeft=sl;
+}
 let _lpTimer=null;
 function lpStart(e,sid){_lpTimer=setTimeout(()=>{S._gradeSub=sid;S._gradeView='subject';save();viewReload('grades');toast('进入科目：'+(subj(sid)?subj(sid).name:sid));},500);}
 function lpCancel(){if(_lpTimer){clearTimeout(_lpTimer);_lpTimer=null;}}
@@ -3500,7 +3512,7 @@ function attachTopHScroll(scrollId,trackId){
   _hscrollState[scrollId]=function(){document.removeEventListener('pointermove',moveDrag);document.removeEventListener('pointerup',endDrag);document.removeEventListener('pointercancel',endDrag);window.removeEventListener('resize',update);};
 }
 function gradeSubjSort(){return S._gradeSubjSort||(S._gradeSubjSort={key:'latest',dir:'desc'});}
-function gradeSubjSortToggle(k){const s=gradeSubjSort();if(s.key===k)s.dir=s.dir==='asc'?'desc':'asc';else{s.key=k;s.dir=k.indexOf('ex:')===0?'desc':'asc';}save();renderGradesBody();}
+function gradeSubjSortToggle(k){const s=gradeSubjSort();if(s.key===k)s.dir=s.dir==='asc'?'desc':'asc';else{s.key=k;s.dir=k.indexOf('ex:')===0?'desc':'asc';}save();renderGradesBodyKeepScroll();}
 /* 历次成绩弹窗表头排序（5 列：考试名/分数/排名/进退/日期） */
 let _historySort={key:'date',dir:'desc'};
 let _historySortCtx={name:'',sid:''};
@@ -4544,7 +4556,7 @@ function gradeTopStat(){
     <div class="sq" data-action="grade-stat" data-eid="${latest.id}" data-type="excel" style="cursor:pointer;grid-column:5;grid-row:2"><div class="n ok">${excelN}</div><div class="l">优秀</div></div>
     <div class="sq" data-action="grade-stat" data-eid="${latest.id}" data-type="fail" style="cursor:pointer;grid-column:6;grid-row:2"><div class="n danger">${failN}</div><div class="l">未及格</div></div>
     <div class="sq hide-mobile"><div class="n">${names.length}</div><div class="l">参考人数</div></div></div>`;}
-function gradeStudentSearch(v){S._gradeSearch=v;save();const el=document.getElementById('grade_body');if(el)el.innerHTML=gradeBodyHtml();const r2=document.getElementById('grade_row2');if(r2)r2.innerHTML=gradeRow2Html(gradeEventById(S._gradeEvent));const sc=document.getElementById('trendScroll');if(sc){const go=()=>{sc.scrollLeft=sc.scrollWidth;};requestAnimationFrame(()=>requestAnimationFrame(go));}if((S._gradeView||'')==='subject')scrollSubjectRight();if((S._gradeView||'')==='score')attachTopHScroll('scoreScroll','scoreHScroll');if((S._gradeView||'')==='subject')attachTopHScroll('subjScroll','subjHScroll');}
+function gradeStudentSearch(v){S._gradeSearch=v;save();const _sl0=(()=>{const p=document.getElementById('scoreScroll')||document.getElementById('subjScroll');return p?p.scrollLeft:0;})();const el=document.getElementById('grade_body');if(el)el.innerHTML=gradeBodyHtml();const r2=document.getElementById('grade_row2');if(r2)r2.innerHTML=gradeRow2Html(gradeEventById(S._gradeEvent));const sc=document.getElementById('trendScroll');if(sc){const go=()=>{sc.scrollLeft=sc.scrollWidth;};requestAnimationFrame(()=>requestAnimationFrame(go));}if((S._gradeView||'')==='subject')scrollSubjectRight();if((S._gradeView||'')==='score'){const sc2=document.getElementById('scoreScroll');if(sc2&&_sl0)sc2.scrollLeft=_sl0;attachTopHScroll('scoreScroll','scoreHScroll');}if((S._gradeView||'')==='subject'){const sc3=document.getElementById('subjScroll');if(sc3&&_sl0)sc3.scrollLeft=_sl0;attachTopHScroll('subjScroll','subjHScroll');}}
 function gradeRange(v){v=v||S._gradeSem;if(!v||v===''){const act=S.semesters.filter(s=>!s.archived&&s.start&&s.end);if(!act.length)return null;const froms=act.map(s=>s.start).filter(Boolean).sort();const tos=act.map(s=>s.end).filter(Boolean).sort();return {from:froms[0]||'',to:tos[tos.length-1]||''};}if(v.indexOf('sem:')===0){const s=S.semesters.find(x=>x.id===v.slice(4));return s&&s.start&&s.end?{from:s.start,to:s.end}:null;}if(v.indexOf('range:')===0){const p=v.slice(6).split('~');return {from:p[0],to:p[1]};}return null;}
 function gradeSemSel(v){gradeSemPick(v);}
 function gradeSemSummary(){const v=S._gradeSem;if(!v)return '全部学期';if(v.indexOf('range:')===0)return '自定义范围';const sid=v.indexOf('sem:')===0?v.slice(4):v;const s=S.semesters.find(x=>x.id===sid);return s?s.name+(s.archived?' · 已归档':''):'全部学期';}
