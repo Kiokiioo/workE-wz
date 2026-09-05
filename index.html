@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r117b</title>
+<title>工作E · v20260902-r117m</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -462,11 +462,11 @@ tbody tr:hover{background:var(--surface-2)}
   .rec-table{table-layout:fixed}
   .rec-card{border-top:none;border-bottom:none}
   .rec-table th,.rec-table td{padding:10px 4px} /* r117d：列左右间距回调 4 */
-  .rec-table col.rec-c1{width:50px}
+  .rec-table col.rec-c1{width:65px}
   .rec-table col.rec-c2{width:70px}
   .rec-table col.rec-c5{width:60px}
   .rec-table col.rec-c6{width:32px}
-  .rec-table th.rec-c1,.rec-table td.rec-c1{width:50px;font-size:12px;font-weight:600;line-height:1.15;white-space:normal;word-break:break-all;text-align:center}
+  .rec-table th.rec-c1,.rec-table td.rec-c1{width:65px;font-size:12px;font-weight:600;line-height:1.15;white-space:normal;word-break:break-all;text-align:center}
   .rec-table td.rec-c1{font-size:15px}
   .rec-table th.rec-c2,.rec-table td.rec-c2{width:70px;font-size:13px}
   .rec-table th.rec-c4,.rec-table td.rec-c4{width:70px;font-size:13px;text-align:right}
@@ -676,7 +676,10 @@ input[type="date"]{appearance:none;-webkit-appearance:none;border-radius:99px}
 .note-edit-body{padding:16px;overflow:auto;flex:1;-webkit-overflow-scrolling:touch}
 /* r116w：笔记编辑页-分类行。复用 rec-type-combo（无框输入+可下拉），并剥掉 trigger 的边框/底色/hover/focus 特效，
    只保留 .bk-range-trigger::after 那一个下拉箭头作为唯一可见装饰。 */
-.ne-cat-row{margin:0 0 14px}
+.ne-cat-row{display:flex;align-items:center;gap:10px;margin:0 0 14px} /* r117j：分类 100px 定宽 + 标签填充，间距 10 */
+.ne-cat-row .bk-range-wrap{width:100px;flex:none}
+.ne-tags{flex:1;min-width:0;border:0;background:transparent;outline:none;font:inherit;font-size:13px;color:var(--text);padding:0;height:36px}
+.ne-tags::placeholder{color:var(--text-2)}
 .ne-cat-trigger{border:0!important;background:transparent!important;border-radius:0!important;padding:0 22px 0 0!important;height:36px!important;min-height:0!important;box-shadow:none!important}
 .ne-cat-trigger:hover,.ne-cat-trigger:focus,.ne-cat-trigger.open{border-color:transparent!important;box-shadow:none!important;outline:none!important;background:transparent!important}
 .ne-title{border:0;outline:none;width:100%;font-size:20px;font-weight:700;color:var(--text);background:transparent;font-family:inherit;padding:0;margin:0 0 14px}
@@ -718,7 +721,7 @@ form[data-form="addrule"] .field input[name="points"]{padding:0 6px;text-align:c
 .view-settings .field select{height:38px !important;box-sizing:border-box;padding:0 8px !important;line-height:38px;border-radius:99px !important}
 .view-settings .field input:not([type=checkbox]){height:38px !important;box-sizing:border-box;border-radius:99px !important}
 .view-settings .bk-range-trigger{height:38px;border-radius:99px !important}
-.view-settings .set-act .btn{height:38px !important;box-sizing:border-box;display:inline-flex;align-items:center;border-radius:99px}
+.view-settings .set-act .btn{height:38px !important;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;border-radius:99px} /* r117i：文字水平+垂直居中 */
 /* 归档备份操作按钮：始终同一排；flex 子项 min-width:0 允许收缩 + 不换行，避免溢出错位；字号不变；按钮间距 8px（高特异性覆盖 .field.row gap:10px） */
 .view-settings .bk-ops{display:flex;flex-wrap:nowrap}
 .view-settings .field.row.bk-ops{gap:8px}
@@ -729,7 +732,7 @@ form[data-form="addrule"] .field input[name="points"]{padding:0 6px;text-align:c
 .bk-chip.on{background:var(--primary);border-color:var(--primary);color:#fff}
 .bk-range-wrap{position:relative}
 /* iOS 风格开关（等比缩小：高度 14）：25×14 胶囊轨道、主色 #4F6BED（与全站主色一致，#07C160 改 #4F6BED）、12 圆形白钮、0.2s 平滑切换 */
-.sw{appearance:none;-webkit-appearance:none;width:25px !important;height:14px;background:var(--border);border-radius:7px;position:relative;cursor:pointer;transition:background .2s;vertical-align:middle;flex:none;outline:none;flex-shrink:0;margin:0;align-self:center}
+.sw{appearance:none;-webkit-appearance:none;width:25px !important;min-width:25px !important;max-width:25px !important;height:14px !important;box-sizing:border-box;background:var(--border);border-radius:7px;position:relative;cursor:pointer;transition:background .2s;vertical-align:middle;flex:none;outline:none;flex-shrink:0;margin:0;align-self:center}
 .sw::before{content:'';position:absolute;top:1px;left:1px;width:12px;height:12px;background:#fff;border-radius:50%;transition:left .2s;box-shadow:0 1px 1px rgba(0,0,0,.25)}
 .sw:checked{background:#4F6BED}
 .sw:checked::before{left:12px}
@@ -1017,8 +1020,9 @@ form[data-form="rec"] .field.row input[type="text"]{width:100%;min-width:0}
      无边框控件 scale 无副作用；有边框/有底色控件需按 1/0.8125=1.2308 补偿 width/height，否则 pill 会整体缩窄 19%。 */
   /* A. 无边框组合框：无需几何补偿（rec 姓名需压过更高特异性的 form 规则，否则会被压回 13px 且被 scale 到 10.6px） */
   .rec-type-combo .bk-trigger-input,
-  form[data-form="rec"] input[name="stu"]{font-size:16px!important;transform:scale(0.8125);transform-origin:left center}
-  .rec-type-combo .bk-trigger-input::placeholder{font-size:16px!important}
+  form[data-form="rec"] input[name="stu"],
+  .ne-tags{font-size:16px!important;transform:scale(0.8125);transform-origin:left center} /* r117j：笔记标签输入框同款视觉 13 */
+  .rec-type-combo .bk-trigger-input::placeholder,.ne-tags::placeholder{font-size:16px!important}
   /* B. 有边框控件（块级、height 38px）：scale 缩盒 → 按 1.2308 补偿，视觉尺寸不变。
         origin 用 left top（视觉顶边与布局顶边对齐），再用 margin-bottom:-8.77px 回收「布局 46.77 / 视觉 38」多出的 8.77px
         幽灵空白——否则每个输入框下方会凭空多出约 9px，把弹窗撑高、间距变松。 */
@@ -1476,7 +1480,7 @@ function activeClassIds(){return new Set(S.classes.filter(c=>!c.archived).map(c=
 function activeClasses(){return S.classes.filter(c=>!c.archived);}
 function resolveClass(name){const n=(name||'').trim();if(!n)return '';
   let c=S.classes.find(x=>x.name===n);if(c)return c.id;
-  c={id:uid(),name:n};S.classes.push(c);save();return c.id;}
+  c={id:uid(),name:n,icon:Math.floor(Math.random()*CLASS_AVATAR_ICONS.length)};S.classes.push(c);save();return c.id;} /* r117m：自动建班也随机获得图标 */
 function shortClass(name){const m=(name||'').match(/[（(](.+?)[)）]/);return m?m[1]+'班':name;}
 function autoSemName(start,end){if(!start)return '未命名学期';const y=start.slice(0,4);const m=parseInt(start.slice(5,7));
   return y+'年'+(m<8?'上学期':'下学期');}
@@ -2130,7 +2134,7 @@ function viewCourses(){
   const cards=list.length?list.map(c=>`
   <div class="card" data-id="${c.id}">
     <div style="display:flex;gap:10px;align-items:center">
-      <span class="avatar" style="background:${c.color||'#4f6bed'};flex:none;overflow:hidden;cursor:pointer" data-action="course-progress" data-id="${c.id}">${classAvatarSvg(c.cls||c.id||c.name)}</span>
+      <span class="avatar" style="background:${c.color||'#4f6bed'};flex:none;overflow:hidden;cursor:pointer" data-action="course-progress" data-id="${c.id}">${classAvatarSvg(c.cls||c.id||c.name,classIconOf(S.classes.find(x=>x.name===(c.cls||''))))}</span>
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:baseline;gap:8px">
           <h3 style="margin:0;flex:1;min-width:0;cursor:pointer" data-action="course-progress" data-id="${c.id}">${esc(c.name)}</h3>
@@ -2282,9 +2286,9 @@ function viewNotes(){
   const courseOpts=S.courses.map(c=>`<option value="${c.id}" ${filter===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
   let list=filter?S.notes.filter(n=>n.courseId===filter):S.notes.slice();
   if(tagFilter)list=list.filter(n=>(n.tags||'').split(/[,，]/).map(s=>s.trim()).includes(tagFilter));
-  /* r109 置顶：置顶笔记排最前（同置顶按 pinAt 新→旧；pinAt 仅在双方都置顶时参与，
-     避免取消置顶后残留 pinAt 影响普通顺序），其余保持原顺序（sort 稳定） */
-  list.sort((a,b)=>(b.pin?1:0)-(a.pin?1:0)||((a.pin&&b.pin)?((b.pinAt||0)-(a.pinAt||0)):0));
+  /* r109 置顶：置顶笔记排最前（同置顶按 pinAt 新→旧；pinAt 仅在双方都置顶时参与）。
+     r117n：卡片倒序——置顶组内与普通组内均按 created 新→旧（sort 稳定） */
+  list.sort((a,b)=>(b.pin?1:0)-(a.pin?1:0)||((a.pin&&b.pin)?((b.pinAt||0)-(a.pinAt||0)):((b.created||0)-(a.created||0))));
   const tagFilterHtml=tagFilter?`<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:12px;color:var(--text-2)">已筛选标签：<span class="tag-filter-chip">#${esc(tagFilter)}<span class="x" data-action="clear-tag-filter">×</span></span></div>`:'';
   const cards=list.length?list.map(n=>{
     const noteTags=(n.tags||'').split(/[,，]/).map(s=>s.trim()).filter(Boolean);
@@ -2336,7 +2340,7 @@ function viewNote(id){
       <div class="ne-cat-row"><div class="bk-range-wrap" id="note_cat_wrap">
         <div class="bk-range-trigger rec-type-combo ne-cat-trigger" onclick="bkSelOpen('note_cat_pop',event)"><input id="note_cat_input" class="bk-trigger-input" value="${esc(catVal)}" placeholder="笔记分类" autocomplete="off" onclick="event.stopPropagation()"></div>
         <div class="bk-range-pop" id="note_cat_pop" style="display:none">${noteCatOptsHtml(catVal)}</div>
-      </div></div>
+      </div><input class="ne-tags" id="note_tags" placeholder="添加标签" value="${esc(n.tags||'')}" autocomplete="off"></div>
       <textarea class="ne-content" id="note_content" placeholder="点击文字开始输入…">${esc(contentVal)}</textarea>
     </div>
     <input type="hidden" id="note_edit_id" value="${isNew?'':esc(n.id)}">
@@ -2358,10 +2362,12 @@ function saveNoteEdit(){
   /* 保留未在编辑页暴露的字段（cat/courseId/tags 等） */
   const prev=id?(S.notes.find(x=>x.id===id)||{}):{};
   const created=id?(prev.created||Date.now()):Date.now();
-  /* r116w：分类行可读可写；元素缺失时回退旧值，避免丢分类 */
+  /* r116w：分类行可读可写；元素缺失时回退旧值，避免丢分类。r117j：标签输入框同行（tags 为逗号分隔字符串） */
   const catEl=document.getElementById('note_cat_input');
-  const cat=catEl?catEl.value.trim():(prev.cat||'');
-  const o={title,content,cat,courseId:prev.courseId||'',tags:prev.tags||'',created};
+  const cat=catEl?(catEl.value.trim()||'笔记'):(prev.cat||'笔记'); /* r117l：不选分类默认「笔记」 */
+  const tagsEl=document.getElementById('note_tags');
+  const tags=tagsEl?tagsEl.value.trim():(prev.tags||'');
+  const o={title,content,cat,courseId:prev.courseId||'',tags,created};
   if(id){const t=S.notes.find(x=>x.id===id);if(t){Object.assign(t,o);t._at=Date.now();}}
   else S.notes.push({id:uid(),...o,_at:Date.now()});
   save();location.hash=_noteFrom;toast('已保存');
@@ -2490,6 +2496,7 @@ function stuClassView(){
   <div class="card" data-cls="${c.id}" data-id="${c.id}" style="padding:0;overflow:hidden">
     <div style="height:4px;background:var(--primary)"></div>
     <div style="padding:14px;text-align:center">
+        <span class="avatar" style="background:${classAvatarColor(c)};margin:0 auto 8px;overflow:hidden">${classAvatarSvg(c.id,classIconOf(c))}</span>
         <p style="margin:0;font-weight:500;font-size:15px;line-height:1.3;cursor:pointer" data-action="stu-tab" data-t="rec" data-cls="${c.id}">${esc(c.name)}</p>
         ${gradeText?`<p style="margin:2px 0 0;font-size:13px;color:var(--text-2)">${esc(gradeText)}年级</p>`:''}
         <div style="display:flex;gap:12px;margin-top:12px;justify-content:center">
@@ -2775,13 +2782,16 @@ var CLASS_AVATAR_ICONS=[
   /* 9 班旗·燕尾旗 */'<svg viewBox="0 0 48 48" fill="none"><line x1="12" y1="7" x2="12" y2="42" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M12 9 H38 L33 16 L38 23 H12 Z" fill="#fff"/></svg>',
   /* 12 一排学生·成员列表 */'<svg viewBox="0 0 48 48" fill="none"><circle cx="12" cy="19" r="5.5" fill="#fff"/><circle cx="24" cy="19" r="5.5" fill="#fff"/><circle cx="36" cy="19" r="5.5" fill="#fff"/><rect x="6" y="30" width="36" height="4" rx="2" fill="#fff"/></svg>'
 ];
-function classAvatarSvg(id){
-  var s=String(id||'');var h=5381;
-  for(var i=0;i<s.length;i++){h=((h<<5)+h+s.charCodeAt(i))>>>0;}
-  var idx=h%CLASS_AVATAR_ICONS.length;
-  var raw=CLASS_AVATAR_ICONS[idx];
+function classAvatarSvg(id,iconIdx){ /* r117m：iconIdx 为数字时直接用班级存储的图标（新增班级随机获得），否则按字符串哈希兜底（旧班级外观不变） */
+  var raw;
+  if(typeof iconIdx==='number'&&iconIdx>=0){raw=CLASS_AVATAR_ICONS[iconIdx%CLASS_AVATAR_ICONS.length];}
+  else{var s=String(id||'');var h=5381;for(var i=0;i<s.length;i++){h=((h<<5)+h+s.charCodeAt(i))>>>0;}raw=CLASS_AVATAR_ICONS[h%CLASS_AVATAR_ICONS.length];}
   /* 头像圆圈 36×36，图标缩到 24×24 居中放置 */
   return raw.replace('<svg viewBox="0 0 48 48" fill="none">','<svg viewBox="0 0 48 48" width="24" height="24" fill="none" style="display:block">');
+}
+function classIconOf(c){return (c&&typeof c.icon==='number')?c.icon:null;} /* r117m：班级存储图标（无则 null 走哈希） */
+function classAvatarColor(c){ /* r117m：班级圆圈颜色=该班第一个课程的颜色（与教学进度圆圈一致），无课程回退默认 */
+  const co=S.courses.find(x=>x.cls===c.name&&!x.archived);return (co&&co.color)||'#4f6bed';
 }
 /* 行内"↪ 备注"前缀 SVG（教学进度安排/今日课表/教学进度 · xx班 用，inline-block + 居中基线） */
 function noteArrowInline(){
@@ -3427,7 +3437,7 @@ function gradeScoreHtml(ev){
     <th class="c-name" data-action="grade-score-sort" data-k="name" style="cursor:pointer${st.key==='name'?';color:var(--primary);font-weight:700':''}">学生${st.key==='name'?(st.dir==='asc'?' ▲':' ▼'):''}</th>
     ${subTh}
     <th class="c-total" data-action="grade-score-sort" data-k="total" style="cursor:pointer${st.key==='total'?';color:var(--primary);font-weight:700':''}">总分${st.key==='total'?(st.dir==='asc'?' ▲':' ▼'):''}</th><th class="c-trk" style="color:var(--text-2);font-weight:400;font-size:12px">排名</th></tr>`;
-  const rows=list.map(n=>{const cid0=stuByName(n)?stuByName(n).classId:'';const lpSid=subs[0]||'';const lpEv=`onpointerdown="lpSubjStuStart('${esc(n)}',event,'${esc(lpSid)}')" onpointerup="lpSubjStuCancel()" onpointerleave="lpSubjStuCancel()"`;const lpAttrs=lpEv+` style="cursor:pointer"`;const subCells=subs.map((sid,i)=>{const o=subExams[i];const e=pickSubExam(o,n);let sc=e?e.scores[n]:null;const rkMap=o.rk;const rk=rkMap?rkMap[n]:null;const pe=(prevPickByStu[n]||{})[sid];const ps=pe?pe.scores[n]:null;let ar='';if(ps!=null&&sc!=null){const d=sc-ps;const dim=Math.abs(d)<=5?'opacity:.7':'';if(d>0)ar='<span style="color:var(--ok);font-size:10px;margin-left:2px;'+dim+'">▲</span>';else if(d<0)ar='<span style="color:var(--danger);font-size:10px;margin-left:2px;'+dim+'">▼</span>';}if(sc!=null)sc=sc+ar;if(sc==null)return `<td>—</td><td>—</td>`;return `<td class="c-sub" ${lpAttrs}>${sc}</td><td class="c-rk" style="color:var(--text-2)">${rk!=null?rk:'—'}</td>`;}).join('');return `<tr data-name="${esc(n)}"><td class="c-cls" style="text-align:left">${esc(classNameOf(cid0))}</td><td class="c-name" ${lpAttrs}>${esc(n)}</td>${subCells}<td class="c-total" style="font-weight:700;cursor:pointer" ${lpEv}>${tot[n]}</td><td class="c-trk">${totalRank[n]!=null?totalRank[n]:'—'}</td></tr>`;}).join('');
+  const rows=list.map(n=>{const cid0=stuByName(n)?stuByName(n).classId:'';const lpSid=subs[0]||'';const lpEv=`onpointerdown="lpSubjStuStart('${esc(n)}',event,'${esc(lpSid)}')" onpointerup="lpSubjStuCancel()" onpointerleave="lpSubjStuCancel()"`;const lpAttrs=lpEv+` style="cursor:pointer"`;const subCells=subs.map((sid,i)=>{const o=subExams[i];const e=pickSubExam(o,n);let sc=e?e.scores[n]:null;const rkMap=o.rk;const rk=rkMap?rkMap[n]:null;const pe=(prevPickByStu[n]||{})[sid];const ps=pe?pe.scores[n]:null;let ar='';if(ps!=null&&sc!=null){const d=sc-ps;const dim=Math.abs(d)<=5?'opacity:.7':'';if(d>0)ar='<span style="color:var(--ok);font-size:10px;margin-left:2px;'+dim+'">▲</span>';else if(d<0)ar='<span style="color:var(--danger);font-size:10px;margin-left:2px;'+dim+'">▼</span>';}if(sc!=null)sc=sc+ar;if(sc==null)return `<td>—</td><td>—</td>`;return `<td class="c-sub" ${lpAttrs}>${sc}</td><td class="c-rk" style="color:var(--text-2)">${rk!=null?rk:'—'}</td>`;}).join('');return `<tr data-name="${esc(n)}"><td class="c-cls" style="text-align:left">${esc(classNameOf(cid0))}</td><td class="c-name" style="font-weight:700" ${lpAttrs}>${esc(n)}</td>${subCells}<td class="c-total" style="font-weight:700;cursor:pointer" ${lpEv}>${tot[n]}</td><td class="c-trk">${totalRank[n]!=null?totalRank[n]:'—'}</td></tr>`;}).join('');
   const hint='';
   /* r86：长按绑定「姓名 / 分数 / 总分」三处；整行 <tr> 不绑（防左右滑误触）。
      班级/单科排名/总排名 格保持无长按。 */
@@ -3532,7 +3542,7 @@ function gradeSubjectHtml(ev){
       const rk=rkMap?rkMap[n]:null;
       return `<td ${lpAttrs}><b>${sc}</b></td><td style="color:${d>0?'var(--ok)':d<0?'var(--danger)':'var(--text-2)'}">${d>0?'▲+'+d:d<0?'▼'+d:'—'}</td><td>${rk!=null?rk:'—'}</td>`;
     }).join('');
-    return `<tr data-name="${esc(n)}"><td style="text-align:left;color:var(--text-2)">${esc(classNameOf(cid0))}</td><td ${lpAttrs}>${esc(n)}</td>${cells}<td style="font-weight:700;cursor:pointer" ${lpEv}>${avgMap[n]!=null?avgMap[n].toFixed(1):'—'}</td><td>${avgRank[n]!=null?avgRank[n]:'—'}</td></tr>`;
+    return `<tr data-name="${esc(n)}"><td style="text-align:left;color:var(--text-2)">${esc(classNameOf(cid0))}</td><td style="font-weight:700" ${lpAttrs}>${esc(n)}</td>${cells}<td style="font-weight:700;cursor:pointer" ${lpEv}>${avgMap[n]!=null?avgMap[n].toFixed(1):'—'}</td><td>${avgRank[n]!=null?avgRank[n]:'—'}</td></tr>`;
   }).join('');
   /* r77：在卡片内顶部加 sticky 的自定义横滚条（系统手势易触发页面切换，故给用户一个稳定可拖拽的顶部横滚条）
      该条 bar 跟随 subjScroll 的 scrollLeft 同步更新，thumb 拖拽后亦同步写入 scrollLeft；
@@ -5868,8 +5878,7 @@ function modalProgress(id,pid){const c=course(id);if(!c)return;S._progCourse=id;
     ${pid?`<div class="sub" style="margin-bottom:10px">正在编辑一条已存记录（保存将更新该记录，不新增）。<button type="button" class="btn sm" onclick="modalProgress('${id}')">↩ 返回新记录</button></div>`:''}
     <div class="sub" id="prog_progress_bar" style="margin-bottom:10px">完成进度：<strong style="color:var(--primary);font-size:18px">${auto}%</strong>　已完成 ${doneN}/${total}。</div>
     <div class="field"><label>完成时间</label>
-      <div class="field row" style="margin-top:4px;gap:8px"><input type="date" name="whenDate" value="${whenDateV}" style="flex:1;min-width:0">${selHtml('prog_whenTime', whenTimeV||'选择时间', bkOpts(progTimeOpts(cl).map(t=>({k:t.k,l:t.l,pick:'progWhenTimePick'})), whenTimeV))}<input type="hidden" name="whenTime" value="${whenTimeV}"></div>
-      <div class="sub" style="margin-top:4px;font-size:12px">默认时间：${esc(defTime)}（当天课表该班上课时间）</div></div>
+      <div class="field row" style="margin-top:4px;gap:8px"><input type="date" name="whenDate" value="${whenDateV}" style="flex:1;min-width:0">${selHtml('prog_whenTime', whenTimeV||'选择时间', bkOpts(progTimeOpts(cl).map(t=>({k:t.k,l:t.l,pick:'progWhenTimePick'})), whenTimeV))}<input type="hidden" name="whenTime" value="${whenTimeV}"></div></div>
     <div class="field"><label>今日任务</label><div id="prog_today_wrap" style="max-height:200px;overflow:auto">${planChecks}</div></div>
     <div class="field"><label>超额完成</label><textarea name="extraDone" class="prog-ta" placeholder="每行一项，自动同步">${esc(extraV)}</textarea></div>
     <div class="field"><label>待完成</label><textarea name="nextTask" class="prog-ta" placeholder="每行一项，自动同步">${esc(ntV)}</textarea></div>
@@ -5942,8 +5951,7 @@ function viewProgEdit(cid){
       <div class="sub" id="prog_progress_bar" style="margin-bottom:10px">完成进度：<strong style="color:var(--primary);font-size:18px">${auto}%</strong>　已完成 ${doneN}/${total}。</div>
       <form data-form="progress" data-id="${cid}">
         <div class="field"><label>完成时间</label>
-          <div class="field row" style="margin-top:4px;gap:8px"><input type="date" name="whenDate" value="${todayISO()}" style="flex:1;min-width:0">${selHtml('prog_whenTime', defTime||'选择时间', bkOpts(progTimeOpts(cl).map(t=>({k:t.k,l:t.l,pick:'progWhenTimePick'})), defTime))}<input type="hidden" name="whenTime" value="${defTime}"></div>
-          <div class="sub" style="margin-top:4px;font-size:12px">默认时间：${esc(defTime)}（当天课表该班上课时间）</div></div>
+          <div class="field row" style="margin-top:4px;gap:8px"><input type="date" name="whenDate" value="${todayISO()}" style="flex:1;min-width:0">${selHtml('prog_whenTime', defTime||'选择时间', bkOpts(progTimeOpts(cl).map(t=>({k:t.k,l:t.l,pick:'progWhenTimePick'})), defTime))}<input type="hidden" name="whenTime" value="${defTime}"></div></div>
         <div class="field"><label>今日任务</label><div id="prog_today_wrap" style="max-height:200px;overflow:auto">${planChecks}</div></div>
         <div class="field"><label>超额完成</label><textarea name="extraDone" class="prog-ta" placeholder="每行一项，自动同步"></textarea></div>
         <div class="field"><label>待完成</label><textarea name="nextTask" class="prog-ta" placeholder="每行一项，自动同步">${esc(c.nextTask||'')}</textarea></div>
@@ -5959,7 +5967,7 @@ function noteCatItems(){const subj=(S.subjects||[]).map(s=>s.name).filter(Boolea
 function noteCatOptsHtml(cur){const items=noteCatItems();return items.length?items.map(v=>`<div class="bk-range-opt" onclick="noteCatPick('${esc(v)}')" style="${v===cur?'background:var(--primary-soft);color:var(--primary);font-weight:600':''}">${esc(v)}</div>`).join(''):'<div class="bk-range-opt" style="color:var(--text-2)">暂无科目，可直接输入</div>';}
 function noteCatPick(v){const i=document.getElementById('note_cat_input');if(i)i.value=v;closeAllBkPops();} /* r116w：分类行改为无框输入（原 .ne-cat-pill 已废） */
 /* 分类展示：优先 cat，回退旧课程名，再回退「未分类」 */
-function noteCatOf(n){return (n.cat&&n.cat.trim())||(course(n.courseId)||{}).name||'未分类';}
+function noteCatOf(n){return (n.cat&&n.cat.trim())||(course(n.courseId)||{}).name||'笔记';} /* r117l：兜底「未分类」→「笔记」 */
 /* 备课笔记-添加弹窗：课程下拉改用 bk-range 弹层（与课表设置-学期同款） */
 function initTagInput(){const wrap=document.getElementById('tag_input_wrap');if(!wrap)return;const list=wrap.querySelector('.tag-list');const input=wrap.querySelector('input[type=text]');const hidden=wrap.querySelector('input[type=hidden]');
   const get=()=>(hidden.value||'').split(/[,，]/).map(s=>s.trim()).filter(Boolean);
@@ -6247,7 +6255,7 @@ modal.addEventListener('submit',e=>{
   else if(form==='class'){const id=f.dataset.id;const nm=v('name').trim();if(!nm){toast('请输入班级名称');return;}
     const semName=v('sem').trim();const semId=S.semesters.find(s=>s.name===semName)?S.semesters.find(s=>s.name===semName).id:(curSem()?curSem().id:'');
     let cid,added=0;if(id){const c=cls(id);c.name=nm;c.stage=v('stage');c.grade=v('grade');c.sem=semId;cid=id;}
-    else{const c={id:uid(),name:nm,stage:v('stage'),grade:v('grade'),sem:semId};S.classes.push(c);cid=c.id;}
+    else{const c={id:uid(),name:nm,stage:v('stage'),grade:v('grade'),sem:semId,icon:Math.floor(Math.random()*CLASS_AVATAR_ICONS.length)};S.classes.push(c);cid=c.id;} /* r117m：新增班级随机获得图标 */
     added=addStuNames(cid,v('students'));
     save();closeModal();reloadCur('students');toast('已保存'+(added?('，新增 '+added+' 名学生'):''));}
   else if(form==='bulk-stu'){const cid=f.dataset.id;if(!cls(cid)){toast('班级不存在');return;}
@@ -7780,8 +7788,7 @@ function cloudSyncHtml(){
     <div class="section-title clickable" onclick="toggleCollapse('cloud_card')" style="font-size:15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('保存/导出',22)}云端同步</span><span class="chev"></span></div>
     <div class="collapse-body" style="display:none">
       <div class="sub" style="margin-bottom:10px">通过 GitHub 仓库多端同步全部资料。代码留本地，仅数据上云。两端各自新增的内容都会保留，任一侧删除也会同步删除（按条目合并，不再互相覆盖）。</div>
-      <div class="field row" style="align-items:center"><label style="flex:none;margin:0">启用同步</label>
-        <input type="checkbox" ${on?'checked':''} onchange="cloudToggle(this.checked)" onclick="event.stopPropagation()" class="sw"></div>
+      <div class="field row" style="align-items:center"><span style="display:inline-flex;align-items:center;gap:4px;flex:none"><label style="margin:0">启用同步</label><input type="checkbox" ${on?'checked':''} onchange="cloudToggle(this.checked)" onclick="event.stopPropagation()" class="sw"></span></div>
       <div ${diss}>
         <div class="field"><label>Access Token</label><input id="cloud_token" type="password" placeholder="GitHub fine-grained PAT" value="${esc(c.token||'')}" onchange="cloudField('token',this.value)"></div>
         <div class="field row">
@@ -8356,10 +8363,8 @@ load();
 /* 一次性清理：旧版本会把「记录进度-未完成任务」自动写进教学待办（title 前缀【未完成·…】，src='unfinished'）。现改为不再写入，启动顺带清掉历史残留；幂等，无残留时不写盘以免触发云同步 */
 if((S.todos||[]).some(t=>t.src==='unfinished')){S.todos=(S.todos||[]).filter(t=>t.src!=='unfinished');save();}
 if(!S.seeded||S.seedVer!==SEED_VER){seed();}save();
-/* r106：打开页面一律落在首页 —— iOS Safari 重开标签页会原样恢复上次离开时的完整 URL（含 #settings 等
-   hash），导致 iPhone 打开默认进设置页而电脑是首页。启动时清掉残留 hash 再做首次渲染，双端行为一致。
-   replaceState 不留历史记录；file:// 等不支持的环境退回 location.hash=''（同样清空，多触发一次 router 无害）。 */
-if(location.hash){try{history.replaceState(null,'',location.pathname+location.search);}catch(e){location.hash='';}}
+/* r117i：刷新/重开停留在当前页（不再强制回首页）——原 r106「启动清残留 hash」撤销，
+   保留 location.hash 让 router 首渲直接恢复原视图；iOS 重开标签页恢复上次 URL 即为此行为。 */
 applyTheme();buildNav();maybeAutoReview();cleanupPendingSubs();router();autoArchiveBySemester();
 bootCloudSync();
 /* r93：离开页面（切 App / 关标签页）即触发一次补推，确保本地未推送的编辑不丢（尤其 iOS 切走再回来） */
