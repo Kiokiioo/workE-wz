@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r116o</title>
+<title>工作E · v20260902-r116q</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -817,6 +817,9 @@ form[data-form="addrule"] .field input[name="points"]{padding:0 6px;text-align:c
 /* 成绩管理-添加考试弹窗：学期/班级/科目/考试名称/考试时间 统一 高38 + 圆角99（textarea 除外） */
 form[data-form="exam-add"] .bk-range-trigger{height:38px;border-radius:99px}
 form[data-form="exam-add"] input:not([type=hidden]):not([type=checkbox]){height:38px;box-sizing:border-box;border-radius:99px;padding:0 14px}
+/* r116p：编辑成绩弹窗与添加同款——下拉 bk-range 弹层 + 五框 38高/99圆角 */
+form[data-form="exam-edit"] .bk-range-trigger{height:38px;border-radius:99px}
+form[data-form="exam-edit"] input:not([type=hidden]):not([type=checkbox]){height:38px;box-sizing:border-box;border-radius:99px;padding:0 14px}
 /* 教学进度-添加课程弹窗：课程名称/颜色/学期/班级/科目 统一 高38 + 圆角99 */
 form[data-form="course"] .bk-range-trigger{height:38px;border-radius:99px}
 form[data-form="course"] input:not([type=hidden]):not([type=checkbox]):not(.bk-trigger-input){height:38px;box-sizing:border-box;border-radius:99px;padding:0 14px}
@@ -4862,19 +4865,27 @@ function editExam(id){const e=S.exams.find(x=>x.id===id);if(!e)return;
   const sem=e.sem||(curSem()?('sem:'+curSem().id):'');
   const cid=e.classId||ALL_CLASS;
   const subId=e.subjectId||'';
-  const clsOpts=`<option value="${ALL_CLASS}">全部班级</option>`+S.classes.filter(c=>!c.archived).map(c=>`<option value="${c.id}" ${c.id===cid?'selected':''}>${esc(c.name)}</option>`).join('')+'<option value="__custom__">自定义班级…</option>';
-  const subjOpts=S.subjects.map(s=>`<option value="${s.id}" ${s.id===subId?'selected':''}>${esc(s.name)}</option>`).join('')+'<option value="__custom__">自定义…</option>';
   const lines=Object.keys(e.scores).map(n=>`${n},${e.scores[n]}`).join('\n');
   openModal('编辑成绩 · '+esc(e.name),`<form data-form="exam-edit" data-id="${id}">
-    <div class="field row"><div class="field" style="flex:1"><label>时间（学期）</label><select name="gsem">${semRangeOpts(sem)}<option value="__range__">自定义时间范围…</option></select></div>
-      <div class="field" style="flex:1"><label>班级</label><select name="gcls" onchange="examAddClsChange(this.value)">${clsOpts}</select></div>
-      <div class="field" style="flex:1"><label>科目</label><select name="gsubj" onchange="examAddSubjChange(this.value)">${subjOpts}</select></div></div>
+    <div class="field row"><div class="field" style="flex:1"><label>时间（学期）</label>${selHtml('editsem',examEditSemLabel(sem),bkOpts(examEditSemOpts(),sem))}<input type="hidden" name="gsem" value="${esc(sem)}"></div>
+      <div class="field" style="flex:1"><label>班级</label>${selHtml('editcls',examEditClsLabel(cid),bkOpts(examEditClsOpts(),cid))}<input type="hidden" name="gcls" value="${esc(cid)}"></div>
+      <div class="field" style="flex:1"><label>科目</label>${selHtml('editsubj',examEditSubjLabel(subId),bkOpts(examEditSubjOpts(),subId))}<input type="hidden" name="gsubj" value="${esc(subId)}"></div></div>
     <div class="field" id="examAddClsWrap" style="display:none">${field('新班级名称','<input name="className" placeholder="如 高三(2)班">')}</div>
     <div class="field" id="examAddSubjWrap" style="display:none">${field('新科目名称','<input name="subjectNew" placeholder="如 物理">')}</div>
     ${field('考试名称','<input name="name" required value="'+esc(e.name)+'">')}
     ${field('考试时间','<input type="date" name="date" value="'+esc(e.date)+'">')}
     ${field('成绩（每行 姓名,分数）','<textarea name="scores">'+esc(lines)+'</textarea>')}
     <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">保存</button></div></form>`);}
+/* 成绩管理-编辑弹窗：时间/班级/科目 bk-range 弹层（与添加同款，科目按 id + 自定义；r116p） */
+function examEditSemOpts(){return S.semesters.map(s=>({k:'sem:'+s.id,l:s.name+'（'+s.start+'~'+s.end+'）'+(s.archived?' · 已归档':''),pick:'examEditSemPick'})).concat([{k:'__range__',l:'自定义时间范围…',pick:'examEditSemPick'}]);}
+function examEditSemLabel(v){return examAddSemLabel(v);}
+function examEditSemPick(v){const f=document.querySelector('form[data-form="exam-edit"]');const hid=f&&f.querySelector('input[name="gsem"]');if(hid)hid.value=v;const w=document.getElementById('editsem_wrap');const t=w&&w.querySelector('.bk-trigger-text');if(t)t.textContent=examEditSemLabel(v);closeAllBkPops();}
+function examEditClsOpts(){return [{k:ALL_CLASS,l:'全部班级',pick:'examEditClsPick'}].concat(S.classes.filter(c=>!c.archived).map(c=>({k:c.id,l:c.name,pick:'examEditClsPick'}))).concat([{k:'__custom__',l:'自定义班级…',pick:'examEditClsPick'}]);}
+function examEditClsLabel(v){return examAddClsLabel(v);}
+function examEditClsPick(v){const f=document.querySelector('form[data-form="exam-edit"]');const hid=f&&f.querySelector('input[name="gcls"]');if(hid)hid.value=v;const w=document.getElementById('editcls_wrap');const t=w&&w.querySelector('.bk-trigger-text');if(t)t.textContent=examEditClsLabel(v);examAddClsChange(v);closeAllBkPops();}
+function examEditSubjOpts(){return S.subjects.map(s=>({k:s.id,l:s.name,pick:'examEditSubjPick'})).concat([{k:'__custom__',l:'自定义…',pick:'examEditSubjPick'}]);}
+function examEditSubjLabel(v){if(v==='__custom__')return '自定义…';const s=subj(v);return s?s.name:'选择科目';}
+function examEditSubjPick(v){const f=document.querySelector('form[data-form="exam-edit"]');const hid=f&&f.querySelector('input[name="gsubj"]');if(hid)hid.value=v;const w=document.getElementById('editsubj_wrap');const t=w&&w.querySelector('.bk-trigger-text');if(t)t.textContent=examEditSubjLabel(v);examAddSubjChange(v);closeAllBkPops();}
 function delExam(id){S.exams=S.exams.filter(x=>x.id!==id);recomputeExamPoints();viewReload('grades');toast('已删除考试');}
 function applyExamPoints(e,prev){
   if(!S.examRuleEnabled)return;
@@ -7938,7 +7949,7 @@ function modalImportGrade(presetSub){
       <div class="field" style="flex:1"><label>学期</label>${semTrigger}<input type="hidden" name="gsem" value="${esc(sem)}"></div>
       <div class="field" style="flex:1"><label>班级</label>${clsTrigger}<input type="hidden" name="gcls" value="${esc(cid)}"></div>
       <div class="field" style="flex:1"><label>科目</label>${comboHTML('gsubj',subName,subjectNames,'选择或输入科目')}</div></div>
-    <div class="field row" style="gap:8px"><button type="button" class="btn" data-action="dl-grade-tpl" style="flex:1">下载模版</button><button type="button" class="btn" data-action="dl-grade-tpl-wide" style="flex:1">下载旧模版</button></div>
+    <div class="sub" style="margin-top:0"><a href="javascript:;" data-action="dl-grade-tpl-wide" style="color:var(--primary);font-weight:600">下载旧模版</a>　<a href="javascript:;" data-action="dl-grade-tpl" style="color:var(--primary);font-weight:600">下载模版</a></div>
     <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">确定</button></div>
   </form>`);
 }
