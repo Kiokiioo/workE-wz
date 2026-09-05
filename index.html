@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r116i</title>
+<title>工作E · v20260902-r116o</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -33,6 +33,8 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang 
   background:var(--bg);color:var(--text);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
 @media(display-mode:standalone){body{padding-top:env(safe-area-inset-top)}}
 button{font-family:inherit;cursor:pointer}
+/* r116k：裸输入控件统一继承应用字体——否则浏览器给 date 框默认 monospace、文本/数字框 Arial，看起来像单独设计的字体 */
+input,textarea,select{font-family:inherit}
 a{color:inherit;text-decoration:none}
 
 /* ===== top nav ===== */
@@ -181,7 +183,8 @@ a{color:inherit;text-decoration:none}
 #rec_modal_type_wrap{width:80px;flex:none}
 #rec_modal_type_wrap .bk-trigger-text{text-overflow:ellipsis}
 #qa_cls_wrap .bk-range-trigger{height:38px;border-radius:99px}
-.rec-type-combo .bk-trigger-input{flex:1;min-width:0;border:none;background:transparent;outline:none;font:inherit;font-size:13px;color:var(--text);padding:0;cursor:text}
+/* r116k：!important 压过 .modal-body input{padding:0 12px} 与 r114 移动端 16px!important——课程(学期/班级/科目)、登记(姓名/类型)、进度(时间)等组合 pill 统一 13px 左对齐无内缩（容器 bk-range-trigger 自带左 12px） */
+.rec-type-combo .bk-trigger-input{flex:1;min-width:0;border:none;background:transparent;outline:none;font:inherit;font-size:13px!important;color:var(--text);padding:0!important;cursor:text;text-align:left}
 .rec-type-combo .bk-trigger-input::placeholder{color:var(--text-2)}
 .view-draw .bk-range-trigger{height:38px;border-radius:99px}
 .view-draw input[type="number"]{height:38px;border-radius:99px}
@@ -478,7 +481,7 @@ tbody tr:hover{background:var(--surface-2)}
   .page-head{display:none}
 }
 
-/* 手机端（≤640px）：「新增/编辑代办」弹窗保持桌面两列布局（全显示不裁切）
+/* 手机端（≤640px）：「新增/编辑待办」弹窗保持桌面两列布局（全显示不裁切）
    - 桌面布局：类别+优先级 / 截止日期□+重复□ / 日期+每 数字单位 各两列一行
    - 手机策略：减内边距给两列腾空间；日期与「每」保持同行（与桌面一致） */
 @media(max-width:640px){
@@ -773,6 +776,10 @@ form[data-form="addrule"] .field input[name="points"]{padding:0 6px;text-align:c
   .tf-l{flex:none;color:var(--text-2);font-size:14px;white-space:nowrap}
   .tf-grid .cb{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
   form[data-form="todo"] input:not([type=checkbox]),form[data-form="todo"] select{border:1px solid var(--border);border-radius:10px;height:38px;box-sizing:border-box;padding:0 12px;font-size:13px;background:var(--surface);color:var(--text)}
+  /* r116j：截止日期框 13px 左对齐（特异性高于 r114 移动端 16px!important 通配；日期选择为系统原生键盘外的 picker，聚焦缩放风险低，按用户要求 13） */
+  form[data-form="todo"] input[type="date"]{font-size:13px!important;text-align:left}
+  /* r116k：重复间隔数字框 13px（同上；iOS 聚焦期间由防缩放守卫临时提 16px，失焦回落 13） */
+  form[data-form="todo"] input[type="number"]{font-size:13px!important}
   .combo{position:relative;display:flex;align-items:center;flex:1;min-width:0}
   .combo-in{padding-right:30px !important}
   .combo-arrow{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-2);font-size:12px;padding:2px 4px;line-height:1}
@@ -837,7 +844,20 @@ form[data-form="progress"] input:not([type=hidden]):not([type=checkbox]){height:
    用 form 选择器兜底，避免 id 选择器（#rec_modal_*_wrap）在 mobile 媒体查询下被覆盖 */
 form[data-form="rec"] .bk-range-trigger{height:38px;border-radius:99px}
 form[data-form="rec"] input:not([type=hidden]):not([type=checkbox]):not(.bk-trigger-input){height:38px;box-sizing:border-box;border-radius:99px;padding:0 14px}
-form[data-form="rec"] input[type="date"]{min-height:38px;font-size:13px}
+/* r116k：姓名/日期 13px 左对齐（!important 压过 r114 移动端 16px!important；姓名为 bk-trigger-input 裸 input，同日期框处理） */
+form[data-form="rec"] input[type="date"]{min-height:38px;font-size:13px!important;text-align:left}
+form[data-form="rec"] input[name="stu"]{font-size:13px!important;text-align:left;padding:0} /* r116k：去 .modal-body input 的 0 12px，与班级 pill 文字左缘对齐（容器 bk-range-trigger 自带 12px） */
+/* r116k：添加/编辑课程 标题 13px 左对齐；进度记录 日期 13px 左对齐、区块标题加粗 */
+form[data-form="course"] input[name="name"]{font-size:13px!important;text-align:left}
+form[data-form="progress"] input[type="date"]{font-size:13px!important;text-align:left}
+form[data-form="progress"] .field>label{font-weight:600}
+/* r116l：学期弹窗 名称/开始/结束、教学进度 任务框、课节 时间框 13px 左对齐 */
+form[data-form="semester"] input{font-size:13px!important;text-align:left}
+form[data-form="plan-add"] input[name="ptitle"]{font-size:13px!important;text-align:left}
+form[data-form="tt"] input[name="time"]{font-size:13px!important;text-align:left}
+/* r116m：导入成绩 名称框、新增考试 考试时间框 13px 左对齐 */
+form[data-form="imp-grade"] input[name="gname"]{font-size:13px!important;text-align:left}
+form[data-form="exam-add"] input[type="date"]{font-size:13px!important;text-align:left}
 /* r116d：手机版弹窗第一行 班级/学生/日期 三列等分——flex 子项默认 min-width:auto 按内容固有宽度撑破弹窗右边距，统一允许收缩 + 文本省略 */
 form[data-form="rec"] .field.row>.field{min-width:0}
 form[data-form="rec"] .field.row{gap:8px}
@@ -978,7 +998,7 @@ form[data-form="rec"] .field.row input[type="text"]{width:100%;min-width:0}
    占位文字经 ::placeholder 单独 13px——auto-zoom 只看输入框自身字号，占位小字不触发。 */
 @media(max-width:767px){
   input:not(.cmp-thr),textarea,select,.bk-sel-trigger{font-size:16px!important}
-  input:not(.cmp-thr)::placeholder,textarea::placeholder{font-size:13px}
+  input:not(.cmp-thr):not(.ne-title)::placeholder,textarea::placeholder{font-size:13px} /* r116k 笔记标题占位跟随输入框 24px */
   .cmp-thr{font-size:12px!important}
 }
 .cmp-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
@@ -1696,7 +1716,7 @@ function homeFocusCardHtml(){
   const title='<span style="display:inline-flex;align-items:center;gap:4px">'+iconSvg('重点同学',22)+'重点关注</span>'+'<span class="count">'+list.length+' 人</span>';
   const stuHtml=list.length?list.map(x=>`<div class="stu">${focusAvatar(x.s,x.n)}<div style="flex:1;min-width:0"><div class="s-name" data-action="stu-detail" data-id="${x.s.id}">${esc(x.s.name)}</div><div class="s-meta">${esc((cls(x.s.classId)||{}).name||'')}</div></div></div>`).join(''):
     emptyState('👥','暂无重点关注学生（仅今天有课的学生中，满足退步/积分/关注任一条件）','focus-empty');
-  return `<div class="card"><div class="section-title">${title}<button class="home-add-btn add-spin" type="button" onclick="spinAddBtn(this);modalRec()" title="登记记录" aria-label="登记记录"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M11 4 V18 M4 11 H18"/></svg></button></div><div class="stu-grid">${stuHtml}</div></div>`;
+  return `<div class="card"><div class="section-title">${title}<button class="home-add-btn add-spin" type="button" onclick="spinAddBtn(this);modalRec()" title="新增记录" aria-label="新增记录"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M11 4 V18 M4 11 H18"/></svg></button></div><div class="stu-grid">${stuHtml}</div></div>`;
 }
 
 /* ============ HOME ============ */
@@ -1962,13 +1982,13 @@ function advanceDate(iso,rep){if(!rep)return iso;const d=new Date(iso);
 /* ============ 教学待办（统一：任务 + 截止日） ============ */
 function todoCatSel(val){if(val){S._todoTab=val;viewReload('todos');}}
 function todoSearch(v){S._todoSearch=v;viewReload('todos');}
-/* 按截止日判断该代办属于哪个学期（落在学期 start~end 区间内）；无截止日或区间外返回 null */
+/* 按截止日判断该待办属于哪个学期（落在学期 start~end 区间内）；无截止日或区间外返回 null */
 function semOfDate(iso){
   if(!iso)return null;
   for(const s of S.semesters){ if(s.start&&s.end&&iso>=s.start&&iso<=s.end) return s; }
   return null;
 }
-/* 渲染一个按学期折叠的代办分组 */
+/* 渲染一个按学期折叠的待办分组 */
 function todoGroupBlock(id,title,bodyHtml,defaultOpen){
   const open=COL_OPEN[id]!==undefined?COL_OPEN[id]:!!defaultOpen;
   return `<div class="card collapsible" id="${id}" style="margin-top:14px">
@@ -2322,6 +2342,24 @@ function noteEditDelete(id){S.notes=S.notes.filter(y=>y.id!==id);save();location
       if(document.querySelector('.prog-edit-page'))progBack();else saveNoteEdit();
     }
   },{passive:true});
+})();
+/* r116k：iOS 聚焦防缩放。viewport 未禁缩放（保留双指缩放），系统对 font-size<16px 的输入控件聚焦时会自动放大页面
+   （正文 15px、日期框 13px 都会触发）。修法：iOS 触屏上，触碰/聚焦 <16px 控件时临时提到 16px（内联 !important 压过样式表），失焦还原。 */
+(function(){
+  const iOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(!iOS)return;
+  function fsBump(t){
+    if(!t||(t.tagName!=='INPUT'&&t.tagName!=='TEXTAREA'))return;
+    const fs=parseFloat(getComputedStyle(t).fontSize)||16;
+    if(fs<16){t.style.setProperty('font-size','16px','important');t.__fsBump=1;}
+  }
+  function fsRestore(t){if(t&&t.__fsBump){t.style.removeProperty('font-size');delete t.__fsBump;}}
+  document.addEventListener('touchstart',e=>{ /* 触碰前置提升，赶在系统判定缩放之前 */
+    const t=e.target;
+    if(t&&t.closest){const el=t.closest('input,textarea');if(el)fsBump(el);}
+  },{passive:true});
+  document.addEventListener('focusin',e=>fsBump(e.target),true);   /* 兜底：外接键盘等无 touch 路径 */
+  document.addEventListener('focusout',e=>fsRestore(e.target),true);
 })();
 function noteFilter(v){S._noteFilter=v;viewReload('notes');}
 function noteFilterSummary(){const v=S._noteFilter||'';if(!v)return '全部课程';const c=S.courses.find(x=>x.id===v);return c?c.name:'全部课程';}
@@ -5632,11 +5670,11 @@ function planSubjSel(v){S._planSubject=v;save();viewReload('settings');}
 function modalPlanAdd(id){const editing=!!id;const p=editing?S.plan.find(x=>x.id===id):null;const cid=p?p.classId:(S._planClass&&S._planClass!==ALL_CLASS?S._planClass:(activeClasses()[0]&&activeClasses()[0].id)||ALL_CLASS);
   const sem=p?p.sem:(S._planSem&&S._planSem!==ALL_CLASS?S._planSem:(curSem()?curSem().id:ALL_CLASS));
   const subj=p?p.subject:(S._planSubject||'');
-  openModal(editing?'编辑教学任务':'添加教学任务',`<form data-form="plan-add"${editing?` data-id="${id}"`:''}>
+  openModal(editing?'编辑教学进度':'添加教学进度',`<form data-form="plan-add"${editing?` data-id="${id}"`:''}>
     <div class="field row"><div class="field" style="flex:1"><label>班级</label>${selHtml('planadd_cls',planAddClsLabel(cid),bkOpts(planAddClsOpts(),cid))}<input type="hidden" name="pcls" value="${esc(cid)}"></div>
       <div class="field" style="flex:1"><label>学期</label>${selHtml('planadd_sem',planAddSemLabel(sem),bkOpts(planAddSemOpts(),sem))}<input type="hidden" name="psem" value="${esc(sem)}"></div>
       <div class="field" style="flex:1"><label>科目</label>${selHtml('planadd_subj',planAddSubjLabel(subj),bkOpts(planAddSubjOpts(),subj))}<input type="hidden" name="psubj" value="${esc(subj)}"></div></div>
-    ${field('任务','<input name="ptitle" placeholder="输入教学任务…" required value="'+esc(p?p.title:'')+'">')}
+    ${field('进度','<input name="ptitle" placeholder="输入教学进度…" required value="'+esc(p?p.title:'')+'">')}
     <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">${editing?'保存':'添加'}</button></div></form>`);}
 function planAddManual(){const cid=(S._planClass&&S._planClass!==ALL_CLASS)?S._planClass:((activeClasses()[0]&&activeClasses()[0].id)||ALL_CLASS);const i=document.getElementById('plan_new');const t=i.value.trim();if(!t)return;
   S.plan.push({id:uid(),classId:cid,title:t,order:S.plan.filter(p=>p.classId===cid).reduce((m,p)=>Math.max(m,p.order||0),0)+1,done:false,temp:false,subject:S._planSubject||'',sem:S._planSem||(curSem()?curSem().id:ALL_CLASS),_at:Date.now()});save();planRender();i.value='';toast('已添加');}
@@ -5653,7 +5691,7 @@ function planAddSubjLabel(v){return v||'选择科目';}
 function planAddSubjOpts(){return planSubjectOpts().map(n=>({k:n,l:n,pick:'planAddSubjPick'}));}
 function planAddSubjPick(v){const f=document.querySelector('form[data-form="plan-add"]');const hid=f&&f.querySelector('input[name="psubj"]');if(hid)hid.value=v;const w=document.getElementById('planadd_subj_wrap');const t=w&&w.querySelector('.bk-trigger-text');if(t)t.textContent=planAddSubjLabel(v);closeAllBkPops();}
 function modalSemester(id){const s=id?S.semesters.find(x=>x.id===id):{};
-  openModal(id?'编辑学期':'设置新学期',`<form data-form="semester" data-id="${id||''}">
+  openModal(id?'编辑学期':'新增学期',`<form data-form="semester" data-id="${id||''}">
   ${field('学期名称','<input name="name" value="'+esc(s.name||'')+'" placeholder="如 2026秋季学期">')}
   ${field('开始','<input type="date" name="start" value="'+(s.start||todayISO())+'">')}
   ${field('结束','<input type="date" name="end" value="'+(s.end||shiftDays(150))+'">')}
@@ -5678,7 +5716,7 @@ function modalTodo(id,presetDue){const t=id?S.todos.find(x=>x.id===id):{};const 
   const catTrig=`<div class="bk-range-wrap"><button type="button" class="bk-range-trigger" style="height:38px;border-radius:99px" onclick="bkSelOpen('todo_cat_pop',event)"><span class="bk-trigger-text">${esc(catVal)}</span></button><div class="bk-range-pop" id="todo_cat_pop" style="display:none">${bkOpts(cats.map(c=>({k:c,l:c,pick:'todoCatPick'})),catVal)}</div></div><input type="hidden" name="cat" value="${esc(catVal)}">`;
   const priTrig=`<div class="bk-range-wrap"><button type="button" class="bk-range-trigger" style="height:38px;border-radius:99px" onclick="bkSelOpen('todo_pri_pop',event)"><span class="bk-trigger-text">${esc(priVal)}</span></button><div class="bk-range-pop" id="todo_pri_pop" style="display:none">${bkOpts(pris.map(p=>({k:p,l:p,pick:'todoPriPick'})),priVal)}</div></div><input type="hidden" name="pri" value="${esc(priVal)}">`;
   const unitTrig=`<div class="bk-range-wrap"><button type="button" class="bk-range-trigger" style="height:38px;border-radius:99px" onclick="bkSelOpen('todo_repUnit_pop',event)"><span class="bk-trigger-text">${esc(unitVal)}</span></button><div class="bk-range-pop" id="todo_repUnit_pop" style="display:none">${bkOpts(units.map(u=>({k:u,l:u,pick:'todoUnitPick'})),unitVal)}</div></div><input type="hidden" name="repUnit" value="${esc(unitVal)}">`;
-  openModal(id?'编辑代办':'新增代办',`<form data-form="todo" data-id="${id||''}">
+  openModal(id?'编辑待办':'新增待办',`<form data-form="todo" data-id="${id||''}">
   <div class="tf-grid">
     <div class="tf-cell">
       <span class="tf-l">类别</span>${catTrig}
@@ -5729,10 +5767,13 @@ function modalCourse(id,presetCls){const c=course(id)||{};const col=c.color||AV[
     <div class="field" style="flex:1;margin-bottom:0">${crsCombo('cls',clsV,'选择或输入班级',clsItems)}</div>
     <div class="field" style="flex:1;margin-bottom:0">${crsCombo('subject',subV,'选择或输入科目',subjItems)}</div></div>
   <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">保存</button></div></form>`);}
+/* r116k：默认时间=当天课表该班上课时间。优先条目 time 字段；未填时间按节次估算（与 progTimeOpts 缺省时间表一致）；该班当天无课才回退 10:00 */
+const PROG_PERIOD_TIMES=['08:00','08:50','09:40','10:30','11:20','14:00','14:50','15:40','16:30','17:20','19:00','20:00'];
+function ttEntryTime(t){if(t&&t.time){const m=String(t.time).match(/(\d{1,2}):(\d{2})/);if(m)return String(+m[1]).padStart(2,'0')+':'+m[2];}
+  const idx=Math.min(Math.max(((+t.part||0)*5)+((+t.pnum||1)-1),0),PROG_PERIOD_TIMES.length-1);return PROG_PERIOD_TIMES[idx];}
 function classTimeToday(clsName){const wd=jsDay();const c=S.classes.find(x=>x.name===clsName);
-  const ts=ttForDay(wd).filter(t=>c&&t.classId===c.id).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
-  if(ts.length){const m=(ts[0].time||'').match(/(\d{1,2}):(\d{2})/);if(m)return String(+m[1]).padStart(2,'0')+':'+m[2];}
-  return '10:00';}
+  const ts=ttForDay(wd).filter(t=>c&&t.classId===c.id).map(t=>ttEntryTime(t)).filter(Boolean).sort();
+  return ts.length?ts[0]:'10:00';}
 function progTimeOpts(clsId){const times=new Set();(S.timetable||[]).forEach(t=>{if(clsId&&t.classId!==clsId)return;const m=(t.time||'').match(/(\d{1,2}):(\d{2})/);if(m)times.add(String(+m[1]).padStart(2,'0')+':'+m[2]);});let arr=[...times].sort();if(!arr.length){['08:00','08:50','09:40','10:30','11:20','14:00','14:50','15:40','16:30','17:20','19:00','20:00'].forEach(t=>arr.push(t));}return arr.map(t=>({k:t,l:t}));}
 function progWhenTimePick(v){const f=document.querySelector('form[data-form="progress"]');const hid=f&&f.querySelector('input[name="whenTime"]');if(hid)hid.value=v;const w=document.getElementById('prog_whenTime_wrap');const t=w&&w.querySelector('.bk-trigger-text');if(t)t.textContent=v;closeAllBkPops();}
 /* 记录进度-今日任务：实时更新完成进度（按 coursePlan 全量计算，保持与初次渲染一致） */
@@ -5757,11 +5798,11 @@ function modalProgress(id,pid){const c=course(id);if(!c)return;S._progCourse=id;
     <div class="sub" id="prog_progress_bar" style="margin-bottom:10px">完成进度：<strong style="color:var(--primary);font-size:18px">${auto}%</strong>　已完成 ${doneN}/${total}。</div>
     <div class="field"><label>完成时间</label>
       <div class="field row" style="margin-top:4px;gap:8px"><input type="date" name="whenDate" value="${whenDateV}" style="flex:1;min-width:0">${selHtml('prog_whenTime', whenTimeV||'选择时间', bkOpts(progTimeOpts(cl).map(t=>({k:t.k,l:t.l,pick:'progWhenTimePick'})), whenTimeV))}<input type="hidden" name="whenTime" value="${whenTimeV}"></div>
-      <div class="sub" style="margin-top:4px;font-size:12px">默认时间：${esc(defTime)}（当天课表首节课）</div></div>
+      <div class="sub" style="margin-top:4px;font-size:12px">默认时间：${esc(defTime)}（当天课表该班上课时间）</div></div>
     <div class="field"><label>今日任务</label><div id="prog_today_wrap" style="max-height:200px;overflow:auto">${planChecks}</div></div>
     <div class="field"><label>超额完成</label><textarea name="extraDone" class="prog-ta" placeholder="每行一项，自动同步">${esc(extraV)}</textarea></div>
     <div class="field"><label>待完成</label><textarea name="nextTask" class="prog-ta" placeholder="每行一项，自动同步">${esc(ntV)}</textarea></div>
-    <div class="field"><label>备注（关联本次勾选的教学任务）</label><textarea name="note" class="prog-ta" placeholder="写下本节课的备注，会出现在「教学进度」弹窗与首页教学进度卡片">${esc(noteV)}</textarea></div>
+    <div class="field"><label>备注</label><textarea name="note" class="prog-ta" placeholder="写下本节课的备注，关联本次勾选的教学进度">${esc(noteV)}</textarea></div>
     <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">${pid?'保存修改':'保存'}</button></div></form>`);
   setTimeout(()=>{
     const form=document.querySelector('form[data-form="progress"]');if(!form)return;
@@ -5831,11 +5872,11 @@ function viewProgEdit(cid){
       <form data-form="progress" data-id="${cid}">
         <div class="field"><label>完成时间</label>
           <div class="field row" style="margin-top:4px;gap:8px"><input type="date" name="whenDate" value="${todayISO()}" style="flex:1;min-width:0">${selHtml('prog_whenTime', defTime||'选择时间', bkOpts(progTimeOpts(cl).map(t=>({k:t.k,l:t.l,pick:'progWhenTimePick'})), defTime))}<input type="hidden" name="whenTime" value="${defTime}"></div>
-          <div class="sub" style="margin-top:4px;font-size:12px">默认时间：${esc(defTime)}（当天课表首节课）</div></div>
+          <div class="sub" style="margin-top:4px;font-size:12px">默认时间：${esc(defTime)}（当天课表该班上课时间）</div></div>
         <div class="field"><label>今日任务</label><div id="prog_today_wrap" style="max-height:200px;overflow:auto">${planChecks}</div></div>
         <div class="field"><label>超额完成</label><textarea name="extraDone" class="prog-ta" placeholder="每行一项，自动同步"></textarea></div>
         <div class="field"><label>待完成</label><textarea name="nextTask" class="prog-ta" placeholder="每行一项，自动同步">${esc(c.nextTask||'')}</textarea></div>
-        <div class="field"><label>备注（关联本次勾选的教学任务）</label><textarea name="note" class="prog-ta" placeholder="写下本节课的备注，会出现在「教学进度」弹窗与首页教学进度卡片"></textarea></div>
+        <div class="field"><label>备注</label><textarea name="note" class="prog-ta" placeholder="写下本节课的备注，关联本次勾选的教学进度"></textarea></div>
       </form>
     </div>
   </div>`;
@@ -5905,7 +5946,7 @@ function autoReviewData(){
   if(S.courses&&S.courses.length)progress=S.courses.map(c=>c.name+'（'+(c.cls||'')+'）：'+courseProgress(c)+'%').join('\n');
   else progress='暂无课程进度记录。';
   const doneTodos=(S.todos||[]).filter(t=>t.status==='done');
-  let todos='本周已完成代办 '+doneTodos.length+' 项。';
+  let todos='本周已完成待办 '+doneTodos.length+' 项。';
   if(doneTodos.length)todos+='\n'+doneTodos.map(t=>t.title).join('、');
   let notes='备课笔记共 '+(S.notes?S.notes.length:0)+' 篇。';
   if(S.notes&&S.notes.length)notes+='\n'+S.notes.map(n=>n.title).join('、');
@@ -5945,7 +5986,7 @@ function modalReview(id){const r=id?S.reviews.find(x=>x.id===id):{};
   ${r.autoTasks!=null?`
   ${field('📋 教学任务（可编辑）','<textarea name="autoTasks">'+esc(r.autoTasks||'')+'</textarea>')}
   ${field('📚 教学进度（可编辑）','<textarea name="autoProgress">'+esc(r.autoProgress||'')+'</textarea>')}
-  ${field('✅ 完成代办（可编辑）','<textarea name="autoTodos">'+esc(r.autoTodos||'')+'</textarea>')}
+  ${field('✅ 完成待办（可编辑）','<textarea name="autoTodos">'+esc(r.autoTodos||'')+'</textarea>')}
   ${field('📝 备课笔记（可编辑）','<textarea name="autoNotes">'+esc(r.autoNotes||'')+'</textarea>')}
   ${field('📊 考试汇总（可编辑）','<textarea name="autoExams">'+esc(r.autoExams||'')+'</textarea>')}`:''}
   </form>`);}
@@ -5958,15 +5999,13 @@ function modalClass(id){const c=cls(id)||{};
   <div class="field row"><div class="field" style="flex:1;margin-bottom:0">${selHtml('cls_sem',c.sem?((S.semesters.find(x=>x.id===c.sem)||{}).name||curSemName()):curSemName(),bkOpts([{k:'',l:'全部学期',pick:'clsSemSel'},...S.semesters.map(s=>({k:s.id,l:s.name+(s.current?'（当前）':''),pick:'clsSemSel'}))],c.sem||''))}<input type="hidden" name="sem" value="${esc(c.sem||'')}"></div>
     <div class="field" style="flex:1;margin-bottom:0">${selHtml('cls_stage',st,bkOpts(['小学','初中','高中'].map(s=>({k:s,l:s,pick:'clsStageSel'})),st))}<input type="hidden" name="stage" value="${esc(st)}"></div>
     <div class="field" style="flex:1;margin-bottom:0"><span id="cls_grade_slot">${clsGradeBkHtml(c.grade||clsGradeFromStage(st))}</span><input type="hidden" name="grade" value="${esc(c.grade||clsGradeFromStage(st))}"></div></div>
-  ${field('班级名称','<input name="name" required value="'+esc(c.name||'')+'" placeholder="如 高一(3)班" style="height:38px;border-radius:99px">')}
-  <div class="field"><label>导入学生（姓名|积分，支持 xlsx / CSV）</label>
-    <button type="button" class="btn sm" onclick="importStuBtn('${id||''}')">📥 导入学生</button></div>
-  <div class="field"><label>学生名单<span class="cls-stu-count" id="cls_stu_count"></span></label>
-    <div class="cls-stu-chips" id="cls_stu_chips"></div>
-    <div class="sub" style="margin-top:0">在下方逐个加名字，或粘贴一列名单后保存。</div></div>
+  <div class="field row" style="align-items:flex-end"><div class="field" style="flex:1;margin-bottom:0">${field('班级名称','<input name="name" required value="'+esc(c.name||'')+'" placeholder="如 高一(3)班" style="height:38px;border-radius:99px">')}</div>
+    <button type="button" class="btn sm" onclick="importStuBtn('${id||''}')" style="flex:none;width:38px;height:38px;border-radius:99px;border:1px solid var(--border);background:#fff;padding:0;display:inline-flex;align-items:center;justify-content:center;color:#444441;margin:0 0 0 8px" aria-label="导入学生">${iconSvg('download',16)}</button></div>
   ${field('批量添加学生','<textarea name="students" class="no-line-ta" placeholder="张明 n&#10;李华，n&#10;王芳、n"></textarea>')}
+  <div class="field"><label>学生名单<span class="cls-stu-count" id="cls_stu_count"></span></label>
+    <div class="cls-stu-chips" id="cls_stu_chips"></div></div>
   <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">保存</button></div></form>`);
-  if(id)classStuRender(id);else{const wrap=document.getElementById('cls_stu_chips');if(wrap)wrap.innerHTML='<div class="cls-stu-empty">先填写班级名称并保存后可在这里逐个调整名单</div>';const cnt=document.getElementById('cls_stu_count');if(cnt)cnt.textContent='（新建班级）';}}
+  if(id)classStuRender(id);else{const wrap=document.getElementById('cls_stu_chips');if(wrap)wrap.innerHTML='<div class="cls-stu-empty">先填写班级名称并保存后可在这里逐个调整名单</div>';const cnt=document.getElementById('cls_stu_count');if(cnt)cnt.textContent='';}}
 function importStuBtn(id){if(id){importClass(id);return;}
   const f=document.querySelector('form[data-form=class]');if(!f)return;const nm=f.elements['name'].value.trim();if(!nm){toast('请先填写班级名称');return;}
   const c={id:uid(),name:nm,stage:f.elements['stage']?f.elements['stage'].value:'',grade:f.elements['grade']?f.elements['grade'].value:'',sem:(curSem()?curSem().id:'')};
@@ -5989,13 +6028,13 @@ function modalQuickAddStu(){const nonArch=S.classes.filter(c=>!c.archived);
     ${clsSel}
     ${field('姓名','<input name="qa_name" required placeholder="输入学生姓名" autocomplete="off" style="height:38px;border-radius:99px">')}
     <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">保存</button></div></form>`);}
-function qaClsPick(v){S._stuLastCls=v;const inp=document.querySelector('[data-form="qa_stu"] input[name="qa_name"]');if(inp)inp.focus();}
+function qaClsPick(v){S._stuLastCls=v;const w=document.getElementById('qa_cls_wrap');if(w){const t=w.querySelector('.bk-trigger-text');if(t)t.textContent=classNameOf(v);}closeAllBkPops();const inp=document.querySelector('[data-form="qa_stu"] input[name="qa_name"]');if(inp)inp.focus();}
 function submitQaStu(){const f=document.querySelector('[data-form="qa_stu"]');if(!f)return false;
   const name=(f.elements['qa_name'].value||'').trim();const clsId=(S._stuLastCls||'');
   if(!name){toast('请输入姓名');f.elements['qa_name'].focus();return false;}
   if(!clsId){toast('请选择班级');return false;}
-  S.students.push({id:uid(),name,classId:resolveClass(classNameOf(clsId)),points:0,concern:0,todoItems:[],contactItems:[]});
-  S._stuLastCls=clsId;save();closeModal();viewReload('students');return true;}
+  S.students.push({id:uid(),name,classId:clsId,points:0,concern:0,todoItems:[],contactItems:[]});
+  S._stuLastCls=clsId;save();closeModal();viewReload('students');toast('已添加到 '+classNameOf(clsId));return true;}
 /* 登记记录 / 学情跟进 共享类型源：两类弹窗类型列表完全同步 */
 const REC_TYPES=[{k:'viol',l:'违纪'},{k:'todo',l:'待办'},{k:'contact',l:'沟通'},{k:'hw_exc',l:'作业·优秀'},{k:'hw_miss',l:'作业·未交'},{k:'hw_done',l:'作业·已交'},{k:'ans_cor',l:'答题·答对'},{k:'ans_wr',l:'答题·答错'}];
 const REC_RULE_KINDS=new Set(['viol','hw_exc','hw_miss','hw_done','ans_cor','ans_wr']);
@@ -6018,7 +6057,7 @@ function modalRec(){
   const defCls=(S._recLastCls&&classes.some(c=>c.id===S._recLastCls))?S._recLastCls:(S._recCls&&S._recCls!=='all'&&classes.some(c=>c.id===S._recCls)?S._recCls:(classes[0]?classes[0].id:''));
   const clsName=defCls?classNameOf(defCls):'选择班级';
   const defKind=S._recLastType||'';const defTypeLbl=defKind?recLabelOf(defKind):'';
-  openModal('登记记录',`<form data-form="rec">
+  openModal('新增记录',`<form data-form="rec">
   <div class="field row" style="margin-bottom:12px">
     <div class="field" style="flex:1;margin-bottom:0">${selHtml('rec_modal_cls',clsName,bkOpts(classes.map(c=>({k:c.id,l:c.name,pick:'recModalClsPick'})),defCls))}<input type="hidden" name="cls" value="${esc(clsName)}"></div>
     <div class="field" style="flex:1;margin-bottom:0"><span id="rec_modal_stu_slot">${recModalStuHtml(defCls)}</span></div>
@@ -7899,7 +7938,7 @@ function modalImportGrade(presetSub){
       <div class="field" style="flex:1"><label>学期</label>${semTrigger}<input type="hidden" name="gsem" value="${esc(sem)}"></div>
       <div class="field" style="flex:1"><label>班级</label>${clsTrigger}<input type="hidden" name="gcls" value="${esc(cid)}"></div>
       <div class="field" style="flex:1"><label>科目</label>${comboHTML('gsubj',subName,subjectNames,'选择或输入科目')}</div></div>
-    <div class="sub"><b>一个文件导入所有班级的历次考试</b>：用下面这个模板，每行填一个学生的单场成绩（学期 / 班级 / 考试名 / 科目 / 考试时间 / 姓名 / 分数）。系统会按这些列自动归类到「每个班的每一场考试」，没有的列从上方默认值读取，没建过的班级/科目会自动新建。<a href="javascript:;" data-action="dl-grade-tpl" style="color:var(--primary);font-weight:600">下载模板</a>　也兼容旧版「一列一场考试」的宽表格式<a href="javascript:;" data-action="dl-grade-tpl-wide" style="color:var(--primary);font-weight:600">下载旧模板</a></div>
+    <div class="field row" style="gap:8px"><button type="button" class="btn" data-action="dl-grade-tpl" style="flex:1">下载模版</button><button type="button" class="btn" data-action="dl-grade-tpl-wide" style="flex:1">下载旧模版</button></div>
     <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">确定</button></div>
   </form>`);
 }
