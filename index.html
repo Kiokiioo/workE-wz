@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r116</title>
+<title>工作E · v20260902-r116b</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -807,10 +807,6 @@ form[data-form="course"] .bk-range-trigger{height:38px;border-radius:99px}
 form[data-form="course"] input:not([type=hidden]):not([type=checkbox]):not(.bk-trigger-input){height:38px;box-sizing:border-box;border-radius:99px;padding:0 14px}
 /* 教学进度-添加课程：颜色弹层紧凑（覆盖全局 min-width:140） */
 #crsadd_color_pop{min-width:85px !important;max-width:85px;width:85px}
-/* 备课笔记-添加弹窗：课程下拉/标题/标签 统一 高38 + 圆角99；课程框固定80宽，标题填充 */
-form[data-form="note"] .bk-range-trigger{height:38px;border-radius:99px}
-form[data-form="note"] input[name="title"]{height:38px;box-sizing:border-box;border-radius:99px;padding:0 14px}
-form[data-form="note"] .tag-input-wrap{height:auto;min-height:38px;box-sizing:border-box;border-radius:99px;padding:0 14px}
 /* 每周复盘-写本周复盘：周次/高光时刻 高38 + 圆角99 */
 form[data-form="review"] input[name="week"]:not([type=hidden]):not([type=checkbox]),
 form[data-form="review"] input[name="highlight"]:not([type=hidden]):not([type=checkbox]){height:38px;box-sizing:border-box;border-radius:99px;padding:0 14px}
@@ -1580,7 +1576,9 @@ function router(){if(DEL_MODE){const b=document.getElementById(DEL_MODE.btnId);i
   _prevRoute=r;
   if(r!=='grades')cleanupPendingSubs();
   document.getElementById('app').innerHTML=VIEWS[r](_np);setActive(r);closeDrawer();reopenCols();if(!samePage)window.scrollTo(0,0);
-  if(r==='note'){const _fe=document.getElementById(_np&&_np!=='new'?'note_title':'note_content');if(_fe)_fe.focus();initTagInput();}
+  /* r116：进入笔记编辑页时隐藏底部 nav，匹配 iOS 备忘录全屏感 */
+  const bn=document.getElementById('bottomNav');if(bn)bn.style.display=(r==='note')?'none':'';
+  if(r==='note'){const _fe=document.getElementById('note_content');if(_fe)_fe.focus();}
   /* 成绩趋势/科目：app 重建后（含强刷新/切换班级科目视图）默认滚动到最右（最新考试） */
   if(r==='grades'){if((S._gradeView||'trend')==='trend')scrollTrendRight();if(S._gradeView==='subject')scrollSubjectRight();gradeTabsThumb();if((S._gradeView||'trend')==='score')attachTopHScroll('scoreScroll','scoreHScroll');if((S._gradeView||'trend')==='subject')attachTopHScroll('subjScroll','subjHScroll');}
   if(r==='students')stuTabsThumb();
@@ -1687,7 +1685,7 @@ function viewHome(){
   const focusCardHtml=homeFocusCardHtml();
   /* r109 首页置顶笔记：置于 hero 文案下方（仅在有置顶笔记时渲染），点击行打开编辑弹窗 */
   const pinnedNotes=S.notes.filter(n=>n.pin).sort((a,b)=>(b.pinAt||0)-(a.pinAt||0));
-  const pinNotesHtml=pinnedNotes.length?`<div class="card" style="margin-top:14px"><div class="section-title"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('置顶',18)}置顶笔记</span><span class="count">${pinnedNotes.length} 条</span></div>
+  const pinNotesHtml=pinnedNotes.length?`<div class="card" style="margin-top:14px"><div class="section-title"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('置顶',18)}置顶笔记</span><span class="count">${pinnedNotes.length} 条</span><button class="home-add-btn add-spin" type="button" onclick="spinAddBtn(this);goNoteEdit()" title="新增笔记" aria-label="新增笔记"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M11 4 V18 M4 11 H18"/></svg></button></div>
     ${pinnedNotes.map((n,i)=>`<div data-action="edit-note" data-id="${n.id}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;${i<pinnedNotes.length-1?'border-bottom:1px solid var(--border);':''}cursor:pointer"><span style="font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(n.title)}</span><span style="flex:none;font-size:12px;color:var(--text-2)">${esc(noteCatOf(n))} · ${new Date(n.created).toLocaleDateString()}</span></div>`).join('')}</div>`:'';
   return `
   <div class="home-hero">
@@ -2223,7 +2221,7 @@ function viewNotes(){
       <button class="btn sm stu-ie-btn" data-action="note-del" data-lp="note-del" id="note_del_btn" style="flex:none;width:38px;height:38px;border-radius:99px;border:1px solid var(--border);background:#fff;padding:0;display:inline-flex;align-items:center;justify-content:center;color:#444441" aria-label="删除">${iconSvg('trash',16)}</button>
       <button class="btn sm" style="flex:none;width:38px;height:38px;border-radius:99px;border:1px solid var(--border);background:#fff;padding:0;display:inline-flex;align-items:center;justify-content:center;color:#444441" data-action="imp-note" aria-label="导入">${iconSvg('download',16)}</button>
       <button class="btn sm" style="flex:none;width:38px;height:38px;border-radius:99px;border:1px solid var(--border);background:#fff;padding:0;display:inline-flex;align-items:center;justify-content:center;color:#444441" data-action="exp-note" data-lp="note-exp" id="note_exp_btn" aria-label="导出">${iconSvg('upload',16)}</button>
-      <button class="btn primary sm add-spin" data-action="add-note" onclick="goNoteEdit()" style="flex:none;width:38px;height:38px;border-radius:50%;padding:0;display:inline-flex;align-items:center;justify-content:center" aria-label="新增">${addIconSvg()}</button>
+      <button class="btn primary sm add-spin" onclick="goNoteEdit()" style="flex:none;width:38px;height:38px;border-radius:50%;padding:0;display:inline-flex;align-items:center;justify-content:center" aria-label="新增">${addIconSvg()}</button>
     </div>
   </div>
   ${tagFilterHtml}
@@ -2236,12 +2234,10 @@ function viewNotes(){
 function viewNote(id){
   const isNew=!id||id==='new';
   const n=isNew?{}:(S.notes.find(x=>x.id===id)||{});
-  const catVal=(n.cat&&n.cat.trim())||(n.courseId?(course(n.courseId)||{}).name:'')||'';
-  const titleVal=n.title||'';
   const contentVal=n.content||'';
-  const tagsVal=n.tags||'';
   const moreBtn=isNew?'':`<button type="button" class="ne-more" data-action="note-menu" aria-label="更多">${iconSvg('more',18)}</button>`;
   const delItem=isNew?'':`<div class="note-edit-menu-item" data-action="note-edit-del" data-id="${n.id}">${iconSvg('trash',16)}<span>删除</span></div>`;
+  /* r116：参考 iOS 备忘录——只一个大编辑区，无标题/分类/标签输入框；首行作标题，分类/标签保留卡片编辑入口 */
   return `<div class="note-edit-page">
     <div class="note-edit-bar">
       <button type="button" class="ne-back" data-action="note-back" aria-label="返回">${iconSvg('arrow-left',18)}<span>返回</span></button>
@@ -2252,36 +2248,32 @@ function viewNote(id){
     </div>
     <div class="note-edit-menu" id="note_edit_menu" style="display:none">${delItem}</div>
     <div class="note-edit-body">
-      <input class="ne-title" id="note_title" placeholder="标题" value="${esc(titleVal)}">
-      <div class="bk-range-wrap ne-cat-pill-wrap">
-        <div class="ne-cat-pill" onclick="bkSelOpen('note_cat_pop',event)">${esc(catVal)||'分类'}${iconSvg('chev-down',12)}</div>
-        <div class="bk-range-pop" id="note_cat_pop" style="display:none">${noteCatOptsHtml(catVal)}</div>
-      </div>
-      <input type="hidden" id="note_cat_input" value="${esc(catVal)}">
       <textarea class="ne-content" id="note_content" placeholder="点击文字开始输入…">${esc(contentVal)}</textarea>
-      <div class="tag-input-wrap" id="tag_input_wrap"><div class="tag-list" id="tag_list"></div><input type="text" id="tag_input" placeholder="输入标签后回车或逗号"><input type="hidden" name="tags" id="tags_hidden" value="${esc(tagsVal)}"></div>
     </div>
     <input type="hidden" id="note_edit_id" value="${isNew?'':esc(n.id)}">
   </div>`;
 }
-function goNoteEdit(id){location.hash='note/'+(id||'new');}
+/* r116c：记录编辑页来源路由（首页/hub/独立笔记页…），保存/丢弃/删除后回到原处。
+   注意：hub 添加按钮不可同时挂 data-action 与 onclick（会双重触发 goNoteEdit，第二次进来 hash 已是 #note/new，来源被覆盖）。 */
+let _noteFrom='notes';
+function goNoteEdit(id){_noteFrom=(location.hash||'').replace(/^#/,'').split('/')[0]||'home';location.hash='note/'+(id||'new');}
 function saveNoteEdit(){
   const idEl=document.getElementById('note_edit_id');const id=idEl?idEl.value:'';
-  const cat=(document.getElementById('note_cat_input').value||'').trim();
-  const title=(document.getElementById('note_title').value||'').trim();
   const content=document.getElementById('note_content').value||'';
-  const tags=(document.getElementById('tags_hidden').value||'').trim();
-  if(!title&&!content.trim()){location.hash='notes';return;} /* 空白新笔记直接丢弃 */
-  const finalTitle=title||content.split('\n')[0].slice(0,40);
-  const created=id?((S.notes.find(x=>x.id===id)||{}).created||Date.now()):Date.now();
-  const o={cat,title:finalTitle,content,tags,created};
+  const firstLine=(content.split('\n')[0]||'').trim();
+  if(!firstLine){location.hash=_noteFrom;return;} /* 空白新笔记直接丢弃 */
+  const title=firstLine.slice(0,40);
+  /* 保留未在编辑页暴露的字段（cat/courseId/tags 等） */
+  const prev=id?(S.notes.find(x=>x.id===id)||{}):{};
+  const created=id?(prev.created||Date.now()):Date.now();
+  const o={title,content,cat:prev.cat||'',courseId:prev.courseId||'',tags:prev.tags||'',created};
   if(id){const t=S.notes.find(x=>x.id===id);if(t){Object.assign(t,o);t._at=Date.now();}}
   else S.notes.push({id:uid(),...o,_at:Date.now()});
-  save();location.hash='notes';toast('已保存');
+  save();location.hash=_noteFrom;toast('已保存');
 }
 function noteEditDone(){if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();}
 function noteEditToggleMenu(){const m=document.getElementById('note_edit_menu');if(m)m.style.display=m.style.display==='none'?'block':'none';}
-function noteEditDelete(id){S.notes=S.notes.filter(y=>y.id!==id);save();location.hash='notes';toast('已删除');}
+function noteEditDelete(id){S.notes=S.notes.filter(y=>y.id!==id);save();location.hash=_noteFrom;toast('已删除');}
 function noteFilter(v){S._noteFilter=v;viewReload('notes');}
 function noteFilterSummary(){const v=S._noteFilter||'';if(!v)return '全部课程';const c=S.courses.find(x=>x.id===v);return c?c.name:'全部课程';}
 function noteTagFilter(tag){S._noteTagFilter=tag;viewReload('notes');}
@@ -4238,6 +4230,8 @@ function attachSwipe(){
     const tooShort=Math.abs(dx)<8&&Math.abs(dy)<8&&(now-t0)<300;
     if(tooShort){reset();return;}
     if(!dragging&&!lock){reset();return;}
+    /* r116：真实横向拖拽 → 开启短时 click 屏蔽窗（浏览器松手后会向落点卡片补发 click） */
+    window.__swipeClickGuard=Date.now()+500;
     const p=pageEl(); if(!p){reset();return;}
     const w=width(p); const advance=Math.abs(vx)>w/3; const dir=vx<0?1:-1;
     const canAdvance=advance&&((dir>0&&cur<active.order.length-1)||(dir<0&&cur>0));
@@ -6136,6 +6130,9 @@ modal.addEventListener('submit',e=>{
 var LP_MODE=['imp-note','exp-note','grade-imp','imp-tt','exp-tt','imp-plan','exp-plan'];
 var LP_FLASH=['imp-review','exp-review-all','todo-imp','do-arc-archive','do-manual-backup','do-restore-import','do-reset-scope'];
 document.body.addEventListener('click',e=>{
+  /* r116：横滑手势（attachSwipe 真实拖拽）结束后浏览器会对落点元素补发 click，
+     整卡可点击的卡片（如备课笔记 open-note）会被误触导航——时间窗内忽略 click */
+  if(Date.now()<(window.__swipeClickGuard||0))return;
   const t=e.target.closest('[data-action]');if(!t)return;const a=t.dataset.action,id=t.dataset.id;
   {const _nm=document.getElementById('note_edit_menu');if(_nm&&a!=='note-menu')_nm.style.display='none';}
   /* 短按「模式蓝」：指定的导入/导出按钮按下即实色蓝，动作一执行（弹窗/下载）约 500ms 后自动消失；点别的也消失。无淡底按压态 */
