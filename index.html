@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r117m</title>
+<title>工作E · v20260902-r117u</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -346,7 +346,7 @@ button[data-action="exp-plan"].active,
 button[data-action="do-arc-archive"].active,
 button[data-action="do-manual-backup"].active,
 button[data-action="do-restore-import"].active,
-button[data-action="do-reset-scope"].active{background:var(--primary)!important;border-color:var(--primary)!important;color:#fff!important;box-shadow:0 2px 6px rgba(79,107,237,.28)}
+button[data-action="confirm-reset-all"].active{background:var(--primary)!important;border-color:var(--primary)!important;color:#fff!important;box-shadow:0 2px 6px rgba(79,107,237,.28)}
 button[data-action="imp-note"],
 button[data-action="exp-note"],
 button[data-action="imp-review"],
@@ -732,7 +732,7 @@ form[data-form="addrule"] .field input[name="points"]{padding:0 6px;text-align:c
 .bk-chip.on{background:var(--primary);border-color:var(--primary);color:#fff}
 .bk-range-wrap{position:relative}
 /* iOS 风格开关（等比缩小：高度 14）：25×14 胶囊轨道、主色 #4F6BED（与全站主色一致，#07C160 改 #4F6BED）、12 圆形白钮、0.2s 平滑切换 */
-.sw{appearance:none;-webkit-appearance:none;width:25px !important;min-width:25px !important;max-width:25px !important;height:14px !important;box-sizing:border-box;background:var(--border);border-radius:7px;position:relative;cursor:pointer;transition:background .2s;vertical-align:middle;flex:none;outline:none;flex-shrink:0;margin:0;align-self:center}
+.sw{appearance:none;-webkit-appearance:none;width:25px !important;min-width:25px !important;max-width:25px !important;height:14px !important;min-height:14px !important;max-height:14px !important;box-sizing:border-box !important;padding:0 !important;border:none !important;background:var(--border);border-radius:7px;position:relative;cursor:pointer;transition:background .2s;vertical-align:middle;flex:none;outline:none;flex-shrink:0;margin:0;align-self:center} /* r117q：补锁 padding/box-sizing/min/max-height，防 .field input 的 10px 12px 内边距把开关撑大 */
 .sw::before{content:'';position:absolute;top:1px;left:1px;width:12px;height:12px;background:#fff;border-radius:50%;transition:left .2s;box-shadow:0 1px 1px rgba(0,0,0,.25)}
 .sw:checked{background:#4F6BED}
 .sw:checked::before{left:12px}
@@ -845,9 +845,11 @@ form[data-form="tt"] .bk-range-trigger{height:38px;border-radius:99px}
 form[data-form="tt"] input:not([type=hidden]):not([type=checkbox]):not(.bk-trigger-input){height:38px;box-sizing:border-box;border-radius:99px;padding:0 14px}
 /* 教学任务安排-添加教学任务：班级/学期/科目 弹层同课表设置-学期；班级/学期/科目/任务 高38+圆角99 */
 form[data-form="plan-add"] .bk-range-trigger{height:38px;border-radius:99px}
+form[data-form="plan-add"] input[name="ptitle"]::placeholder{font-size:13px} /* r117p：占位文字 13（输入框本体保持 16px 防 iOS 缩放） */
 form[data-form="plan-add"] input:not([type=hidden]):not([type=checkbox]):not(.bk-trigger-input){height:38px;box-sizing:border-box;border-radius:99px;padding:0 14px}
 /* 导入成绩弹窗：bk-range 弹层 + 名称/学期/班级/科目 高 38 + 圆角 99（与教学任务安排-学期同款） */
 form[data-form="imp-grade"] .bk-range-trigger{height:38px;border-radius:99px}
+form[data-form="imp-plan"] .bk-range-trigger{height:38px;border-radius:99px}
 form[data-form="imp-grade"] input:not([type=hidden]):not([type=checkbox]):not(.bk-trigger-input){height:38px;box-sizing:border-box;border-radius:99px;padding:0 14px}
 /* 教学进度-记录进度：完成时间的日期框 + 时间下拉（bk-range 弹层，与课表设置-学期同款）统一 高38 + 圆角99 */
 form[data-form="progress"] .bk-range-wrap{flex:1;min-width:0}
@@ -5353,7 +5355,7 @@ function viewSettings(){
     <div class="section-title clickable" onclick="toggleCollapse('set_semester')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('📅',22)}学期设置${curSem()?` · ${esc(curSem().name)}`:''}</span> <span class="chev"></span></div>
     <div class="collapse-body" style="display:none">
       <div class="field row" style="align-items:flex-end;margin-bottom:10px;min-width:0"><div class="field" style="margin-bottom:0;flex:1;min-width:0">${selHtml('preview_sem',previewSemSummary(),bkOpts(S.semesters.filter(s=>!s.archived).map(s=>({k:s.id,l:s.name+'（'+s.start+'~'+s.end+'）',pick:'previewSemSel'})),S._previewSem||(curSem()?curSem().id:'')))}</div><button class="btn primary sm add-spin" onclick="spinAddBtn(this);newSemester()" style="flex:none;width:38px;height:38px;border-radius:50%;padding:0;display:inline-flex;align-items:center;justify-content:center" aria-label="添加学期">${addIconSvg()}</button></div>
-      <div class="grid cols-2" style="margin-top:12px">${S.semesters.filter(s=>!s.archived).map(s=>`
+      <div class="grid cols-2" style="margin-top:12px">${S.semesters.filter(s=>!s.archived).slice().sort((a,b)=>(b.start||'').localeCompare(a.start||'')).map(s=>`
         <div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div style="display:flex;gap:12px;align-items:center">
             <span class="avatar" style="background:#4f6bed;width:40px;height:40px;font-size:18px">${iconSvg('📅',18)}</span>
@@ -5755,7 +5757,7 @@ function modalPlanAdd(id){const editing=!!id;const p=editing?S.plan.find(x=>x.id
     <div class="field row"><div class="field" style="flex:1"><label>班级</label>${selHtml('planadd_cls',planAddClsLabel(cid),bkOpts(planAddClsOpts(),cid))}<input type="hidden" name="pcls" value="${esc(cid)}"></div>
       <div class="field" style="flex:1"><label>学期</label>${selHtml('planadd_sem',planAddSemLabel(sem),bkOpts(planAddSemOpts(),sem))}<input type="hidden" name="psem" value="${esc(sem)}"></div>
       <div class="field" style="flex:1"><label>科目</label>${selHtml('planadd_subj',planAddSubjLabel(subj),bkOpts(planAddSubjOpts(),subj))}<input type="hidden" name="psubj" value="${esc(subj)}"></div></div>
-    ${field('进度','<input name="ptitle" placeholder="输入教学进度…" required value="'+esc(p?p.title:'')+'">')}
+    ${field('进度','<input name="ptitle" placeholder="输入教学进度…" required value="'+esc(p?p.title:'')+'" style="font-size:13px">')}
     <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">${editing?'保存':'添加'}</button></div></form>`);}
 function planAddManual(){const cid=(S._planClass&&S._planClass!==ALL_CLASS)?S._planClass:((activeClasses()[0]&&activeClasses()[0].id)||ALL_CLASS);const i=document.getElementById('plan_new');const t=i.value.trim();if(!t)return;
   S.plan.push({id:uid(),classId:cid,title:t,order:S.plan.filter(p=>p.classId===cid).reduce((m,p)=>Math.max(m,p.order||0),0)+1,done:false,temp:false,subject:S._planSubject||'',sem:S._planSem||(curSem()?curSem().id:ALL_CLASS),_at:Date.now()});save();planRender();i.value='';toast('已添加');}
@@ -6078,7 +6080,7 @@ function modalClass(id){const c=cls(id)||{};
   <div class="field row"><div class="field" style="flex:1;margin-bottom:0">${selHtml('cls_sem',c.sem?((S.semesters.find(x=>x.id===c.sem)||{}).name||curSemName()):curSemName(),bkOpts([{k:'',l:'全部学期',pick:'clsSemSel'},...S.semesters.map(s=>({k:s.id,l:s.name+(s.current?'（当前）':''),pick:'clsSemSel'}))],c.sem||''))}<input type="hidden" name="sem" value="${esc(c.sem||'')}"></div>
     <div class="field" style="flex:1;margin-bottom:0">${selHtml('cls_stage',st,bkOpts(['小学','初中','高中'].map(s=>({k:s,l:s,pick:'clsStageSel'})),st))}<input type="hidden" name="stage" value="${esc(st)}"></div>
     <div class="field" style="flex:1;margin-bottom:0"><span id="cls_grade_slot">${clsGradeBkHtml(c.grade||clsGradeFromStage(st))}</span><input type="hidden" name="grade" value="${esc(c.grade||clsGradeFromStage(st))}"></div></div>
-  <div class="field row" style="align-items:flex-end"><div class="field" style="flex:1;margin-bottom:0">${field('班级名称','<input name="name" required value="'+esc(c.name||'')+'" placeholder="如 高一(3)班" style="height:38px;border-radius:99px">')}</div>
+  <div class="field row" style="align-items:flex-end"><div class="field" style="flex:1;min-width:0;margin-bottom:0"><label>班级名称</label><input name="name" required value="${esc(c.name||'')}" placeholder="如 高一(3)班" style="height:38px;border-radius:99px"></div>
     <button type="button" class="btn sm" onclick="importStuBtn('${id||''}')" style="flex:none;width:38px;height:38px;border-radius:99px;border:1px solid var(--border);background:#fff;padding:0;display:inline-flex;align-items:center;justify-content:center;color:#444441;margin:0 0 0 8px" aria-label="导入学生">${iconSvg('download',16)}</button></div>
   ${field('批量添加学生','<textarea name="students" class="no-line-ta" placeholder="张明 n&#10;李华，n&#10;王芳、n"></textarea>')}
   <div class="field"><label>学生名单<span class="cls-stu-count" id="cls_stu_count"></span></label>
@@ -6102,10 +6104,9 @@ function modalQuickAddStu(){const nonArch=S.classes.filter(c=>!c.archived);
   // 默认班级：当前页已选（非 all） > 上次选择 > 空
   const defId=(S._stuCls&&S._stuCls!=='all'&&nonArch.some(c=>c.id===S._stuCls))?S._stuCls:(S._stuLastCls||'');
   if(defId)S._stuLastCls=defId; // 同步默认班级，未手动点选也能正确提交
-  const clsSel=nonArch.length?`<div class="field" style="margin-bottom:13px">${selHtml('qa_cls', (defId?classNameOf(defId):'选择班级'), bkOpts(nonArch.filter(c=>c.name!=='全部班级').map(c=>({k:c.id,l:c.name,pick:'qaClsPick'})), defId))}</div>`:'';
+  const clsSel=nonArch.length?`<div class="field" style="flex:none;width:120px;margin-bottom:0">${selHtml('qa_cls', (defId?classNameOf(defId):'选择班级'), bkOpts(nonArch.filter(c=>c.name!=='全部班级').map(c=>({k:c.id,l:c.name,pick:'qaClsPick'})), defId))}</div>`:'';
   openModal('添加学生',`<form data-form="qa_stu">
-    ${clsSel}
-    ${field('姓名','<input name="qa_name" required placeholder="输入学生姓名" autocomplete="off" style="height:38px;border-radius:99px">')}
+    <div class="field row" style="align-items:center">${clsSel}<div class="field" style="flex:1;min-width:0;margin-bottom:0"><input name="qa_name" required placeholder="输入学生姓名" autocomplete="off" style="height:38px;border-radius:99px"></div></div>
     <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">保存</button></div></form>`);}
 function qaClsPick(v){S._stuLastCls=v;const w=document.getElementById('qa_cls_wrap');if(w){const t=w.querySelector('.bk-trigger-text');if(t)t.textContent=classNameOf(v);}closeAllBkPops();const inp=document.querySelector('[data-form="qa_stu"] input[name="qa_name"]');if(inp)inp.focus();}
 function submitQaStu(){const f=document.querySelector('[data-form="qa_stu"]');if(!f)return false;
@@ -6349,7 +6350,7 @@ modal.addEventListener('submit',e=>{
 
 /* ============ events ============ */
 var LP_MODE=['imp-note','exp-note','grade-imp','imp-tt','exp-tt','imp-plan','exp-plan'];
-var LP_FLASH=['imp-review','exp-review-all','todo-imp','do-arc-archive','do-manual-backup','do-restore-import','do-reset-scope'];
+var LP_FLASH=['imp-review','exp-review-all','todo-imp','do-arc-archive','do-manual-backup','do-restore-import','confirm-reset-all'];
 document.body.addEventListener('click',e=>{
   /* r116：横滑手势（attachSwipe 真实拖拽）结束后浏览器会对落点元素补发 click，
      整卡可点击的卡片（如备课笔记 open-note）会被误触导航——时间窗内忽略 click */
@@ -8295,11 +8296,13 @@ function exportTimetable(){if(!S.timetable.length){toast('暂无课表');return;
 function modalImportPlan(){
   const subjDefault=S._planSubject||'';
   const subjectNames=planSubjectOpts();
-  openModal('导入教学任务',`<form data-form="imp-plan">
-    <div class="field"><label>默认可用科目（应用于整批导入；若文件本身含「科目」列，则按文件逐行覆盖）</label>${comboHTML('iplan_subj',subjDefault,subjectNames,'选择或输入科目（留空=无科目）')}</div>
-    <div class="sub">支持 Excel / CSV。列顺序：班级、科目、任务，或 班级、任务。</div>
-    <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">选择文件并导入</button></div>
+  openModal('导入教学进度',`<form data-form="imp-plan">
+    <div style="display:flex;align-items:flex-end;gap:10px">
+      <div class="field" style="flex:1;min-width:0;margin:0"><label>选择/输入/文件覆盖</label>${comboHTML('iplan_subj',subjDefault,subjectNames,'选择或输入科目（留空=无科目）')}</div>
+      <button type="submit" class="btn sm" style="flex:none;width:38px;height:38px;border-radius:99px;border:1px solid var(--border);background:#fff;padding:0;display:inline-flex;align-items:center;justify-content:center;color:#444441" aria-label="导入">${iconSvg('download',16)}</button>
+    </div>
   </form>`);
+  var mh=document.querySelector('.modal-head');if(mh)mh.style.paddingBottom='0';
 }
 function importPlan(defaultSubj){pickTable(sheets=>{const rows=(sheets[0].rows||[]).filter(r=>r.length);if(!rows.length){toast('文件为空');return;}
   const header=rows[0].map(x=>String(x||'').trim());
@@ -8365,7 +8368,9 @@ if((S.todos||[]).some(t=>t.src==='unfinished')){S.todos=(S.todos||[]).filter(t=>
 if(!S.seeded||S.seedVer!==SEED_VER){seed();}save();
 /* r117i：刷新/重开停留在当前页（不再强制回首页）——原 r106「启动清残留 hash」撤销，
    保留 location.hash 让 router 首渲直接恢复原视图；iOS 重开标签页恢复上次 URL 即为此行为。 */
-applyTheme();buildNav();maybeAutoReview();cleanupPendingSubs();router();autoArchiveBySemester();
+applyTheme();buildNav();maybeAutoReview();cleanupPendingSubs();
+try{if(window.matchMedia&&window.matchMedia('(max-width:767px)').matches&&!sessionStorage.getItem(PREFIX+'entered')){if(location.hash){try{history.replaceState(null,'',location.pathname+location.search);}catch(e){location.hash='';}}sessionStorage.setItem(PREFIX+'entered','1');}}catch(e){}/* r117u：手机版首次进入落首页（sessionStorage 标记），同会话刷新停留当前页；桌面不受限 */
+router();autoArchiveBySemester();
 bootCloudSync();
 /* r93：离开页面（切 App / 关标签页）即触发一次补推，确保本地未推送的编辑不丢（尤其 iOS 切走再回来） */
 function flushOnLeave(){const c=cloudCfg();if(c.enabled&&cloudReady&&!cloudPushing)cloudPush();}
