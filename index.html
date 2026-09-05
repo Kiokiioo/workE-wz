@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r116s</title>
+<title>工作E · v20260902-r116w</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -674,6 +674,11 @@ input[type="date"]{appearance:none;-webkit-appearance:none;border-radius:99px}
 .note-edit-menu-item:active{background:var(--surface-2)}
 .note-edit-menu-item svg{width:16px;height:16px}
 .note-edit-body{padding:16px;overflow:auto;flex:1;-webkit-overflow-scrolling:touch}
+/* r116w：笔记编辑页-分类行。复用 rec-type-combo（无框输入+可下拉），并剥掉 trigger 的边框/底色/hover/focus 特效，
+   只保留 .bk-range-trigger::after 那一个下拉箭头作为唯一可见装饰。 */
+.ne-cat-row{margin:0 0 14px}
+.ne-cat-trigger{border:0!important;background:transparent!important;border-radius:0!important;padding:0 22px 0 0!important;height:36px!important;min-height:0!important;box-shadow:none!important}
+.ne-cat-trigger:hover,.ne-cat-trigger:focus,.ne-cat-trigger.open{border-color:transparent!important;box-shadow:none!important;outline:none!important;background:transparent!important}
 .ne-title{border:0;outline:none;width:100%;font-size:20px;font-weight:700;color:var(--text);background:transparent;font-family:inherit;padding:0;margin:0 0 14px}
 .ne-title::placeholder{color:var(--text-2)}
 .ne-cat-pill-wrap{margin:0 0 16px}
@@ -779,7 +784,7 @@ form[data-form="addrule"] .field input[name="points"]{padding:0 6px;text-align:c
   .tf-grid .cb{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
   form[data-form="todo"] input:not([type=checkbox]),form[data-form="todo"] select{border:1px solid var(--border);border-radius:10px;height:38px;box-sizing:border-box;padding:0 12px;font-size:13px;background:var(--surface);color:var(--text)}
   /* r116j：截止日期框 13px 左对齐（特异性高于 r114 移动端 16px!important 通配；日期选择为系统原生键盘外的 picker，聚焦缩放风险低，按用户要求 13） */
-  form[data-form="todo"] input[type="date"]{font-size:13px!important;text-align:left}
+  form[data-form="todo"] input[type="date"]{font-size:13px;text-align:left}
   /* r116k：重复间隔数字框 13px（同上；iOS 聚焦期间由防缩放守卫临时提 16px，失焦回落 13） */
   form[data-form="todo"] input[type="number"]{font-size:13px!important}
   .combo{position:relative;display:flex;align-items:center;flex:1;min-width:0}
@@ -850,11 +855,11 @@ form[data-form="progress"] input:not([type=hidden]):not([type=checkbox]){height:
 form[data-form="rec"] .bk-range-trigger{height:38px;border-radius:99px}
 form[data-form="rec"] input:not([type=hidden]):not([type=checkbox]):not(.bk-trigger-input){height:38px;box-sizing:border-box;border-radius:99px;padding:0 14px}
 /* r116k：姓名/日期 13px 左对齐（!important 压过 r114 移动端 16px!important；姓名为 bk-trigger-input 裸 input，同日期框处理） */
-form[data-form="rec"] input[type="date"]{min-height:38px;font-size:13px!important;text-align:left}
+form[data-form="rec"] input[type="date"]{min-height:38px;font-size:13px;text-align:left}
 form[data-form="rec"] input[name="stu"]{font-size:13px!important;text-align:left;padding:0} /* r116k：去 .modal-body input 的 0 12px，与班级 pill 文字左缘对齐（容器 bk-range-trigger 自带 12px） */
 /* r116k：添加/编辑课程 标题 13px 左对齐；进度记录 日期 13px 左对齐、区块标题加粗 */
 form[data-form="course"] input[name="name"]{font-size:13px!important;text-align:left}
-form[data-form="progress"] input[type="date"]{font-size:13px!important;text-align:left}
+form[data-form="progress"] input[type="date"]{font-size:13px;text-align:left}
 form[data-form="progress"] .field>label{font-weight:600}
 /* r116l：学期弹窗 名称/开始/结束、教学进度 任务框、课节 时间框 13px 左对齐 */
 form[data-form="semester"] input{font-size:13px!important;text-align:left}
@@ -862,7 +867,7 @@ form[data-form="plan-add"] input[name="ptitle"]{font-size:13px!important;text-al
 form[data-form="tt"] input[name="time"]{font-size:13px!important;text-align:left}
 /* r116m：导入成绩 名称框、新增考试 考试时间框 13px 左对齐 */
 form[data-form="imp-grade"] input[name="gname"]{font-size:13px!important;text-align:left}
-form[data-form="exam-add"] input[type="date"]{font-size:13px!important;text-align:left}
+form[data-form="exam-add"] input[type="date"]{font-size:13px;text-align:left}
 /* r116d：手机版弹窗第一行 班级/学生/日期 三列等分——flex 子项默认 min-width:auto 按内容固有宽度撑破弹窗右边距，统一允许收缩 + 文本省略 */
 form[data-form="rec"] .field.row>.field{min-width:0}
 form[data-form="rec"] .field.row{gap:8px}
@@ -1005,6 +1010,35 @@ form[data-form="rec"] .field.row input[type="text"]{width:100%;min-width:0}
   input:not(.cmp-thr),textarea,select,.bk-sel-trigger{font-size:16px!important}
   input:not(.cmp-thr):not(.ne-title)::placeholder,textarea::placeholder{font-size:13px} /* r116k 笔记标题占位跟随输入框 24px */
   .cmp-thr{font-size:12px!important}
+  /* r116v+r116w：所有 <16px 的可聚焦控件一次性静态提到 16px computed（iOS 永不 auto-zoom），
+     再用 transform:scale(13/16)=0.8125 把视觉压回 13px。
+     根因：iOS Safari 在触摸起手的最初瞬间就锁定缩放决策，touchstart 里临时改字号（r116k 守卫）在真机上不可靠——
+     Chrome+iPhone UA 模拟能复现守卫触发，但真机仍偶现缩放。静态 16px 是唯一根治。
+     无边框控件 scale 无副作用；有边框/有底色控件需按 1/0.8125=1.2308 补偿 width/height，否则 pill 会整体缩窄 19%。 */
+  /* A. 无边框组合框：无需几何补偿（rec 姓名需压过更高特异性的 form 规则，否则会被压回 13px 且被 scale 到 10.6px） */
+  .rec-type-combo .bk-trigger-input,
+  form[data-form="rec"] input[name="stu"]{font-size:16px!important;transform:scale(0.8125);transform-origin:left center}
+  .rec-type-combo .bk-trigger-input::placeholder{font-size:16px!important}
+  /* B. 有边框控件（块级、height 38px）：scale 缩盒 → 按 1.2308 补偿，视觉尺寸不变。
+        origin 用 left top（视觉顶边与布局顶边对齐），再用 margin-bottom:-8.77px 回收「布局 46.77 / 视觉 38」多出的 8.77px
+        幽灵空白——否则每个输入框下方会凭空多出约 9px，把弹窗撑高、间距变松。 */
+  input[type="date"],
+  form[data-form="course"] input[name="name"],
+  form[data-form="tt"] input[name="time"],
+  form[data-form="semester"] input:not([type=hidden]),
+  form[data-form="plan-add"] input[name="ptitle"],
+  form[data-form="imp-grade"] input[name="gname"]{
+    font-size:16px!important;transform:scale(0.8125);transform-origin:left top;
+    width:calc(100% * 1.2308)!important;height:46.77px!important;min-height:46.77px!important;
+    margin-top:0!important;margin-bottom:-8.77px!important
+  }
+  /* C. 待办弹窗：日期/重复次数是 flex 子项，width 不参与 flex 定尺，改用 flex-basis / 固定宽补偿 */
+  form[data-form="todo"] input[type="date"]{font-size:16px!important;transform:scale(0.8125);transform-origin:left top;
+    flex:1 0 123.08%!important;height:46.77px!important;min-height:46.77px!important;
+    margin-top:0!important;margin-bottom:-8.77px!important}
+  form[data-form="todo"] input[type="number"]{font-size:16px!important;transform:scale(0.8125);transform-origin:left top;
+    width:73.85px!important;flex:0 0 auto;height:46.77px!important;min-height:46.77px!important;
+    margin-top:0!important;margin-bottom:-8.77px!important}
 }
 .cmp-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .cmp-card{border:0.5px solid var(--border);border-radius:12px;padding:12px;background:var(--surface)}
@@ -2285,6 +2319,7 @@ function viewNote(id){
   const n=isNew?{}:(S.notes.find(x=>x.id===id)||{});
   const contentVal=n.content||'';
   const titleVal=n.title||'';
+  const catVal=n.cat||''; /* r116w：分类行（可下拉可选、也可直接输入，无边框无底色） */
   const moreBtn=isNew?'':`<button type="button" class="ne-more" data-action="note-menu" aria-label="更多">${iconSvg('more',18)}</button>`;
   const delItem=isNew?'':`<div class="note-edit-menu-item" data-action="note-edit-del" data-id="${n.id}">${iconSvg('trash',16)}<span>删除</span></div>`;
   return `<div class="note-edit-page">
@@ -2298,6 +2333,10 @@ function viewNote(id){
     <div class="note-edit-menu" id="note_edit_menu" style="display:none">${delItem}</div>
     <div class="note-edit-body">
       <input class="ne-title" id="note_title" placeholder="添加标题" value="${esc(titleVal)}">
+      <div class="ne-cat-row"><div class="bk-range-wrap" id="note_cat_wrap">
+        <div class="bk-range-trigger rec-type-combo ne-cat-trigger" onclick="bkSelOpen('note_cat_pop',event)"><input id="note_cat_input" class="bk-trigger-input" value="${esc(catVal)}" placeholder="笔记分类" autocomplete="off" onclick="event.stopPropagation()"></div>
+        <div class="bk-range-pop" id="note_cat_pop" style="display:none">${noteCatOptsHtml(catVal)}</div>
+      </div></div>
       <textarea class="ne-content" id="note_content" placeholder="点击文字开始输入…">${esc(contentVal)}</textarea>
     </div>
     <input type="hidden" id="note_edit_id" value="${isNew?'':esc(n.id)}">
@@ -2319,7 +2358,10 @@ function saveNoteEdit(){
   /* 保留未在编辑页暴露的字段（cat/courseId/tags 等） */
   const prev=id?(S.notes.find(x=>x.id===id)||{}):{};
   const created=id?(prev.created||Date.now()):Date.now();
-  const o={title,content,cat:prev.cat||'',courseId:prev.courseId||'',tags:prev.tags||'',created};
+  /* r116w：分类行可读可写；元素缺失时回退旧值，避免丢分类 */
+  const catEl=document.getElementById('note_cat_input');
+  const cat=catEl?catEl.value.trim():(prev.cat||'');
+  const o={title,content,cat,courseId:prev.courseId||'',tags:prev.tags||'',created};
   if(id){const t=S.notes.find(x=>x.id===id);if(t){Object.assign(t,o);t._at=Date.now();}}
   else S.notes.push({id:uid(),...o,_at:Date.now()});
   save();location.hash=_noteFrom;toast('已保存');
@@ -2357,8 +2399,11 @@ function noteEditDelete(id){S.notes=S.notes.filter(y=>y.id!==id);save();location
     if(!t||(t.tagName!=='INPUT'&&t.tagName!=='TEXTAREA'))return;
     const fs=parseFloat(getComputedStyle(t).fontSize)||16;
     if(fs<16){t.style.setProperty('font-size','16px','important');t.__fsBump=1;
-      /* r116r：无边框组合框（bk-trigger-input）用 transform 等比缩回原字号，视觉全程 13px 不跳动（缩放判定只看 computed font-size=16，不触发页面缩放） */
-      if(t.classList&&t.classList.contains('bk-trigger-input')){t.__fsScale=1;t.style.setProperty('transform','scale('+(fs/16)+')','important');t.style.setProperty('transform-origin','left center','important');}
+      /* r116r：无边框组合框（bk-trigger-input）用 transform 等比缩回原字号，视觉全程 13px 不跳动（缩放判定只看 computed font-size=16，不触发页面缩放）。
+         r116u：date 框同为 13px 静止态，聚焦也走 scale（center 锚定，整框等比缩回 13，全宽 pill 对称收缩不乱跑），消除原「纯 bump 到 16px」的放大跳变。 */
+      const isDate = t.tagName==='INPUT' && t.type==='date';
+      const isCombo = t.classList&&t.classList.contains('bk-trigger-input');
+      if(isCombo||isDate){t.__fsScale=1;t.style.setProperty('transform','scale('+(fs/16)+')','important');t.style.setProperty('transform-origin',isCombo?'left center':'center','important');}
     }
   }
   function fsRestore(t){if(t&&t.__fsBump){t.style.removeProperty('font-size');delete t.__fsBump;}
@@ -5912,7 +5957,7 @@ function viewProgEdit(cid){
 /* r112 分类下拉：默认选项 = 科目（S.subjects）+ 已用分类（去重，科目在前） */
 function noteCatItems(){const subj=(S.subjects||[]).map(s=>s.name).filter(Boolean);const used=(S.notes||[]).map(n=>n.cat).filter(Boolean);return [...new Set([...subj,...used])];}
 function noteCatOptsHtml(cur){const items=noteCatItems();return items.length?items.map(v=>`<div class="bk-range-opt" onclick="noteCatPick('${esc(v)}')" style="${v===cur?'background:var(--primary-soft);color:var(--primary);font-weight:600':''}">${esc(v)}</div>`).join(''):'<div class="bk-range-opt" style="color:var(--text-2)">暂无科目，可直接输入</div>';}
-function noteCatPick(v){const i=document.getElementById('note_cat_input');if(i)i.value=v;const pill=document.querySelector('.ne-cat-pill');if(pill&&pill.firstChild)pill.firstChild.nodeValue=v||'分类';closeAllBkPops();}
+function noteCatPick(v){const i=document.getElementById('note_cat_input');if(i)i.value=v;closeAllBkPops();} /* r116w：分类行改为无框输入（原 .ne-cat-pill 已废） */
 /* 分类展示：优先 cat，回退旧课程名，再回退「未分类」 */
 function noteCatOf(n){return (n.cat&&n.cat.trim())||(course(n.courseId)||{}).name||'未分类';}
 /* 备课笔记-添加弹窗：课程下拉改用 bk-range 弹层（与课表设置-学期同款） */
