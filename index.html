@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r116r</title>
+<title>工作E · v20260902-r116s</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -618,6 +618,8 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 .field label{display:block;font-size:13px;color:var(--text-2);margin-bottom:5px}
 .field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;
   background:var(--surface);color:var(--text);font-size:14px;font-family:inherit}
+/* r116s：input[type=date] 在 iOS Safari 有原生外观，会覆盖上面的 border/radius，导致 iPhone 与 Chrome 视觉不一致；appearance:none 让其尊重自定义样式，圆角统一为 99px pill（点击仍弹 iOS 原生日期滚轮选择器） */
+input[type="date"]{appearance:none;-webkit-appearance:none;border-radius:99px}
 .field textarea{resize:vertical;min-height:80px}
 /* 批量添加学生 textarea：保留外框，跟班级名称输入框同款（边框+底色+圆角） */
 .no-line-ta{border:1px solid var(--border) !important;background:var(--surface) !important;border-radius:10px !important;padding:10px 12px !important}
