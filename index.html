@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r117x</title>
+<title>工作E · v20260902-r1182</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -1297,7 +1297,7 @@ const DEFAULTS={
   examRules:{topCount:10,topBase:10,failPts:-2,belowAvgPts:-1,progCount:10,progBase:5,dropCount:10,dropBase:5},
   customRules:[],
   ruleEnabled:true,examRuleEnabled:true,
-  settings:{semStart:'',semEnd:'',ttCal:true,autoArchive:true,autoCats:{sem:true,teach:true,class:true,grade:true}},
+  settings:{semStart:'',semEnd:'',ttCal:true,autoArchive:false,autoCats:{sem:false,teach:false,class:false,grade:false}}, /* r1181：归档库所有归档设置默认关闭 */
   semesters:[],planRange:{mode:'sem',from:'',to:''},
   theme:'light',seeded:false,seedVer:0,_drawDrawn:[],_drawHistory:[],_drawFold:{week:true,older:true},_savedAt:0,
   _tomb:{},_syncIds:{},_syncVer:0,ttBySem:{}
@@ -1349,6 +1349,7 @@ function mergeState(local,remote){
      远端携带的 UI 键若本端未定义（如全新设备）也直接剔除，不让对端筛选跨端继承。 */
   for(const k in out){if(!(k in DEFAULTS)&&!(k in SKIP)&&!(k in local))delete out[k];}
   for(const k in local){if(!(k in DEFAULTS)&&!(k in SKIP))out[k]=clone(local[k]);}
+  normalizeCurSem(out); /* r1180：合并可能让两端各自设置的「当前学期」共存，唯一化（保留开始日期最新者） */
   return out;
 }
 /* 把远端合并进全局 S（就地），落盘并刷新同步基线/墓碑；返回合并后的状态 */
@@ -1378,6 +1379,9 @@ function load(){for(const k in DEFAULTS)S[k]=store.get(k,DEFAULTS[k]);uiLocalLoa
    *       只在确有残留时写盘以免触发云同步。 */
   if(S.timetable&&S.timetable.some(t=>t&&t.day===7)){S.timetable.forEach(t=>{if(t&&t.day===7)t.day=0;});save();}
   migrateTodos();normalizeTodos();normalizeStudentItems();
+  if(normalizeCurSem()>0)save(); /* r1180：本地历史脏数据里若有多个「当前学期」，启动即唯一化并落盘 */
+  /* r1181：归档库所有归档设置默认关闭——旧数据里已固化的 true 一次性迁移为关（标记存本地不进云端，各端各迁一次；迁移后用户手动开启不再被打回） */
+  if(store.get('_arcOffMig',null)!==1){S.settings.autoArchive=false;S.settings.autoCats=Object.assign({},S.settings.autoCats,{sem:false,teach:false,class:false,grade:false});store.set('_arcOffMig',1);save();}
   // r93：首次启动把当前各集合 id 快照作为合并基线，避免把已有数据误判为「被删除」而清空其他端的同名条目
   if(!S._syncVer){S._syncIds=syncIdsSnapshot(S);S._syncVer=1;}
 }
@@ -1480,6 +1484,15 @@ function coursePlan(c){if(!c)return [];const cid=resolveClass(c.cls);const subj=
   return S.plan.filter(p=>(p.classId===cid||p.classId===ALL_CLASS)&&(!subj||(p.subject||'')===subj)).sort((a,b)=>a.order-b.order);}
 function isArchivedClass(cid){const c=cls(cid);return !!(c&&c.archived);}
 function activeClassIds(){return new Set(S.classes.filter(c=>!c.archived).map(c=>c.id));}
+/* r1180：学期「当前」唯一化——merge-by-id 并集会让两端各自设置的「当前学期」共存（current 是条目字段，
+   不同 id 各自为 true），全量恢复快照/导入也可能带入多个 current。保留开始日期最新的一个，其余清除。返回清除数量。 */
+function normalizeCurSem(st){
+  const arr=((st||S).semesters)||[];const cur=arr.filter(s=>s&&s.current);
+  if(cur.length<2)return 0;
+  cur.sort((a,b)=>(b.start||'').localeCompare(a.start||''));
+  let n=0;cur.slice(1).forEach(s=>{s.current=false;n++;});
+  return n;
+}
 function activeClasses(){return S.classes.filter(c=>!c.archived);}
 function resolveClass(name){const n=(name||'').trim();if(!n)return '';
   let c=S.classes.find(x=>x.name===n);if(c)return c.id;
@@ -1493,10 +1506,12 @@ function gradeStageChange(){const el=document.getElementById('cls_grade');if(!el
   el.innerHTML=arr.map(g=>`<option value="${g}">${g}年级</option>`).join('');}
 
 /* ============ seed ============ */
-/* r117x：示例（演示）数据识别与清理。
+/* r117x→r117y：示例（演示）数据识别与防污染。
    首次打开网页会自动 seed 出示例数据；若用户随后连接云端且云端已有真实数据，
    示例数据不应被当成「用户变更」合并进仓库并反复同步。用内容指纹识别「本地仍是从示例数据、未做过真实改动」，
-   首次连接时以云端为准丢弃示例（云端空则也不上传示例），云端若混有示例则剥离后强制回写清除。 */
+   首次连接时【原样采用云端、丢弃本地示例】（云端空则也不上传示例）。
+   r117x 曾按 DEMO_NAMES 剥离云端「疑似示例」并强制回写——真实数据与示例同名时被误删（成绩页操作按键消失事故），r117y 已移除该破坏路径；
+   云端残留的示例由用户在界面手动删除（墓碑自然同步）。采用云端前先 snapshotLocal 留快照后路。 */
 function demoSigOf(st){
   st=st||S;
   try{
@@ -1656,7 +1671,7 @@ function seed(){
     {id:uid(),classId:ALL_CLASS,title:'安全教育主题班会',subject:'班会',order:1,done:true,temp:false,doneDate:'2026-07-15'},
     {id:uid(),classId:ALL_CLASS,title:'月考',subject:'',order:2,done:false,temp:false,doneDate:''}
   ];
-  S.settings={semStart:'2026-07-01',semEnd:'2027-01-31',ttCal:true,autoArchive:true,autoCats:{sem:true,teach:true,class:true,grade:true}};
+  S.settings={semStart:'2026-07-01',semEnd:'2027-01-31',ttCal:true,autoArchive:false,autoCats:{sem:false,teach:false,class:false,grade:false}}; /* r1181：默认关闭 */
   S.semesters=[
     {id:uid(),name:'2026上学期',start:'2026-07-01',end:'2027-01-31',current:true,archived:false},
     {id:uid(),name:'2026下学期',start:'2026-02-01',end:'2026-07-01',current:false,archived:true}
@@ -2433,22 +2448,27 @@ function noteEditDone(){if(document.activeElement&&document.activeElement.blur)d
 function noteEditToggleMenu(){const m=document.getElementById('note_edit_menu');if(m)m.style.display=m.style.display==='none'?'block':'none';}
 function noteEditDelete(id){S.notes=S.notes.filter(y=>y.id!==id);save();location.hash=_noteFrom;toast('已删除');}
 /* r116e：笔记/进度编辑页右滑 = 「返回」键同款语义。
-   仅在 .note-edit-page / .prog-edit-page 内起判；dx>80 / |dy|<50 / 时长<700ms；正在选中文本（textarea 划选）不触发。
+   仅在 .note-edit-page / .prog-edit-page 内起判；dx>80 / |dy|<60。
+   r1182 失灵修复：①去掉 700ms 时限（慢速滑动被误杀，是「经常失灵」主因）；②选中文本守卫改为
+   「本次触摸期间选区发生变化才拦截」——此前只要页面残留任何选区（长按选词后未取消）右滑就永久失效，
+   即「时常不保存」；③补 touchcancel 复位。
    笔记页→saveNoteEdit（保存回来源，空白丢弃）；进度页→progBack（脏=保存返回，净=取消）。 */
 (function(){
-  let _sx=0,_sy=0,_st=0,_on=false;
+  let _sx=0,_sy=0,_sel0='',_on=false;
   const SEL='.note-edit-page,.prog-edit-page';
+  const selStr=()=>(window.getSelection&&window.getSelection())?String(window.getSelection()):'';
   document.addEventListener('touchstart',e=>{
     if(!e.target.closest||!e.target.closest(SEL)){_on=false;return;}
-    _sx=e.touches[0].clientX;_sy=e.touches[0].clientY;_st=Date.now();_on=true;
+    _sx=e.touches[0].clientX;_sy=e.touches[0].clientY;_sel0=selStr();_on=true;
   },{passive:true});
+  document.addEventListener('touchcancel',()=>{_on=false;});
   document.addEventListener('touchend',e=>{
     if(!_on)return;_on=false;
     if(!document.querySelector(SEL))return;
-    const sel=(window.getSelection&&window.getSelection())?String(window.getSelection()):'';
-    if(sel)return; /* 划选文字不算滑动 */
+    const sel=selStr();
+    if(sel&&sel!==_sel0)return; /* 划选文字不算滑动（仅本次触摸新建/改动的选区才拦截，残留选区不拦截） */
     const dx=e.changedTouches[0].clientX-_sx,dy=e.changedTouches[0].clientY-_sy;
-    if(dx>80&&Math.abs(dy)<50&&Date.now()-_st<700){
+    if(dx>80&&Math.abs(dy)<60){
       if(document.querySelector('.prog-edit-page'))progBack();else saveNoteEdit();
     }
   },{passive:true});
@@ -4643,12 +4663,13 @@ function gradeMgmtHtml(){
   const hasCls=!!clsList.length;
   const IB='class="btn sm stu-ie-btn" style="flex:none;width:38px;height:38px;border-radius:99px;border:1px solid var(--border);background:#fff;padding:0;display:inline-flex;align-items:center;justify-content:center;color:#444441"';
   const addExamBtn=`<button class="btn primary sm add-spin" data-action="add-exam" onclick="spinAddBtn(this)" style="flex:none;width:38px;height:38px;border-radius:50%;padding:0;display:inline-flex;align-items:center;justify-content:center" aria-label="新增">${addIconSvg()}</button>`;
-  const actButtons=hasCls?`<div class="field row grade-mgmt-actions" style="width:fit-content;max-width:100%;flex-wrap:wrap;align-items:flex-end;gap:8px;margin:0 0 0 auto">
+  /* r117y：操作按键不再受「有无可选班级」控制，始终显示（此前无班级时整排按键被提示文字替换，用户视为按键丢失） */
+  const actButtons=`<div class="field row grade-mgmt-actions" style="width:fit-content;max-width:100%;flex-wrap:wrap;align-items:flex-end;gap:8px;margin:0 0 0 auto">
     <button ${IB} data-action="grade-del" data-lp="grade-del" id="grade_del_btn" aria-label="删除">${iconSvg('trash',16)}</button>
     <button ${IB} data-action="grade-arc" data-lp="grade-arc" id="grade_arc_btn" aria-label="归档">${iconSvg('archive',16)}</button>
     <button ${IB} data-action="grade-imp" id="grade_imp_btn" data-id="${subIdForAct}" aria-label="导入">${iconSvg('download',16)}</button>
     <button ${IB} data-action="grade-exp" data-lp="grade-exp" id="grade_exp_btn" data-id="${subIdForAct}" aria-label="导出">${iconSvg('upload',16)}</button>
-    ${addExamBtn}</div>`:'<div class="sub">暂无可选班级，请先到「班级设置」添加班级后再录入成绩。</div>';
+    ${addExamBtn}</div>${hasCls?'':'<div class="sub" style="margin-top:6px">暂无可选班级，请先到「班级设置」添加班级后再录入成绩。</div>'}`;
   // 成绩列表：当前科目（_gradeSubCol）下的全部考试，按日期倒序
   const exams=S.exams.filter(e=>!subIdForAct||e.subjectId===subIdForAct).slice().sort((a,b)=>b.date.localeCompare(a.date));
   const clsOf=e=>{const c=cls(e.classId);return c&&c.name!=='全部班级'?c.name:'';};
@@ -5411,7 +5432,7 @@ function viewSettings(){
     <div class="section-title clickable" onclick="toggleCollapse('set_semester')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('📅',22)}学期设置${curSem()?` · ${esc(curSem().name)}`:''}</span> <span class="chev"></span></div>
     <div class="collapse-body" style="display:none">
       <div class="field row" style="align-items:flex-end;margin-bottom:10px;min-width:0"><div class="field" style="margin-bottom:0;flex:1;min-width:0">${selHtml('preview_sem',previewSemSummary(),bkOpts(S.semesters.filter(s=>!s.archived).map(s=>({k:s.id,l:s.name+'（'+s.start+'~'+s.end+'）',pick:'previewSemSel'})),S._previewSem||(curSem()?curSem().id:'')))}</div><button class="btn primary sm add-spin" onclick="spinAddBtn(this);newSemester()" style="flex:none;width:38px;height:38px;border-radius:50%;padding:0;display:inline-flex;align-items:center;justify-content:center" aria-label="添加学期">${addIconSvg()}</button></div>
-      <div class="grid cols-2" style="margin-top:12px">${S.semesters.filter(s=>!s.archived).slice().sort((a,b)=>(b.start||'').localeCompare(a.start||'')).map(s=>`
+      <div class="grid cols-2" style="margin-top:12px">${S.semesters.filter(s=>!s.archived).slice().sort((a,b)=>(b.current?1:0)-(a.current?1:0)||(b.start||'').localeCompare(a.start||'')||(b.end||'').localeCompare(a.end||'')).map(s=>`
         <div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div style="display:flex;gap:12px;align-items:center">
             <span class="avatar" style="background:#4f6bed;width:40px;height:40px;font-size:18px">${iconSvg('📅',18)}</span>
@@ -5497,21 +5518,21 @@ function viewSettings(){
       <div class="section-title clickable" onclick="toggleCollapse('arc_lib')" style="font-size:15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('归档库',22)}归档库</span><span class="chev"></span></div>
       <div class="collapse-body" style="display:none">
         <div class="collapsible" id="arc_semlist" style="margin-top:2px">
-          <div class="section-title clickable" onclick="toggleCollapse('arc_semlist')" style="font-size:15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0"><span style="display:flex;align-items:center;gap:4px">${iconSvg('📅',22)}学期归档(${semCount})<input type="checkbox" ${(S.settings.autoCats||{}).sem!==false?'checked':''} onchange="toggleAutoCat('sem',this.checked)" onclick="event.stopPropagation()" class="sw"></span><span class="chev"></span></div>
+          <div class="section-title clickable" onclick="toggleCollapse('arc_semlist')" style="font-size:15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0"><span style="display:flex;align-items:center;gap:4px">${iconSvg('📅',22)}学期归档(${semCount})<input type="checkbox" ${(S.settings.autoCats||{}).sem===true?'checked':''} onchange="toggleAutoCat('sem',this.checked)" onclick="event.stopPropagation()" class="sw"></span><span class="chev"></span></div>
           <div class="collapse-body" style="display:none">
             ${(semArcRows+oldSemRows)||emptyState(iconSvg('📅',32),'还没有归档的学期')}
           </div>
         </div>
         <div class="collapsible" id="arc_teach" style="margin-top:8px">
-          <div class="section-title clickable" onclick="toggleCollapse('arc_teach')" style="font-size:15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0"><span style="display:flex;align-items:center;gap:8px"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('教学归档',22)}教学归档(${teachCount})</span><input type="checkbox" ${(S.settings.autoCats||{}).teach!==false?'checked':''} onchange="toggleAutoCat('teach',this.checked)" onclick="event.stopPropagation()" class="sw"></span><span class="chev"></span></div>
+          <div class="section-title clickable" onclick="toggleCollapse('arc_teach')" style="font-size:15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0"><span style="display:flex;align-items:center;gap:8px"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('教学归档',22)}教学归档(${teachCount})</span><input type="checkbox" ${(S.settings.autoCats||{}).teach===true?'checked':''} onchange="toggleAutoCat('teach',this.checked)" onclick="event.stopPropagation()" class="sw"></span><span class="chev"></span></div>
           <div class="collapse-body" style="display:none">${teachInner}</div>
         </div>
         <div class="collapsible" id="arc_class_list" style="margin-top:8px">
-          <div class="section-title clickable" onclick="toggleCollapse('arc_class_list')" style="font-size:15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0"><span style="display:flex;align-items:center;gap:8px"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('班级归档',22)}班级归档(${S.archives.length})</span><input type="checkbox" ${(S.settings.autoCats||{}).class!==false?'checked':''} onchange="toggleAutoCat('class',this.checked)" onclick="event.stopPropagation()" class="sw"></span><span class="chev"></span></div>
+          <div class="section-title clickable" onclick="toggleCollapse('arc_class_list')" style="font-size:15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0"><span style="display:flex;align-items:center;gap:8px"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('班级归档',22)}班级归档(${S.archives.length})</span><input type="checkbox" ${(S.settings.autoCats||{}).class===true?'checked':''} onchange="toggleAutoCat('class',this.checked)" onclick="event.stopPropagation()" class="sw"></span><span class="chev"></span></div>
           <div class="collapse-body" style="display:none">${arcRows||emptyState(iconSvg('班级归档',32),'还没有归档的班级')}</div>
         </div>
         <div class="collapsible" id="arc_grade_list" style="margin-top:8px">
-          <div class="section-title clickable" onclick="toggleCollapse('arc_grade_list')" style="font-size:15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0"><span style="display:flex;align-items:center;gap:8px"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('成绩归档',22)}成绩归档(${gArc.length})</span><input type="checkbox" ${(S.settings.autoCats||{}).grade!==false?'checked':''} onchange="toggleAutoCat('grade',this.checked)" onclick="event.stopPropagation()" class="sw"></span><span class="chev"></span></div>
+          <div class="section-title clickable" onclick="toggleCollapse('arc_grade_list')" style="font-size:15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0"><span style="display:flex;align-items:center;gap:8px"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('成绩归档',22)}成绩归档(${gArc.length})</span><input type="checkbox" ${(S.settings.autoCats||{}).grade===true?'checked':''} onchange="toggleAutoCat('grade',this.checked)" onclick="event.stopPropagation()" class="sw"></span><span class="chev"></span></div>
           <div class="collapse-body" style="display:none">${gRows||emptyState(iconSvg('成绩归档',32),'还没有归档的成绩')}</div>
         </div>
       </div>
@@ -7316,9 +7337,9 @@ function autoArchiveBySemester(){const cats=S.settings.autoCats=S.settings.autoC
   const today=todayISO();
   const added=[];
   (S.semesters||[]).forEach(s=>{if(s.end&&s.end<today){
-    if(S.settings.autoArchive!==false&&!s.autoFullArchived){archiveAllSnapshot(s.id);s.autoFullArchived=true;added.push(s.name);}
+    if(S.settings.autoArchive===true&&!s.autoFullArchived){archiveAllSnapshot(s.id);s.autoFullArchived=true;added.push(s.name);}
     if(!s.autoCatArchived){autoArchiveCategories(s);s.autoCatArchived=true;}
-    if(cats.sem!==false&&!s.autoSemArchived&&!s.current&&!s.archived){s.archived=true;s.autoSemArchived=true;}
+    if(cats.sem===true&&!s.autoSemArchived&&!s.current&&!s.archived){s.archived=true;s.autoSemArchived=true;}
   }});
   save();
   if(added.length)toast('已自动归档 '+added.length+' 个学期（结束隔天）：'+added.join('、'));}
@@ -7329,20 +7350,21 @@ function autoUpsert(arr,keyFn,obj){arr=arr||[];const k=keyFn(obj);const i=arr.fi
 function autoArchiveCategories(s){const sem=s.id;const cats=S.settings.autoCats=S.settings.autoCats||{};
   const tt=(S.ttBySem&&S.ttBySem[sem])?S.ttBySem[sem].slice():(S.timetable||[]).slice();
   const pl=(S.plan||[]).slice();
-  if(cats.sem!==false&&(tt.length||pl.length)){const saObj={id:uid(),sem,semName:s.name,start:s.start,end:s.end,archivedAt:todayISO(),auto:true,timetable:tt,plan:pl};
+  if(cats.sem===true&&(tt.length||pl.length)){const saObj={id:uid(),sem,semName:s.name,start:s.start,end:s.end,archivedAt:todayISO(),auto:true,timetable:tt,plan:pl};
     S.semArchives=autoUpsert(S.semArchives||[],o=>o.sem,saObj);}
-  if(cats.grade!==false){(S.subjects||[]).forEach(sub=>{const exs=S.exams.filter(e=>e.subjectId===sub.id);if(exs.length){const gObj={id:uid(),subjectId:sub.id,subjectName:sub.name,archivedAt:todayISO(),sem,classId:ALL_CLASS,name:archiveName(sem,ALL_CLASS,'成绩分析',sub.name),exams:exs.slice(),auto:true};
+  if(cats.grade===true){(S.subjects||[]).forEach(sub=>{const exs=S.exams.filter(e=>e.subjectId===sub.id);if(exs.length){const gObj={id:uid(),subjectId:sub.id,subjectName:sub.name,archivedAt:todayISO(),sem,classId:ALL_CLASS,name:archiveName(sem,ALL_CLASS,'成绩分析',sub.name),exams:exs.slice(),auto:true};
     S.gradeArchives=autoUpsert(S.gradeArchives,o=>o.sem+'\u0000'+o.subjectId+'\u0000'+o.classId,gObj);}});}
-  if(cats.class!==false){const active=S.classes.filter(c=>!c.archived);
+  if(cats.class===true){const active=S.classes.filter(c=>!c.archived);
   if(active.length){const clsNames=active.map(c=>c.name).join('、');const obj={id:uid(),sem,semName:s.name,name:(active.length>1?s.name+'归档':s.name+'-'+clsNames+'归档'),archivedAt:todayISO(),content:'all',classes:[],students:[],violations:[],homeworks:[],answers:[],exams:[],plan:[],courses:[],auto:true};let total=0;
     active.forEach(c=>{const snap=snapshotFor(c.id,'all');obj.classes.push({id:snap.classId,name:snap.className,count:snap.count});obj.students=obj.students.concat(snap.students);obj.violations=obj.violations.concat(snap.violations||[]);obj.homeworks=obj.homeworks.concat(snap.homeworks||[]);obj.answers=obj.answers.concat(snap.answers||[]);obj.exams=obj.exams.concat(snap.exams||[]);obj.plan=obj.plan.concat(snap.plan||[]);obj.courses=obj.courses.concat(snap.courses||[]);total+=snap.count;});
     obj.count=total;S.archives=autoUpsert(S.archives,o=>o.sem,obj);}}
-  if(cats.teach!==false){(S.courses||[]).forEach(c=>{if(!c.archived&&(c.sem===sem||!c.sem)){c.archived=true;if(!c.sem)c.sem=sem;c.arcName=archiveName(sem,c.cls,'教学进度',c.name);c.autoArc=true;}});}}
+  if(cats.teach===true){(S.courses||[]).forEach(c=>{if(!c.archived&&(c.sem===sem||!c.sem)){c.archived=true;if(!c.sem)c.sem=sem;c.arcName=archiveName(sem,c.cls,'教学进度',c.name);c.autoArc=true;}});}}
 function restoreFullArchive(id){
   const snap=(S.fullArchives=S.fullArchives||[]).find(x=>x.id===id);if(!snap)return;
   const archives=S.fullArchives; // 保留快照列表本身
   const data=JSON.parse(JSON.stringify(snap.data));
   for(const k in DEFAULTS)if(!(k in data))data[k]=JSON.parse(JSON.stringify(DEFAULTS[k])); // 补齐缺失键
+  normalizeCurSem(data); /* r1180：快照可能带多个「当前学期」 */
   Object.assign(S,data);
   S.fullArchives=archives;
   save();viewReload(curView());
@@ -7650,7 +7672,7 @@ function bkLibHtml(){const auto=(S.fullArchives=S.fullArchives||[]);
     <button class="btn sm danger" data-action="del-manual" data-id="${a.id}" title="删除" style="padding:2px 7px;border-color:transparent;background:transparent">✕</button></div></div>`).join(''):emptyStateCard(iconSvg('选择备份',32),'还没有选择备份');
   return `<div class="collapsible" id="bk_auto" style="margin-top:2px">
       <div class="section-title clickable" onclick="toggleCollapse('bk_auto')" style="font-size:14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0">
-        <span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('自动备份',22)}自动备份(${auto.length})<input type="checkbox" ${S.settings.autoArchive!==false?'checked':''} onchange="toggleAutoArchive(this.checked)" onclick="event.stopPropagation()" class="sw"></span>
+        <span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('自动备份',22)}自动备份(${auto.length})<input type="checkbox" ${S.settings.autoArchive===true?'checked':''} onchange="toggleAutoArchive(this.checked)" onclick="event.stopPropagation()" class="sw"></span>
         <span class="chev"></span>
       </div>
       <div class="collapse-body" style="display:none">${autoRows}</div></div>
@@ -7832,15 +7854,15 @@ async function cloudTest(c){
 async function cloudSyncNow(c){
   const r=await cloudPull();
   if(r.ok&&r.data){
-    // r117x：本地仍是未改动的示例数据 → 以云端为准，丢弃示例，绝不把示例合并进仓库
+    // r117y：本地仍是未改动的示例数据 → 以云端为准【原样采用，绝不按名称删任何云端数据】（同 bootCloudSync，r117x 的按名剥离已移除）
     if(isDemoOnly()){
       if(isPureDemoState(r.data)){updateCloudStatus('ok','云端为示例数据，已忽略');return;}
-      const clean=stripDemo(clone(r.data));
+      snapshotLocal('cloud-adopt');
+      const clean=clone(r.data);
       for(const k in S){if(!(k in DEFAULTS)&&!(k in clean))clean[k]=S[k];}
+      normalizeCurSem(clean); /* r1180：云端数据可能带多个「当前学期」 */
       Object.assign(S,clean);for(const k in DEFAULTS)store.set(k,S[k]);dropDemoSig();refreshSyncIds();refreshLocalTomb();
-      const hadDemo=JSON.stringify(r.data)!==JSON.stringify(clean);
-      updateCloudStatus('ok',hadDemo?'已从云端导入并清除示例数据':'已从云端导入');router();
-      if(hadDemo)await cloudPush(true);
+      updateCloudStatus('ok','已从云端导入');router();
       return;
     }
     // r93 方案 B：把远端按条目合并进本地（双方新增都保留、删除都同步），再上传合并结果保证双向收敛
@@ -7857,19 +7879,21 @@ async function bootCloudSync(){
   if(!c.enabled||!c.token||!c.owner||!c.repo||!c.path){cloudReady=true;return;}
   const r=await cloudPull();
   if(r.ok&&r.data){
-    // r117x：本地仍是未改动的示例数据 → 以云端为准，丢弃示例，绝不把示例合并进仓库
+    // r117y：本地仍是未改动的示例数据 → 以云端为准【原样采用，绝不按名称删任何云端数据】。
+    // r117x 曾在此按 DEMO_NAMES 剥离云端「疑似示例」——真实数据若与示例同名（如 高一(3)班/数学）会被误删并回写仓库，
+    // 实测导致班级被清空、成绩页操作按键消失。云端残留的示例改由用户在界面手动删除（墓碑自然同步删除）。
     if(isDemoOnly()){
-      if(isPureDemoState(r.data)){ // 云端也为纯示例：视为云端为空，互不污染，保留本地示例可见、不推送
+      if(isPureDemoState(r.data)){ // 云端也只有示例命名数据：视为云端为空，互不污染，保留本地示例可见、不推送
         cloudReady=true;updateCloudStatus('ok','已连接（云端为示例数据，已忽略）');cloudDirty=false;setCloudDirtyFlag(false);return;
       }
-      const clean=stripDemo(clone(r.data)); // 剥离云端残留的示例数据
+      snapshotLocal('cloud-adopt'); // 采用前拍快照存 localStorage('_syncBackup')，留恢复后路
+      const clean=clone(r.data);
       for(const k in S){if(!(k in DEFAULTS)&&!(k in clean))clean[k]=S[k];}
+      normalizeCurSem(clean); /* r1180：云端数据可能带多个「当前学期」 */
       Object.assign(S,clean);for(const k in DEFAULTS)store.set(k,S[k]);dropDemoSig();refreshSyncIds();refreshLocalTomb();
       const cfg=cloudCfg();cfg.lastSync=Date.now();cloudCfgSave(cfg);
-      const hadDemo=JSON.stringify(r.data)!==JSON.stringify(clean);
-      updateCloudStatus('ok',hadDemo?'已从云端导入并清除示例数据':'已从云端导入');router();
+      updateCloudStatus('ok','已从云端导入');router();
       cloudReady=true;
-      if(hadDemo)await cloudPush(true); // 强制回写，把仓库里的示例一并清掉
       return;
     }
     // r93 方案 B：启动即把云端按条目合并进本地（无论本地是否为空、哪边更新，都做并集+墓碑删除），
