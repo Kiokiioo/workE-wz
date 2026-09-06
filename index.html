@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r117u</title>
+<title>工作E · v20260902-r117x</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -1365,7 +1365,7 @@ const S={};
 const UI_LOCAL_KEYS=['_planInited'];
 function uiLocalSave(){UI_LOCAL_KEYS.forEach(k=>{if(S[k]!==undefined)store.set(k,S[k]);});}
 function uiLocalLoad(){UI_LOCAL_KEYS.forEach(k=>{const v=store.get(k,undefined);if(v!==undefined&&v!==null)S[k]=v;});}
-function load(){for(const k in DEFAULTS)S[k]=store.get(k,DEFAULTS[k]);uiLocalLoad();
+function load(){for(const k in DEFAULTS)S[k]=store.get(k,DEFAULTS[k]);uiLocalLoad();S._demoSig=store.get('_demoSig',null);
   S._drawFold=S._drawFold||{};if(S._drawFold.week!==false)S._drawFold.week=true;if(S._drawFold.older!==false)S._drawFold.older=true;
   // 迁移：为历史教学任务补上所属学期，便于按学期筛选
   const cs=curSem();if(cs&&S.plan)S.plan.forEach(p=>{if(!p.sem)p.sem=cs.id;});
@@ -1453,6 +1453,7 @@ function save(){
   }
   S._syncIds=syncIdsSnapshot(S);
   refreshLocalTomb();
+  if(S._demoSig!==undefined&&S._demoSig!==null)store.set('_demoSig',S._demoSig); /* r117x：持久化示例指纹，供跨刷新识别 */
   for(const k in DEFAULTS)store.set(k,S[k]);
   cloudDirty=true;setCloudDirtyFlag(true);scheduleCloudPush();
 }
@@ -1492,6 +1493,59 @@ function gradeStageChange(){const el=document.getElementById('cls_grade');if(!el
   el.innerHTML=arr.map(g=>`<option value="${g}">${g}年级</option>`).join('');}
 
 /* ============ seed ============ */
+/* r117x：示例（演示）数据识别与清理。
+   首次打开网页会自动 seed 出示例数据；若用户随后连接云端且云端已有真实数据，
+   示例数据不应被当成「用户变更」合并进仓库并反复同步。用内容指纹识别「本地仍是从示例数据、未做过真实改动」，
+   首次连接时以云端为准丢弃示例（云端空则也不上传示例），云端若混有示例则剥离后强制回写清除。 */
+function demoSigOf(st){
+  st=st||S;
+  try{
+    const j=(arr,fn)=>[...(arr||[])].map(fn).sort().join('|');
+    const cls=j(st.classes,c=>c.name||'');
+    const stu=j(st.students,s=>s.name||'');
+    const cou=j(st.courses,c=>c.name||'');
+    const tod=j(st.todos,t=>t.title||'');
+    const not=j(st.notes,n=>n.title||'');
+    const ex=j(st.exams,e=>e.name||'');
+    const tt=j(st.timetable,t=>(t.day+'@'+(t.period!=null?t.period:'')+'@'+(t.subject||'')));
+    const pl=j(st.plan,p=>((p.title||'')+'@'+(p.subject||'')));
+    const sb=j(st.subjects,s=>s.name||'');
+    /* 不计入 archives/semesters 等易变集合：启动时 autoArchiveBySemester 会为过期示例学期追加归档，
+       若纳入指纹则首次连接时 isDemoOnly 恒为 false，修复失效（r117x 实测踩坑） */
+    return [cls,stu,cou,tod,not,ex,tt,pl,sb].join('#');
+  }catch(e){return '';}
+}
+function demoSig(){return demoSigOf(S);}
+function isDemoOnly(){return !!S._demoSig && S._demoSig===demoSig();}
+function isPureDemoState(st){const c=stripDemo(clone(st));return (c.classes||[]).length===0&&(c.students||[]).length===0&&(c.courses||[]).length===0&&(c.todos||[]).length===0&&(c.notes||[]).length===0&&(c.exams||[]).length===0&&(c.plan||[]).length===0&&(c.subjects||[]).length===0&&(c.semesters||[]).length===0;}
+function dropDemoSig(){S._demoSig=null;store.set('_demoSig',null);}
+/* 内置示例数据按名称集合（用于首次连接时把仓库里残留的示例一并剥离清除） */
+const DEMO_NAMES={
+  classes:['高一(3)班','高二(1)班','高三(2)班','初三(5)班'],
+  students:['张明','李华','王芳','陈强','刘洋','赵静','周杰','吴敏','孙磊','周婷','郑浩','钱伟','冯雪','蒋琳','韩磊','沈悦','许阳','何静','吕强','施敏','孔杰','曹颖','严斌','华雯'],
+  courses:['高一数学','高一英语','高二物理','高三语文'],
+  subjects:['数学','英语','物理','语文'],
+  semesters:['2026上学期','2026下学期'],
+  todos:['批改第3章课后习题','备课：函数单调性教案','发家长会通知到班级群','编写单元测试卷','录制微课视频','填写教师考核表','提交教研计划','家访李华家长','约谈陈强（课堂纪律）','组织班级运动会','青春歌会彩排','办公室绿植养护','每日晨检记录','每周班会总结','每月教学月报','年度考核材料归档','月考成绩系统录入','期中考试阅卷','家长会筹备'],
+  notes:['函数单调性教案','阅读课素材收集','实验报告模板','作文批改标准'],
+  exams:['数学·第一次月考','数学·第二次月考','数学·期中考试','英语·第一次月考','英语·期中考试','物理·第一次月考','语文·期中考试'],
+  plans:['函数单调性@数学','函数最值@数学','函数应用题@数学','牛顿定律@物理','动量守恒@物理','能量守恒@物理','古诗文默写@语文','现代文阅读@语文','作文训练@语文','安全教育主题班会@班会','月考@']
+};
+function stripDemo(st){
+  try{
+    const out=clone(st);
+    (DEMO_NAMES.classes||[]).forEach(n=>{out.classes=(out.classes||[]).filter(c=>c.name!==n);});
+    (DEMO_NAMES.students||[]).forEach(n=>{out.students=(out.students||[]).filter(s=>s.name!==n);});
+    (DEMO_NAMES.courses||[]).forEach(n=>{out.courses=(out.courses||[]).filter(c=>c.name!==n);});
+    (DEMO_NAMES.subjects||[]).forEach(n=>{out.subjects=(out.subjects||[]).filter(s=>s.name!==n);});
+    (DEMO_NAMES.semesters||[]).forEach(n=>{out.semesters=(out.semesters||[]).filter(s=>s.name!==n);});
+    (DEMO_NAMES.todos||[]).forEach(n=>{out.todos=(out.todos||[]).filter(t=>t.title!==n);});
+    (DEMO_NAMES.notes||[]).forEach(n=>{out.notes=(out.notes||[]).filter(t=>t.title!==n);});
+    (DEMO_NAMES.exams||[]).forEach(n=>{out.exams=(out.exams||[]).filter(e=>e.name!==n);});
+    (DEMO_NAMES.plans||[]).forEach(n=>{out.plan=(out.plan||[]).filter(p=>((p.title||'')+'@'+(p.subject||''))!==n);});
+    return out;
+  }catch(e){return st;}
+}
 function seed(){
   const c1={id:uid(),name:'高一(3)班'},c2={id:uid(),name:'高二(1)班'},c3={id:uid(),name:'高三(2)班'},c4={id:uid(),name:'初三(5)班',archived:true};
   S.classes=[c1,c2,c3,c4];
@@ -1613,6 +1667,7 @@ function seed(){
   S.draw.drawn=['张明','李华'];
   S.seeded=true;
   S.seedVer=SEED_VER;
+  S._demoSig=demoSig(); /* r117x：记录示例数据指纹，用于首次连接云端时识别并跳过示例 */
 }
 
 /* ============ nav ============ */
@@ -2025,8 +2080,8 @@ function advanceDate(iso,rep){if(!rep)return iso;const d=new Date(iso);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 
 /* ============ 教学待办（统一：任务 + 截止日） ============ */
-function todoCatSel(val){if(val){S._todoTab=val;viewReload('todos');}}
-function todoSearch(v){S._todoSearch=v;viewReload('todos');}
+function todoCatSel(val){if(val){S._todoTab=val;if(!reloadPanelInHub('todos'))viewReload('todos');}}
+function todoSearch(v){S._todoSearch=v;if(!reloadPanelInHub('todos'))viewReload('todos');}
 /* 按截止日判断该待办属于哪个学期（落在学期 start~end 区间内）；无截止日或区间外返回 null */
 function semOfDate(iso){
   if(!iso)return null;
@@ -4811,6 +4866,7 @@ let _pendingDelExamId='';
 let _pendingRestoreFullId='';
 let _pendingManualId='';
 let _pendingRestoreArcId='';
+let _pendingDelSemId='';
 let _pendingDelArcId='';
 let _pendingCourseSem='';
 let _pendingDelCourseId='';
@@ -5347,7 +5403,7 @@ function viewSettings(){
     <button class="btn sm" data-action="exp-sem-arc" data-id="${a.id}" title="导出" style="padding:0;border:0;background:transparent;width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center">${iconSvg('upload',14)}</button>
     <button class="btn sm danger" data-action="del-sem-arc" data-id="${a.id}" title="删除" style="padding:0;border:0;background:transparent;width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:var(--danger)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div></div>`).join(''):'';
   const oldSemArc=S.semesters.filter(x=>x.archived&&!semA.some(a=>a.sem===x.id));
-  const oldSemRows=oldSemArc.length?oldSemArc.map(s=>`<div class="sch-row"><div><strong>${esc(s.name)}</strong> <span class="sch-chip">${esc(s.start)}~${esc(s.end)} · 已归档</span></div><div style="display:flex;gap:8px"><button class="btn sm" onclick="toggleSemArch('${s.id}')">撤销归档</button></div></div>`).join(''):'';
+  const oldSemRows=oldSemArc.length?oldSemArc.map(s=>`<div class="sch-row"><div><strong>${esc(s.name)}</strong> <span class="sch-chip">${esc(s.start)}~${esc(s.end)} · 已归档</span></div><div style="display:flex;gap:12px"><button class="btn sm" data-action="undo-sem-arc" data-id="${s.id}" title="恢复" style="padding:0;border:0;background:transparent;width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center">${iconSvg('loop',14)}</button><button class="btn sm" data-action="exp-sem" data-id="${s.id}" title="导出" style="padding:0;border:0;background:transparent;width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center">${iconSvg('upload',14)}</button><button class="btn sm danger" data-action="del-sem" data-id="${s.id}" title="删除" style="padding:0;border:0;background:transparent;width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:var(--danger)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg></button></div></div>`).join(''):'';
   const semCount=semA.length+oldSemArc.length;
   return `<div class="view-settings"><div class="page-head"><h1>教学设置</h1></div>
 
@@ -5733,6 +5789,16 @@ function restoreSemArc(id){const list=S.semArchives=S.semArchives||[];const a=li
   const s=S.semesters.find(x=>x.id===a.sem);if(s){s.archived=false;if(!S.semesters.some(x=>x.current))s.current=true;}
   S.semArchives=S.semArchives.filter(x=>x.id!==id);save();viewReload('settings');toast('已恢复学期归档：'+(a.semName||'')+'（学期设置、课表、教学任务已一并恢复）');}
 function delSemArc(id){S.semArchives=S.semArchives.filter(x=>x.id!==id);save();viewReload('settings');toast('已删除学期归档');}
+/* r117w：旧归档学期（archived 但未入 S.semArchives）的「彻底删除」——永久移除学期本身、其归档条目及关联课表/任务/考试快照；与「撤销归档」(恢复) 区分。 */
+function delSem(id){const s=S.semesters.find(x=>x.id===id);if(!s)return;const wasCur=!!s.current;
+  S.semesters=S.semesters.filter(x=>x.id!==id);
+  S.semArchives=S.semArchives.filter(x=>x.sem!==id);
+  S.timetable=S.timetable.filter(t=>t&&t.sem!==id);
+  S.plan=S.plan.filter(p=>p&&p.sem!==id);
+  S.exams=S.exams.filter(e=>e&&e.sem!==id);
+  if(wasCur){S.semesters.forEach(x=>x.current=false);S.timetable=[];S._previewSem='';S._ttSem='';S._planSem='';}
+  if(S._planSem===id)S._planSem='';if(S._ttSem===id)S._ttSem='';if(S._previewSem===id)S._previewSem='';
+  save();viewReload('settings');toast('已彻底删除学期：'+(s.name||''));}
 function saveTtCal(v){S.settings.ttCal=!!v;save();toast('已'+(v?'开启':'关闭')+'课表日历');}
 function toggleAutoArchive(v){S.settings.autoArchive=!!v;save();toast('已'+(v?'开启':'关闭')+'自动备份（学期内所有内容整体备份）');}
 function toggleAutoCat(k,v){S.settings.autoCats=S.settings.autoCats||{};S.settings.autoCats[k]=!!v;save();toast('已'+(v?'开启':'关闭')+({sem:'学期归档',teach:'教学归档',class:'班级归档',grade:'成绩归档'}[k]||k)+'自动归档');}
@@ -6403,7 +6469,7 @@ document.body.addEventListener('click',e=>{
     if(x.due&&daysLeft(x.due)<0)x.due=todayISO();save();viewReload(curView());toast('已重新开始');}
   else if(a==='del-todo'){S.todos=S.todos.filter(y=>y.id!==id);save();viewReload(curView());}
   else if(a==='edit-todo'){if(id){modalTodo(id);}else if(t.dataset.iso){modalTodo(null,t.dataset.iso);}else if(S._calISO){modalTodo(null,S._calISO);}else modalTodo();}
-  else if(a==='todo-tab'){S._todoTab=t.dataset.t;viewReload('todos');}
+  else if(a==='todo-tab'){S._todoTab=t.dataset.t;if(!reloadPanelInHub('todos'))viewReload('todos');}
   else if(a==='edit-course'){modalCourse(id);if(id)modalFill(id,'course');}
   else if(a==='prog-course'){goProgEdit(id);}
   else if(a==='prog-back'){progBack();}
@@ -6433,6 +6499,10 @@ document.body.addEventListener('click',e=>{
   else if(a==='do-del-grade-sem-perm'){closeModal();delGradeSemPerm(_pendingGradeSem);_pendingGradeSem='';}
   else if(a==='restore-sem-arc'){restoreSemArc(id);}
   else if(a==='del-sem-arc'){delSemArc(id);}
+  else if(a==='del-sem'){_pendingDelSemId=id;confirmModal('彻底删除学期','将永久删除学期【'+(semNameOfId(id)||'')+'】及其归档条目、关联课表/教学任务/考试，此操作不可恢复。确定继续？','do-sem-del','danger');}
+  else if(a==='do-sem-del'){closeModal();delSem(_pendingDelSemId);_pendingDelSemId='';}
+  else if(a==='undo-sem-arc'){toggleSemArch(id);}
+  else if(a==='exp-sem'){exportSem(id);}
   else if(a==='cal-prev'){calM--;if(calM<0){calM=11;calY--;}router();}
   else if(a==='cal-next'){calM++;if(calM>11){calM=0;calY++;}router();}
   else if(a==='cal-day'){openDayDetail(t.dataset.iso);}
@@ -6736,7 +6806,7 @@ function importTodos(){pickTable(sheets=>{
   const start=rows.length&&rows[0].some(c=>String(c).includes('标题'))?1:0;let added=0;
   rows.slice(start).forEach(r=>{const title=String(r[0]||'').trim();if(!title)return;
     S.todos.push({id:uid(),type:'task',title,cat:String(r[1]||'其他').trim(),pri:String(r[2]||'中').trim(),status:String(r[3]||'active').trim(),due:String(r[4]||'').trim(),note:''});added++;});
-  save();viewReload('todos');toast('导入 '+added+' 条待办');});}
+  save();if(!reloadPanelInHub('todos'))viewReload('todos');toast('导入 '+added+' 条待办');});}
 
 /* 成绩管理 删除/归档/导出 模式状态机：删除 - 归档 - 导入 - 导出 - 添加（导入/添加 仅按钮响应；勾选仅作用于删除/归档/导出 三种模式）*/
 let GRADE_IE_MODE=null;            /* null | 'delete' | 'archive' | 'export' */
@@ -7114,9 +7184,9 @@ function todoEnterDelete(){
   if(TODO_MODE)clearTodoIeMode();
   TODO_MODE='delete';const b=document.getElementById('todo_del_btn');if(b)b.classList.add('active');
   toast('删除模式：勾选待办后再次点击删除执行所选（长按要求删除全部待办）');}
-function doTodoDelSel(){closeModal();const ids=_todoDelSelPending||[];_todoDelSelPending=null;S.todos=S.todos.filter(t=>!ids.includes(t.id));save();viewReload('todos');toast('已删除 '+ids.length+' 条教学待办');}
+function doTodoDelSel(){closeModal();const ids=_todoDelSelPending||[];_todoDelSelPending=null;S.todos=S.todos.filter(t=>!ids.includes(t.id));save();if(!reloadPanelInHub('todos'))viewReload('todos');toast('已删除 '+ids.length+' 条教学待办');}
 function todoDeleteAll(){_todoDelAllPending=true;confirmModal('删除全部教学待办','确定删除全部 '+S.todos.length+' 条教学待办？此操作不可恢复！','do-todo-del-all','danger');}
-function doTodoDelAll(){closeModal();S.todos=[];save();viewReload('todos');toast('已删除全部教学待办');}
+function doTodoDelAll(){closeModal();S.todos=[];save();if(!reloadPanelInHub('todos'))viewReload('todos');toast('已删除全部教学待办');}
 /* 默认导入所有相关内容：识别「学生/违纪/作业/答题」sheet 全量导入，按姓名互链；单 sheet 回退为纯名单 */
 function importClass(cid){pickTable(sheets=>applyImportClass(sheets,cid));}
 function applyImportClass(sheets,cid){
@@ -7308,6 +7378,13 @@ function exportSemArc(id){const a=(S.semArchives=S.semArchives||[]).find(x=>x.id
   if(pl.length){const rows=[['班级','科目','任务','已完成'],...pl.map(p=>[classNameOf(p.classId),p.subject||'',p.title,p.done?'是':'否'])];sheets.push({name:'教学任务',rows});csv.push(toCsv(rows));}
   if(!sheets.length){toast('该归档没有可导出的内容');return;}
   doExport((a.semName||'')+'归档',sheets,csv.join('\n'));}
+/* r117w：旧归档学期（archived 但未入 S.semArchives）导出——导出该学期当前关联的课表/任务 */
+function exportSem(id){const s=S.semesters.find(x=>x.id===id);if(!s)return;
+  const tt=(S.timetable||[]).filter(t=>t&&t.sem===id),pl=(S.plan||[]).filter(p=>p&&p.sem===id);const sheets=[],csv=[];
+  if(tt.length){const rows=[['星期','节次','时间','科目','班级'],...tt.map(t=>['周'+(WD[t.day]||''),t.period,t.time||'',t.subject,classNameOf(t.classId)])];sheets.push({name:'课表',rows});csv.push(toCsv(rows));}
+  if(pl.length){const rows=[['班级','科目','任务','已完成'],...pl.map(p=>[classNameOf(p.classId),p.subject||'',p.title,p.done?'是':'否'])];sheets.push({name:'教学任务',rows});csv.push(toCsv(rows));}
+  if(!sheets.length){toast('该学期没有可导出的课表/任务');return;}
+  doExport((s.name||'')+'_导出',sheets,csv.join('\n'));}
 function exportCourseArc(id){const c=S.courses.find(x=>x.id===id);if(!c)return;
   const sheets=[{name:'课程',rows:[['学期','班级','课程','进度%'],[[semNameOfId(c.sem)||'',c.cls||'',c.name,courseProgress(c)+'%']]]}];
   if((c.progressLog||[]).length)sheets.push({name:'进度记录',rows:[['日期','进度%','备注'],...(c.progressLog||[]).map(l=>[l.date||'',(l.pct!=null?l.pct+'%':''),l.note||''])]});
@@ -7631,6 +7708,7 @@ function ghFetch(url,opts,ms){
   if(ctl)o.signal=ctl.signal;
   return fetch(url,o).finally(()=>{if(t)clearTimeout(t);});
 }
+function ghErrMsg(e){const m=(e&&e.message)||'';if((e&&e.name==='AbortError')||/abort/i.test(m))return '请求超时（网络慢或无连接），请重试';return m||'网络错误';} /* r117v：AbortController 超时 abort 的原始报错（含仅存 message 字符串的路径）对用户不可读，统一转译 */
 function updateCloudStatus(state,msg){
   const el=document.getElementById('cloud_status');if(!el)return;
   el.textContent=msg||(state==='pulling'?'同步中…':state==='ok'?'已同步':state==='error'?'同步错误':'');
@@ -7674,12 +7752,13 @@ async function cloudPull(){
     const raw=b64dec((g.content||'').replace(/\s/g,''));
     const data=await gzParse(raw);
     return {ok:true,data,sha:g.sha};
-  }catch(e){return {ok:false,reason:e.message};}
+  }catch(e){return {ok:false,reason:ghErrMsg(e)};}
   finally{cloudPulling=false;}
 }
-async function cloudPush(){
+async function cloudPush(force){
   const c=cloudCfg();
   if(!c.enabled||!c.token||!c.owner||!c.repo||!c.path)return;
+  if(isDemoOnly()){cloudDirty=false;setCloudDirtyFlag(false);updateCloudStatus('ok','已连接（示例数据不同步）');return;} // r117x：仅示例数据不推上云，避免污染仓库
   if(cloudPushing){scheduleCloudPush();return;}  // 防并发：推送在途则重新排队，避免慢网下丢写
   cloudPushing=true;
   updateCloudStatus('pulling','同步中…');
@@ -7690,7 +7769,7 @@ async function cloudPush(){
       const g=await cloudGetSha(c);              // 每次都重新取最新 sha，规避 409
       // r93 方案 B：推送前先把远端合并进本地（按 id 并集 + 墓碑删除），绝不整体覆盖，
       // 因此「远端新增/删除」与「本地新增/删除」都不会在上传时被丢弃，双向收敛。
-      if(g.exists && g.content){
+      if(!force && g.exists && g.content){
         try{
           const rd=await gzParse(b64dec((g.content||'').replace(/\s/g,'')));
           const m=mergeState(S,rd);
@@ -7729,7 +7808,7 @@ async function cloudPush(){
   }
   }finally{cloudPushing=false;}   /* r104：finally 兜底，任何异常路径都不让 cloudPushing 卡死堵住轮询 */
   if(!pushed){
-    updateCloudStatus('error','同步失败：'+(lastErr||'未知错误'));toast('云端同步失败：'+(lastErr||'未知错误'));
+    updateCloudStatus('error','同步失败：'+ghErrMsg({name:'',message:lastErr||''}));toast('云端同步失败：'+ghErrMsg({name:'',message:lastErr||''}));
     scheduleCloudPush();   // 本次彻底失败也再排一次重试，避免「不再编辑就永不重推」
   }
 }
@@ -7748,11 +7827,22 @@ async function cloudTest(c){
     if(r.ok){updateCloudStatus('ok','连接成功：仓库可访问');toast('连接成功');}
     else if(r.status===404)throw new Error('仓库不存在或无权限');
     else throw new Error('HTTP '+r.status);
-  }catch(e){updateCloudStatus('error','连接失败：'+e.message);toast('连接失败：'+e.message);}
+  }catch(e){const m=ghErrMsg(e);updateCloudStatus('error','连接失败：'+m);toast('连接失败：'+m);}
 }
 async function cloudSyncNow(c){
   const r=await cloudPull();
   if(r.ok&&r.data){
+    // r117x：本地仍是未改动的示例数据 → 以云端为准，丢弃示例，绝不把示例合并进仓库
+    if(isDemoOnly()){
+      if(isPureDemoState(r.data)){updateCloudStatus('ok','云端为示例数据，已忽略');return;}
+      const clean=stripDemo(clone(r.data));
+      for(const k in S){if(!(k in DEFAULTS)&&!(k in clean))clean[k]=S[k];}
+      Object.assign(S,clean);for(const k in DEFAULTS)store.set(k,S[k]);dropDemoSig();refreshSyncIds();refreshLocalTomb();
+      const hadDemo=JSON.stringify(r.data)!==JSON.stringify(clean);
+      updateCloudStatus('ok',hadDemo?'已从云端导入并清除示例数据':'已从云端导入');router();
+      if(hadDemo)await cloudPush(true);
+      return;
+    }
     // r93 方案 B：把远端按条目合并进本地（双方新增都保留、删除都同步），再上传合并结果保证双向收敛
     const m=mergeState(S,r.data);
     const changed=JSON.stringify(m)!==JSON.stringify(S);
@@ -7767,6 +7857,21 @@ async function bootCloudSync(){
   if(!c.enabled||!c.token||!c.owner||!c.repo||!c.path){cloudReady=true;return;}
   const r=await cloudPull();
   if(r.ok&&r.data){
+    // r117x：本地仍是未改动的示例数据 → 以云端为准，丢弃示例，绝不把示例合并进仓库
+    if(isDemoOnly()){
+      if(isPureDemoState(r.data)){ // 云端也为纯示例：视为云端为空，互不污染，保留本地示例可见、不推送
+        cloudReady=true;updateCloudStatus('ok','已连接（云端为示例数据，已忽略）');cloudDirty=false;setCloudDirtyFlag(false);return;
+      }
+      const clean=stripDemo(clone(r.data)); // 剥离云端残留的示例数据
+      for(const k in S){if(!(k in DEFAULTS)&&!(k in clean))clean[k]=S[k];}
+      Object.assign(S,clean);for(const k in DEFAULTS)store.set(k,S[k]);dropDemoSig();refreshSyncIds();refreshLocalTomb();
+      const cfg=cloudCfg();cfg.lastSync=Date.now();cloudCfgSave(cfg);
+      const hadDemo=JSON.stringify(r.data)!==JSON.stringify(clean);
+      updateCloudStatus('ok',hadDemo?'已从云端导入并清除示例数据':'已从云端导入');router();
+      cloudReady=true;
+      if(hadDemo)await cloudPush(true); // 强制回写，把仓库里的示例一并清掉
+      return;
+    }
     // r93 方案 B：启动即把云端按条目合并进本地（无论本地是否为空、哪边更新，都做并集+墓碑删除），
     // 再上传合并结果，保证「A 端输入→关闭 B 重开 B 即见 A 内容」以及「A 删的 B 也删」。
     const m=mergeState(S,r.data);
@@ -7777,6 +7882,9 @@ async function bootCloudSync(){
     cloudReady=true;
     await cloudPush();   // 把合并结果回写云端，确保双向收敛
   }else if(r.empty){
+    if(isDemoOnly()){ // 云端为空且本地仅示例：不把示例推上云，保留本地示例可见
+      cloudReady=true;updateCloudStatus('ok','已连接（云端暂无数据）');cloudDirty=false;setCloudDirtyFlag(false);return;
+    }
     cloudReady=true;updateCloudStatus('pulling','初始化上传…');await cloudPush();
   }else{
     updateCloudStatus('error','云端连接失败：'+(r.reason||''));toast('云端同步未连接：'+(r.reason||''));cloudReady=true;
