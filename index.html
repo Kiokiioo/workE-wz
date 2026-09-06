@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1199</title>
+<title>工作E · v20260902-r1202</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -3409,13 +3409,15 @@ function renderGradesBody(){const b=document.getElementById('grade_body');if(b)b
 }
 function gradeRow2Html(ev){const v=S._gradeView||'trend';if(v==='cmp'||v==='mgmt')return '';if(!ev)return '';if(v==='subject')return gradeTopStat();return gradeEventStat(ev);}
 function gradeEventStat(ev){
-  const f=gradeClassFilter();const names=new Set();ev.exams.forEach(e=>Object.keys(e.scores).forEach(n=>{if(!f||f.has(n))names.add(n);}));
+  /* r1201：优秀/未及格按单科计算；选了具体科目（_gradeSubCol）只统计该科目 */
+  const exs=ev.exams.filter(e=>(!S._gradeSubCol||e.subjectId===S._gradeSubCol)&&examClsOk(e));
+  const f=gradeClassFilter();const names=new Set();exs.forEach(e=>Object.keys(e.scores).forEach(n=>{if(!f||f.has(n))names.add(n);}));
   const list=[...names];if(!list.length)return '';
-  const ns=ev.subjects.length||1;const tot={};list.forEach(n=>{let s=0;ev.exams.forEach(e=>{if(e.scores[n]!=null)s+=e.scores[n];});tot[n]=s;});
-  const avgArr=list.map(n=>tot[n]/ns);const mean=avgArr.reduce((a,b)=>a+b,0)/avgArr.length;
-  /* 考试事件维度：优秀/未及格基于学生跨科目平均分，满分恒100（平均分维度当量） */
-  const _hi=Math.round(100*0.8),_lo=Math.round(100*0.6);
-  const excel=avgArr.filter(v=>v>=_hi).length,fail=avgArr.filter(v=>v<_lo).length;
+  /* r1200：每生平均分只除以实际有分的科目数（缺考不再拉低均值）；优秀/未及格=有任一条成绩达阈值的学生数（与弹窗逐条明细同口径，阈值按各科满分） */
+  let sum=0,cnt=0;list.forEach(n=>{let s=0,c=0;exs.forEach(e=>{if(e.scores[n]!=null){s+=e.scores[n];c++;}});if(c){sum+=s/c;cnt++;}});
+  const mean=cnt?sum/cnt:0;
+  const recs0=[];list.forEach(n=>exs.forEach(e=>{const sc=e.scores[n];if(sc==null)return;const _fs=fullScore(examStage(e),subjName(e.subjectId));recs0.push({n,sc,hi:Math.round(_fs*0.8),lo:Math.round(_fs*0.6)});}));
+  const excel=new Set(recs0.filter(r=>r.sc>=r.hi).map(r=>r.n)).size,fail=new Set(recs0.filter(r=>r.sc<r.lo).map(r=>r.n)).size;
   return `<div class="statsq event" style="margin-bottom:16px">
     <div class="sq big avg" style="grid-column:1/span 2;grid-row:1/span 2"><div class="n">${mean?mean.toFixed(1):'—'}</div><div class="l">平均分</div><div class="l" style="font-weight:600">${esc(ev.name)}</div></div>
     <div class="sq big ref" style="grid-column:3/span 2;grid-row:1/span 2"><div class="n">${list.length}</div><div class="l">参考人数</div></div>
@@ -3571,9 +3573,9 @@ function subjScopeGroups(sid){
   let exs;
   if(ev&&ev.exams&&ev.exams.length){
     const evExSet=new Set(ev.exams.map(x=>x.id));
-    exs=S.exams.filter(e=>e.subjectId===sid&&evExSet.has(e.id));
+    exs=S.exams.filter(e=>e.subjectId===sid&&evExSet.has(e.id)&&examClsOk(e));
   }else{
-    exs=S.exams.filter(e=>e.subjectId===sid);
+    exs=S.exams.filter(e=>e.subjectId===sid&&examClsOk(e));
   }
   const eventKey=e=>(e.name||'')+'\u241F'+(e.sem||'')+'\u241F'+(e.date||'');
   const groups=new Map();
@@ -4688,6 +4690,8 @@ function gradeClassFilter(){const cid=S._gradeClass;
   const q=(S._gradeSearch||'').trim().toLowerCase();
   if(q)names=names.filter(n=>n.toLowerCase().includes(q));
   return new Set(names);}
+/* r1202：班级识别守卫——选了具体班级时，只认该班的考试记录（classId 空=全部班级，人人适用）；防同名学生串班 */
+function examClsOk(e){const cid=S._gradeClass;if(!cid||cid===ALL_CLASS)return true;return !e.classId||e.classId===cid;}
 function gradeMgmtHtml(){
   S._gradeSelectMode=false;
   const subIdForAct=S._gradeSubCol||(S.subjects&&S.subjects[0]&&S.subjects[0].id)||'';
@@ -5053,7 +5057,7 @@ function gradeSubjStatNames(type){
   const _fs=fullScore(examStage(groupList[groupList.length-1]?groupList[groupList.length-1].rep:null),subjName(subId));
   const sub=subj(subId);
   const byNameExam=(a,b)=>a.n.localeCompare(b.n,'zh')||a.e.date.localeCompare(b.e.date)||b.sc-a.sc;
-  const rowHtml=x=>`<div class="rec" style="display:flex;align-items:center;gap:8px"><div style="flex:0 0 50px;width:50px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.n)}</div><div style="flex:1;min-width:0;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.e.name||'')}</div><div style="flex:0 0 40px;width:40px;text-align:center;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(subjName(x.e.subjectId)||'')}</div><div style="flex:0 0 60px;width:60px;text-align:center;font-weight:600;color:${type==='fail'?'var(--danger)':'var(--ok)'}">${x.sc}</div></div>`;
+  const rowHtml=x=>`<div class="rec" style="display:flex;align-items:center;gap:8px"><div style="flex:0 0 50px;width:50px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.n)}</div><div style="flex:1;min-width:0;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.e.name||'')}</div><div style="flex:0 0 40px;width:40px;text-align:center;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(subjName(x.e.subjectId)||'')}</div><div style="flex:0 0 40px;width:40px;text-align:center;font-weight:600;color:${type==='fail'?'var(--danger)':'var(--ok)'}">${x.sc}</div></div>`;
   const scopeLbl=S._gradeEvent?(evTitle(gradeEventById(S._gradeEvent))||''):'全部考试';
   if(type==='fail'){const _lo=Math.round(_fs*0.6);const list=recs.filter(x=>x.sc<_lo).sort((a,b)=>byNameExam(a,b));
     const html=list.map(rowHtml).join('');
@@ -5070,17 +5074,18 @@ function gradeStatNames(eid,type){const e=S.exams.find(x=>x.id===eid);if(!e)retu
   openModal(title,list.length?`<div class="timeline">${list.join('')}</div>`:'<div class="empty"><div class="em-ic">📭</div>没有符合条件的学生</div>');}
 function gradeEventStatNames(evId,type){
   const ev=gradeEventById(evId);if(!ev)return;
-  const f=gradeClassFilter();const names=new Set();ev.exams.forEach(e=>Object.keys(e.scores).forEach(n=>{if(!f||f.has(n))names.add(n);}));
-  const list=[...names];if(!list.length){openModal(type==='fail'?'不及格人数':'优秀人数','<div class="empty"><div class="em-ic">📭</div>没有成绩数据</div>');return;}
-  const ns=ev.subjects.length||1;const tot={};list.forEach(n=>{let s=0;ev.exams.forEach(e=>{if(e.scores[n]!=null)s+=e.scores[n];});tot[n]=s;});
-  const avgArr=list.map(n=>tot[n]/ns);
-  const _hi=Math.round(100*0.8),_lo=Math.round(100*0.6);
-  let rows=[],title='';
-  if(type==='fail'){title='不及格人数（平均分<'+_lo+'）';rows=list.filter((n,i)=>avgArr[i]<_lo).map((n,i)=>({n,avg:avgArr[i]})).sort((a,b)=>a.avg-b.avg);}
-  else{title='优秀人数（平均分≥'+_hi+'）';rows=list.filter((n,i)=>avgArr[i]>=_hi).map((n,i)=>({n,avg:avgArr[i]})).sort((a,b)=>b.avg-a.avg);}
-  const rowHtml=o=>`<div class="rec" style="display:flex;align-items:center;gap:8px"><div style="flex:0 0 50px;width:50px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(o.n)}</div><div style="flex:1;min-width:0;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(ev.name||'')}</div><div style="flex:0 0 40px;width:40px;text-align:center;color:var(--text-2)">${ev.subjects.length||1}科</div><div style="flex:0 0 60px;width:60px;text-align:center;font-weight:600;color:${type==='fail'?'var(--danger)':'var(--ok)'}">${o.avg.toFixed(1)}</div></div>`;
-  const html=rows.length?rows.map(rowHtml).join(''):'<div class="empty"><div class="em-ic">📭</div>没有符合条件的学生</div>';
-  openModal(title,`<div class="timeline">${html}</div>`,290);}
+  /* r1201：选了具体科目只列该科目（_gradeSubCol，''=全部科目） */
+  const subSel=S._gradeSubCol||'';
+  const exs=ev.exams.filter(e=>(!subSel||e.subjectId===subSel)&&examClsOk(e));
+  const f=gradeClassFilter();const names=new Set();exs.forEach(e=>Object.keys(e.scores).forEach(n=>{if(!f||f.has(n))names.add(n);}));
+  if(!names.size){openModal(type==='fail'?'未及格':'优秀','<div class="empty"><div class="em-ic">📭</div>没有成绩数据</div>');return;}
+  /* r1200：逐条成绩明细，阈值按各科满分（与方块人数同口径）；行=姓名-考试-科目-分数 */
+  const recs=[];names.forEach(n=>exs.forEach(e=>{const sc=e.scores[n];if(sc==null)return;const _fs=fullScore(examStage(e),subjName(e.subjectId));recs.push({n,e,sc,hi:Math.round(_fs*0.8),lo:Math.round(_fs*0.6)});}));
+  const rows=(type==='fail'?recs.filter(r=>r.sc<r.lo):recs.filter(r=>r.sc>=r.hi))
+    .sort((a,b)=>a.n.localeCompare(b.n,'zh')||a.e.date.localeCompare(b.e.date)||b.sc-a.sc);
+  const rowHtml=o=>`<div class="rec" style="display:flex;align-items:center;gap:8px"><div style="flex:0 0 50px;width:50px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(o.n)}</div><div style="flex:1;min-width:0;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(o.e.name||'')}</div><div style="flex:0 0 40px;width:40px;text-align:center;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(subjName(o.e.subjectId)||'')}</div><div style="flex:0 0 40px;width:40px;text-align:center;font-weight:600;color:${type==='fail'?'var(--danger)':'var(--ok)'}">${o.sc}</div></div>`;
+  const title=(type==='fail'?'未及格':'优秀')+(subSel?' · '+esc(subjName(subSel)||''):'')+' · '+esc(ev.name||'');
+  openModal(title,rows.length?`<div class="timeline">${rows.map(rowHtml).join('')}</div>`:'<div class="empty"><div class="em-ic">📭</div>没有符合条件的学生</div>',290);}
 function editScore(eid,name){const e=S.exams.find(x=>x.id===eid);if(!e)return;const cur=e.scores[name];
   openModal('修改成绩 · '+esc(name),`<form data-form="edit-score" data-eid="${eid}" data-name="${esc(name)}">
   ${field('分数','<input type="number" name="sc" value="'+(cur!=null?cur:'')+'">')}
