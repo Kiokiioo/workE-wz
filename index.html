@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1188</title>
+<title>工作E · v20260902-r1191</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -321,8 +321,7 @@ a{color:inherit;text-decoration:none}
 .home-todo-list{padding:2px 0}
 /* 首页教学待办卡片底部「全部」按钮：高度 16、圆角 99、小字号（覆盖 .btn.sm 的 padding/字号） */
 .btn.sm.home-todo-more{height:16px;padding:0 10px;box-sizing:border-box;font-size:11px;line-height:1;border-radius:99px;gap:0}
-/* 学期卡片「设为当前」按钮：高度 18、圆角 99（覆盖 .btn.sm 的 padding/字号） */
-.btn.sm.set-cur-sem{height:18px;padding:0 10px;box-sizing:border-box;font-size:11px;line-height:1;border-radius:99px;gap:0}
+/* 学期卡片「设为当前」图标键（r1189）：跟随标题行内联，无独立样式 */
 .ht-row{display:flex;align-items:center;gap:7px;padding:7px 2px;border-bottom:1px dashed var(--border);font-size:13px;cursor:pointer;white-space:nowrap;overflow:hidden;transition:background .14s ease}
 .ht-row:active{background:var(--primary-soft)}
 .ht-row:last-child{border-bottom:none}
@@ -2858,6 +2857,9 @@ p['搜索']='<circle cx="10.5" cy="10.5" r="7"/><path d="M10.5 6.6a3.9 3.9 0 0 1
   p['arrow-left']='<line x1="19" y1="12" x2="5" y2="12"/><polyline points="11 18 5 12 11 6"/>';
   p['more']='<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>';
   p['chev-down']='<polyline points="6 9 12 15 18 9"/>';
+  /* 学期「设为当前/当前」两态定位针（2026-09-06 落库，用户选定方案）：设为当前=灰描边空心针（内空圈）；当前=蓝实心针+白对勾 */
+  p['设为当前针']='<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>';
+  p['当前针']='<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" fill="#D65C5C" stroke="#D65C5C"/><polyline points="9.8 10 11.4 11.6 14.4 8.2" fill="none" stroke="#FFFFFF" stroke-width="2"/>';
   /* emoji 自识别：传入 emoji 字符自动解析为 SVG（当前仅试点 📅） */
   var _e2n={'📅':'日历'};
   for(var k in _e2n){if(p[_e2n[k]]&&!p[k])p[k]=p[_e2n[k]];}
@@ -3530,7 +3532,7 @@ function gradeScoreHtml(ev){
     <th class="c-name" data-action="grade-score-sort" data-k="name" style="cursor:pointer${st.key==='name'?';color:var(--primary);font-weight:700':''}">学生${st.key==='name'?(st.dir==='asc'?' ▲':' ▼'):''}</th>
     ${subTh}
     <th class="c-total" data-action="grade-score-sort" data-k="total" style="cursor:pointer${st.key==='total'?';color:var(--primary);font-weight:700':''}">总分${st.key==='total'?(st.dir==='asc'?' ▲':' ▼'):''}</th><th class="c-trk" style="color:var(--text-2);font-weight:400;font-size:12px">排名</th></tr>`;
-  const rows=list.map(n=>{const cid0=stuByName(n)?stuByName(n).classId:'';const lpSid=subs[0]||'';const lpEv=`onpointerdown="lpSubjStuStart('${esc(n)}',event,'${esc(lpSid)}')" onpointerup="lpSubjStuCancel()" onpointerleave="lpSubjStuCancel()"`;const lpAttrs=lpEv+` style="cursor:pointer"`;const subCells=subs.map((sid,i)=>{const o=subExams[i];const e=pickSubExam(o,n);let sc=e?e.scores[n]:null;const rkMap=o.rk;const rk=rkMap?rkMap[n]:null;const pe=(prevPickByStu[n]||{})[sid];const ps=pe?pe.scores[n]:null;let ar='';if(ps!=null&&sc!=null){const d=sc-ps;const dim=Math.abs(d)<=5?'opacity:.7':'';if(d>0)ar='<span style="color:var(--ok);font-size:10px;margin-left:2px;'+dim+'">▲</span>';else if(d<0)ar='<span style="color:var(--danger);font-size:10px;margin-left:2px;'+dim+'">▼</span>';}if(sc!=null)sc=sc+ar;if(sc==null)return `<td>—</td><td>—</td>`;return `<td class="c-sub" ${lpAttrs}>${sc}</td><td class="c-rk" style="color:var(--text-2)">${rk!=null?rk:'—'}</td>`;}).join('');return `<tr data-name="${esc(n)}"><td class="c-cls" style="text-align:left">${esc(classNameOf(cid0))}</td><td class="c-name" style="font-weight:700" ${lpAttrs}>${esc(n)}</td>${subCells}<td class="c-total" style="font-weight:700;cursor:pointer" ${lpEv}>${tot[n]}</td><td class="c-trk">${totalRank[n]!=null?totalRank[n]:'—'}</td></tr>`;}).join('');
+  const rows=list.map(n=>{const cid0=stuByName(n)?stuByName(n).classId:'';const lpSid=subs[0]||'';const lpEv=`onpointerdown="lpSubjStuStart('${esc(n)}',event,'${esc(lpSid)}')" onpointerup="lpSubjStuCancel()" onpointerleave="lpSubjStuCancel()"`;const lpAttrs=lpEv+` style="cursor:pointer"`;const subCells=subs.map((sid,i)=>{const o=subExams[i];const e=pickSubExam(o,n);let sc=e?e.scores[n]:null;const rkMap=o.rk;const rk=rkMap?rkMap[n]:null;const pe=(prevPickByStu[n]||{})[sid];const ps=pe?pe.scores[n]:null;let ar='';if(ps!=null&&sc!=null){const d=sc-ps;const dim=Math.abs(d)<=5?'opacity:.4':'';if(d>0)ar='<span style="color:var(--ok);font-size:10px;margin-left:2px;'+dim+'">▲</span>';else if(d<0)ar='<span style="color:var(--danger);font-size:10px;margin-left:2px;'+dim+'">▼</span>';}if(sc!=null)sc=sc+ar;if(sc==null)return `<td>—</td><td>—</td>`;return `<td class="c-sub" ${lpAttrs}>${sc}</td><td class="c-rk" style="color:var(--text-2)">${rk!=null?rk:'—'}</td>`;}).join('');return `<tr data-name="${esc(n)}"><td class="c-cls" style="text-align:left">${esc(classNameOf(cid0))}</td><td class="c-name" style="font-weight:700" ${lpAttrs}>${esc(n)}</td>${subCells}<td class="c-total" style="font-weight:700;cursor:pointer" ${lpEv}>${tot[n]}</td><td class="c-trk">${totalRank[n]!=null?totalRank[n]:'—'}</td></tr>`;}).join('');
   const hint='';
   /* r86：长按绑定「姓名 / 分数 / 总分」三处；整行 <tr> 不绑（防左右滑误触）。
      班级/单科排名/总排名 格保持无长按。 */
@@ -5455,14 +5457,12 @@ function viewSettings(){
       <div class="grid cols-2" style="margin-top:12px">${S.semesters.filter(s=>!s.archived).slice().sort((a,b)=>(b.current?1:0)-(a.current?1:0)||(b.start||'').localeCompare(a.start||'')||(b.end||'').localeCompare(a.end||'')).map(s=>`
         <div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div style="display:flex;gap:12px;align-items:center">
-            <span class="avatar" style="background:#4f6bed;width:40px;height:40px;font-size:18px">${iconSvg('📅',18)}</span>
-            <div><h3 style="margin:0;line-height:1">${esc(s.name)}${s.current?' <span style="font-size:11px;font-weight:600;color:#2e7d4f;background:#e6f4ea;border:1px solid #bfe3cb;border-radius:99px;padding:1px 8px;vertical-align:middle">当前</span>':''}</h3><div class="sub" style="font-size:12px;line-height:1;margin-top:2px">${esc(s.start)}~${esc(s.end)}</div></div></div>
+            <span class="avatar" style="background:${s.current?'#D65C5C':'#4f6bed'};width:40px;height:40px;font-size:18px">${iconSvg('📅',18)}</span>
+            <div><h3 style="margin:0;line-height:1">${esc(s.name)}${s.current?`<span title="当前" aria-label="当前" style="display:inline-flex;vertical-align:bottom;margin-left:4px">${iconSvg('当前针',18)}</span>`:`<button type="button" onclick="setCurSem('${s.id}')" title="设为当前" aria-label="设为当前" style="border:0;background:transparent;padding:2px;margin-left:4px;color:#444441;cursor:pointer;vertical-align:bottom;display:inline-flex">${iconSvg('设为当前针',18)}</button>`}</h3><div class="sub" style="font-size:12px;line-height:1;margin-top:6px">${esc(s.start)}~${esc(s.end)}</div></div></div>
           <div class="row-actions" style="opacity:1;gap:12px">
             <button class="ic-btn-del" type="button" data-action="del-sem" data-id="${s.id}" title="删除" aria-label="删除">${iconSvg('x',10)}</button>
             <button class="ic-btn" type="button" onclick="toggleSemArch('${s.id}')" title="归档" aria-label="归档">${iconSvg('archive',10)}</button>
-            <button class="ic-btn" type="button" data-action="edit-sem" data-id="${s.id}" title="修改" aria-label="修改">${iconSvg('edit',10)}</button></div></div>
-          <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px">
-            ${s.current?'':`<button class="btn sm set-cur-sem" onclick="setCurSem('${s.id}')">设为当前</button>`}</div></div>`).join('')}
+            <button class="ic-btn" type="button" data-action="edit-sem" data-id="${s.id}" title="修改" aria-label="修改">${iconSvg('edit',10)}</button></div></div></div>`).join('')}
       </div>
     </div>
   </div>
