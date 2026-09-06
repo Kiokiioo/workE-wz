@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1185</title>
+<title>工作E · v20260902-r1188</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -1722,7 +1722,16 @@ function setActive(r){
 const VIEWS={home:viewHome,todos:viewTodos,courses:viewCourses,notes:viewNotes,note:viewNote,prog:viewProgEdit,
   students:viewStudents,reviews:viewReviews,grades:viewGrades,settings:viewSettings,teach:viewTeach};
 let _prevRoute='';
-function router(){if(DEL_MODE){const b=document.getElementById(DEL_MODE.btnId);if(b)b.classList.remove('active');DEL_MODE=null;}
+let _editLeaveAt=0; /* r1187：编辑页经应用内路径（返回键/右滑/取消）离开时置位；router 据此跳过绕行拦截，防重复保存 */
+function router(){
+  /* r1187：iOS 左缘「完全右滑」会被浏览器返回手势接管——直接 history back 改 hash 绕过返回键，
+     页面切回列表但内容没保存（用户报「完全右滑回页面无法保存」）。在 router 重渲染前拦截：
+     编辑页 DOM 仍挂载且 hash 已离开 → 执行返回键同款语义（笔记=保存或空白丢弃；进度=脏保存/净取消）。 */
+  if(Date.now()-_editLeaveAt>350){
+    if(document.querySelector('.note-edit-page')&&!/^#note(\/|$)/.test(location.hash||''))saveNoteEdit();
+    else if(document.querySelector('.prog-edit-page')&&!/^#prog(\/|$)/.test(location.hash||''))progBack();
+  }
+  if(DEL_MODE){const b=document.getElementById(DEL_MODE.btnId);if(b)b.classList.remove('active');DEL_MODE=null;}
   let r=location.hash.slice(1)||'home';let _np='';const _sl=r.indexOf('/');if(_sl>=0){_np=r.slice(_sl+1);r=r.slice(0,_sl);}if(!VIEWS[r]){location.hash='home';return;}
   /* 重新进入成绩页：视图与筛选重置为「趋势」tab 的默认（全部学期/全部考试/全部班级/最近考试科目）；页内切换子视图不受影响 */
   if(r==='grades'&&_prevRoute!=='grades'){S._gradeView='trend';gradeDefaultFor('trend');S._cmpItems=[];S._stuCmp=[];S._gradeScoreSort=undefined;S._gradeSubjSort=undefined;S._trendNums=false;_gradeThumbPrev=null;}
@@ -2389,7 +2398,7 @@ function viewNotes(){
   <div class="grid cols-2 notes-grid">${cards}</div>`;
 }
 /* r116：备课笔记「添加/编辑」改为全屏编辑页（不再弹窗）。
-   顶栏：左 < 返回（保存并返回列表）/ 右 完成（仅收起键盘，不保存）+ ···（含删除，新建笔记隐藏）。
+   顶栏：左 < 返回（保存并返回列表）/ 右 取消（仅收起键盘，不保存；r1186 由「完成」改文案）+ ···（含删除，新建笔记隐藏）。
    主体：标题输入（占位「添加标题」20px，空则正文首行作标题）+ 大 textarea（新建自动聚焦正文）。
    保存仅在「返回」/右滑时执行；空白新笔记返回时直接丢弃。 */
 function viewNote(id){
@@ -2404,7 +2413,7 @@ function viewNote(id){
     <div class="note-edit-bar">
       <button type="button" class="ne-back" data-action="note-back" aria-label="返回">${iconSvg('arrow-left',18)}<span>返回</span></button>
       <div class="ne-right">
-        <button type="button" class="ne-done" data-action="note-done">完成</button>
+        <button type="button" class="ne-done" data-action="note-done">取消</button>
         ${moreBtn}
       </div>
     </div>
@@ -2423,8 +2432,8 @@ function viewNote(id){
 /* r116c：记录编辑页来源路由（首页/hub/独立笔记页…），保存/丢弃/删除后回到原处。
    注意：hub 添加按钮不可同时挂 data-action 与 onclick（会双重触发 goNoteEdit，第二次进来 hash 已是 #note/new，来源被覆盖）。 */
 let _noteFrom='notes';
-function goNoteEdit(id){_noteFrom=(location.hash||'').replace(/^#/,'').split('/')[0]||'home';location.hash='note/'+(id||'new');}
-function saveNoteEdit(){
+function goNoteEdit(id){_noteFrom=(location.hash||'').replace(/^#/,'').split('/')[0]||'home';_editLeaveAt=0;location.hash='note/'+(id||'new');}
+function saveNoteEdit(){_editLeaveAt=Date.now(); /* r1187：应用内离开置位，router 跳过绕行拦截 */
   const idEl=document.getElementById('note_edit_id');const id=idEl?idEl.value:'';
   const content=document.getElementById('note_content').value||'';
   /* r116e：标题输入行优先；未填则正文首行作标题（截 40 字） */
@@ -6031,8 +6040,8 @@ function saveProgressForm(f){
    顶栏：左 返回（有改动=保存并回来源页；无改动=直接返回）/ 右 取消（丢弃改动返回）。
    返回目标 = 来源路由（首页进度卡→home；教学-进度→teach hub 进度 tab；独立进度页→courses）。 */
 let _progFrom='courses';let _progInitSig='';
-function goProgEdit(id){_progFrom=(location.hash||'').replace(/^#/,'').split('/')[0]||'home';location.hash='prog/'+id;}
-function progGoBack(){location.hash=_progFrom;}
+function goProgEdit(id){_progFrom=(location.hash||'').replace(/^#/,'').split('/')[0]||'home';_editLeaveAt=0;location.hash='prog/'+id;}
+function progGoBack(){_editLeaveAt=Date.now(); /* r1187：取消键/脏保存返回都经此置位；取消=丢弃，router 拦截跳过后 DOM 重渲染即弃 */location.hash=_progFrom;}
 function progFormSig(){const f=document.querySelector('form[data-form="progress"]');if(!f)return '';
   return Array.from(f.elements).filter(el=>el.name).map(el=>el.name+':'+(el.type==='checkbox'?el.checked:el.value)).join('|');}
 function progDirty(){return progFormSig()!==_progInitSig;}
