@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1202</title>
+<title>工作E · v20260902-r1203</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -1733,7 +1733,7 @@ function router(){
   if(DEL_MODE){const b=document.getElementById(DEL_MODE.btnId);if(b)b.classList.remove('active');DEL_MODE=null;}
   let r=location.hash.slice(1)||'home';let _np='';const _sl=r.indexOf('/');if(_sl>=0){_np=r.slice(_sl+1);r=r.slice(0,_sl);}if(!VIEWS[r]){location.hash='home';return;}
   /* 重新进入成绩页：视图与筛选重置为「趋势」tab 的默认（全部学期/全部考试/全部班级/最近考试科目）；页内切换子视图不受影响 */
-  if(r==='grades'&&_prevRoute!=='grades'){S._gradeView='trend';gradeDefaultFor('trend');S._cmpItems=[];S._stuCmp=[];S._gradeScoreSort=undefined;S._gradeSubjSort=undefined;S._trendNums=false;_gradeThumbPrev=null;}
+  if(r==='grades'&&_prevRoute!=='grades'){S._gradeView='trend';gradeDefaultFor('trend');S._gradeFiltered=false;S._cmpItems=[];S._stuCmp=[];S._gradeScoreSort=undefined;S._gradeSubjSort=undefined;S._trendNums=false;_gradeThumbPrev=null;}
   /* 重新进入学情跟进：子标签与筛选恢复默认（班级/记录均默认全部班级）；页内切换子标签不受影响 */
   if(r==='students'&&_prevRoute!=='students'){stuTab='stu';S._stuCls='all';S._stuSearch='';S._recCls='all';S._recTime=undefined;S._recFrom='';S._recTo='';save();_stuThumbPrev=null;}
   const samePage=_prevRoute===r;
@@ -3395,7 +3395,7 @@ function gradeEventById(id){
   }
   return examEvents().find(x=>x.id===id);
 }
-function gradeEventSel(v){S._gradeEvent=v;const ev=gradeEventById(v);if(ev&&(!S._gradeSub||!ev.subjects.includes(S._gradeSub)))S._gradeSub=ev.subjects[0]||'';save();viewReload('grades');}
+function gradeEventSel(v){S._gradeFiltered=true;S._gradeEvent=v;const ev=gradeEventById(v);if(ev&&(!S._gradeSub||!ev.subjects.includes(S._gradeSub)))S._gradeSub=ev.subjects[0]||'';save();viewReload('grades');}
 function scrollTrendRight(){const sc=document.getElementById('trendScroll');if(!sc)return;const go=()=>{sc.scrollLeft=sc.scrollWidth;};requestAnimationFrame(()=>requestAnimationFrame(go));}
 function scrollSubjectRight(){const sc=document.getElementById('subjScroll');if(!sc)return;const go=()=>{sc.scrollLeft=sc.scrollWidth;};requestAnimationFrame(()=>requestAnimationFrame(go));}
 function renderGradesBody(){const b=document.getElementById('grade_body');if(b)b.innerHTML=gradeBodyHtml();const r=document.getElementById('grade_row2');if(r)r.innerHTML=gradeRow2Html(gradeEventById(S._gradeEvent));
@@ -3560,7 +3560,7 @@ function renderGradesBodyKeepScroll(){
   if(sc&&sl)sc.scrollLeft=sl;
 }
 let _lpTimer=null;
-function lpStart(e,sid){_lpTimer=setTimeout(()=>{S._gradeSub=sid;S._gradeView='subject';save();viewReload('grades');toast('进入科目：'+(subj(sid)?subj(sid).name:sid));},500);}
+function lpStart(e,sid){_lpTimer=setTimeout(()=>{S._gradeSub=sid;S._gradeView='subject';S._gradeFiltered=true;save();viewReload('grades');toast('进入科目：'+(subj(sid)?subj(sid).name:sid));},500);}
 function lpCancel(){if(_lpTimer){clearTimeout(_lpTimer);_lpTimer=null;}}
 /* 成绩分析-科目 / 成绩 学生行 长按 500ms 后打开 历次成绩 弹窗（sid 可由调用方传入，覆盖成绩视图默认值） */
 let _lpSubjStuTimer=null;
@@ -4299,7 +4299,7 @@ function gradePanelHtmlFor(v){
   return '<div class="tp tp-shown" data-v="'+esc(v)+'">'+html+'</div>';
 }
 
-function gradeSub(v){if(v==='__custom__'){openCustomSub();}else{if(v===''||!v){const first=(S.subjects||[])[0];if(first)v=first.id;else{openCustomSub();return;}}if(S._gradeView==='subject')S._gradeSub=v;else S._gradeSubCol=v;save();viewReload('grades');}}
+function gradeSub(v){if(v==='__custom__'){openCustomSub();}else{if(v===''||!v){const first=(S.subjects||[])[0];if(first)v=first.id;else{openCustomSub();return;}}if(S._gradeView==='subject')S._gradeSub=v;else S._gradeSubCol=v;S._gradeFiltered=true;save();viewReload('grades');}}
 
 function openCustomSub(){openModal('自定义科目',`<form data-form="custom-sub">
   ${field('科目名称','<input name="subName" placeholder="如：物理、历史、校本课程…">')}
@@ -4356,7 +4356,7 @@ function gradeTabsThumb(){
   thumb.style.transform='translateX('+left+'px)';thumb.style.width=width+'px';
   _gradeThumbPrev={left,width};
 }
-function gradeView(v){const prev=S._gradeView||'trend';const wrap=document.querySelector('.grade-tabs');const old=wrap&&wrap.querySelector('.tab.active');if(old){const wr=wrap.getBoundingClientRect();const or=old.getBoundingClientRect();_gradeThumbPrev={left:or.left-wr.left,width:or.width};}S._gradeView=v;if(v!=='mgmt'&&v!==prev)gradeDefaultFor(v);save();viewReload('grades');}
+function gradeView(v){const prev=S._gradeView||'trend';const wrap=document.querySelector('.grade-tabs');const old=wrap&&wrap.querySelector('.tab.active');if(old){const wr=wrap.getBoundingClientRect();const or=old.getBoundingClientRect();_gradeThumbPrev={left:or.left-wr.left,width:or.width};}S._gradeView=v;if(v!=='mgmt'&&v!==prev){if(S._gradeFiltered){/* r1203：页内切 tab 保持筛选（学期/考试/班级跨 tab 共享），科目选择在 _gradeSubCol 与 _gradeSub 间双向同步 */if(v==='subject'){if(S._gradeSubCol)S._gradeSub=S._gradeSubCol;}else if(prev==='subject'){if(S._gradeSub)S._gradeSubCol=S._gradeSub;}}else gradeDefaultFor(v);}save();viewReload('grades');}
 /* 学情跟进分段控件滑动 thumb（与 grade-tabs 同源样式，复用同一段 thumb 定位算法） */
 let _stuThumbPrev=null;
 function stuTabsThumb(){
@@ -4682,7 +4682,7 @@ function attachSwipe(){
   window.addEventListener('resize',()=>{ if(active)reset(); syncTeachPages(); });
 }
 attachSwipe();
-function gradeClass(v){S._gradeClass=v;viewReload('grades');}
+function gradeClass(v){S._gradeFiltered=true;S._gradeClass=v;viewReload('grades');}
 function gradeClassFilter(){const cid=S._gradeClass;
   let names;
   if(!cid||cid===ALL_CLASS)names=S.students.filter(s=>activeClassIds().has(s.classId)).map(s=>s.name);
@@ -4801,8 +4801,8 @@ function gradeRange(v){v=v||S._gradeSem;if(!v||v===''){const act=S.semesters.fil
 function gradeSemSel(v){gradeSemPick(v);}
 function gradeSemSummary(){const v=S._gradeSem;if(!v)return '全部学期';if(v.indexOf('range:')===0)return '自定义范围';const sid=v.indexOf('sem:')===0?v.slice(4):v;const s=S.semesters.find(x=>x.id===sid);return s?s.name+(s.archived?' · 已归档':''):'全部学期';}
 function gradeSemOptsHtml(){const v=S._gradeSem||'';const sel=S.semesters.find(s=>s.id===v);const list=S.semesters.filter(s=>!s.archived||s.id===v);const items=[{k:'',l:'全部学期'},...list.map(s=>({k:'sem:'+s.id,l:s.name+(s.current?'（当前）':'')})),{k:'__range__',l:'自定义范围'}];return items.map(o=>`<div class="bk-range-opt" data-v="${esc(o.k)}" onclick="gradeSemPick('${esc(o.k)}')" style="${o.k===v?'background:var(--primary-soft);color:var(--primary);font-weight:600':''}">${esc(o.l)}</div>`).join('');}
-function gradeSemPick(v){closeAllBkPops();if(v==='__range__'){const w=document.getElementById('gradeRangeWrap');if(w)w.style.display='inline-flex';return;}S._gradeSem=v;const evs=gradeScopeExams();if(S._gradeEvent&&!evs.some(e=>e.id===S._gradeEvent))S._gradeEvent='';const ev=gradeEventById(S._gradeEvent);const clsIds=(ev?ev.classIds:[]);if(S._gradeClass&&S._gradeClass!==ALL_CLASS&&!clsIds.includes(S._gradeClass))S._gradeClass=ALL_CLASS;const subs=(ev?ev.subjects:[]);const curSub=(S._gradeView==='subject')?S._gradeSub:S._gradeSubCol;if(curSub&&!subs.includes(curSub)){if(S._gradeView==='subject')S._gradeSub=subs[0]||'';else S._gradeSubCol=subs[0]||'';}save();viewReload('grades');}
-function gradeRangeApply(){const w=document.getElementById('gradeRangeWrap');if(!w)return;const from=w.querySelector('[name=gfrom]').value,to=w.querySelector('[name=gto]').value;if(!from||!to){toast('请选择起止日期');return;}S._gradeSem='range:'+from+'~'+to;save();viewReload('grades');}
+function gradeSemPick(v){closeAllBkPops();if(v==='__range__'){const w=document.getElementById('gradeRangeWrap');if(w)w.style.display='inline-flex';return;}S._gradeSem=v;S._gradeFiltered=true;const evs=gradeScopeExams();if(S._gradeEvent&&!evs.some(e=>e.id===S._gradeEvent))S._gradeEvent='';const ev=gradeEventById(S._gradeEvent);const clsIds=(ev?ev.classIds:[]);if(S._gradeClass&&S._gradeClass!==ALL_CLASS&&!clsIds.includes(S._gradeClass))S._gradeClass=ALL_CLASS;const subs=(ev?ev.subjects:[]);const curSub=(S._gradeView==='subject')?S._gradeSub:S._gradeSubCol;if(curSub&&!subs.includes(curSub)){if(S._gradeView==='subject')S._gradeSub=subs[0]||'';else S._gradeSubCol=subs[0]||'';}save();viewReload('grades');}
+function gradeRangeApply(){const w=document.getElementById('gradeRangeWrap');if(!w)return;const from=w.querySelector('[name=gfrom]').value,to=w.querySelector('[name=gto]').value;if(!from||!to){toast('请选择起止日期');return;}S._gradeSem='range:'+from+'~'+to;S._gradeFiltered=true;save();viewReload('grades');}
 function gradeRangeWrap(){const v=S._gradeSem;const base=`<input type="date" name="gfrom" value="${v&&v.indexOf('range:')===0?v.slice(6).split('~')[0]:''}"> <span>~</span> <input type="date" name="gto" value="${v&&v.indexOf('range:')===0?v.slice(6).split('~')[1]:''}"> <button type="button" class="btn sm" onclick="gradeRangeApply()">应用</button>`;return `<span id="gradeRangeWrap" style="display:${v&&v.indexOf('range:')===0?'inline-flex':'none'};gap:6px;align-items:center">${base}</span>`;}
 function gradeAllSubjects(){const act=activeClassIds();const subs=S.subjects.filter(s=>S.exams.some(e=>e.subjectId===s.id&&(e.classId?act.has(e.classId):Object.keys(e.scores).some(n=>{const st=stuByName(n);return st&&act.has(st.classId);}))));if(!subs.length)return emptyState('📈','还没有任何科目成绩，点「+ 新增考试」录入');const rows=subs.map(s=>{const exs=S.exams.filter(e=>e.subjectId===s.id).sort((a,b)=>a.date.localeCompare(b.date));const last=exs[exs.length-1];const vals=Object.values(last.scores);const avg=(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1);return `<tr><td><a data-action="pick-subj" data-id="${s.id}" style="cursor:pointer;color:var(--primary)">${esc(s.name)}</a></td><td>${exs.length}</td><td>${avg}</td><td>${esc(last.date)}</td><td>${esc(last.name)}</td></tr>`;}).join('');return `<div class="card"><div class="section-title">全部科目概览</div><table><thead><tr><th>科目</th><th>考试次数</th><th>最新平均分</th><th>最新日期</th><th>最新考试</th></tr></thead><tbody>${rows}</tbody></table><div class="sub">点击科目名查看该科详细分析（趋势 / 分布 / 排名 / 历次汇总 / 对比）。</div></div>`;}
 /* 考试/班级/科目 自定义弹层（与学期一致）：summary + opts + pick */
@@ -4811,11 +4811,11 @@ function gradeAllSubjects(){const act=activeClassIds();const subs=S.subjects.fil
 function evTitle(ev){if(!ev)return '';return ev.name||'';}
 function gradeEvSummary(){const v=S._gradeEvent;if(!v)return '全部考试';const e=gradeEventById(v);return e?evTitle(e)+' · '+e.date:'全部考试';}
 function gradeEvOptsHtml(){const v=S._gradeEvent||'';const evs=gradeScopeExams();const items=[{k:'',l:'全部考试'},...evs.map(e=>({k:e.id,l:evTitle(e)+' · '+e.date}))];return items.map(o=>`<div class="bk-range-opt" data-v="${esc(o.k)}" onclick="gradeEvPick('${esc(o.k)}')" style="${o.k===v?'background:var(--primary-soft);color:var(--primary);font-weight:600':''}">${esc(o.l)}</div>`).join('');}
-function gradeEvPick(v){closeAllBkPops();S._gradeEvent=v;const ev=gradeEventById(v);if(S._gradeClass&&S._gradeClass!==ALL_CLASS&&ev&&!ev.classIds.includes(S._gradeClass))S._gradeClass=ALL_CLASS;const subs=(ev?ev.subjects:[]);const curSub=(S._gradeView==='subject')?S._gradeSub:S._gradeSubCol;if(curSub&&!subs.includes(curSub)){if(S._gradeView==='subject')S._gradeSub=subs[0]||'';else S._gradeSubCol=subs[0]||'';}save();viewReload('grades');}
+function gradeEvPick(v){closeAllBkPops();S._gradeFiltered=true;S._gradeEvent=v;const ev=gradeEventById(v);if(S._gradeClass&&S._gradeClass!==ALL_CLASS&&ev&&!ev.classIds.includes(S._gradeClass))S._gradeClass=ALL_CLASS;const subs=(ev?ev.subjects:[]);const curSub=(S._gradeView==='subject')?S._gradeSub:S._gradeSubCol;if(curSub&&!subs.includes(curSub)){if(S._gradeView==='subject')S._gradeSub=subs[0]||'';else S._gradeSubCol=subs[0]||'';}save();viewReload('grades');}
 function gradeClsSummary(){const cid=S._gradeClass;if(!cid||cid===ALL_CLASS)return '全部班级';const c=S.classes.find(x=>x.id===cid);return c?c.name:'全部班级';}
 function gradeClassSubjects(clsId,ev){if(!clsId||clsId===ALL_CLASS)return ev?ev.subjects.slice():[];const subs=new Set();(ev?ev.exams:[]).forEach(ex=>{if(ex.classId===clsId)subs.add(ex.subjectId);else if(S.students.some(s=>s.classId===clsId&&ex.scores&&ex.scores[s.name]!=null))subs.add(ex.subjectId);});return [...subs];}
 function gradeClsOptsHtml(){const cid=S._gradeClass;const ev=gradeEventById(S._gradeEvent);const clsIds=(ev?ev.classIds:[]).filter(Boolean);const clsList=S.classes.filter(c=>!isArchivedClass(c.id)&&c.name!=='全部班级'&&clsIds.includes(c.id));const items=[{k:ALL_CLASS,l:'全部班级'},...clsList.map(c=>({k:c.id,l:c.name}))];return items.map(o=>`<div class="bk-range-opt" data-v="${esc(o.k)}" onclick="gradeClsPick('${esc(o.k)}')" style="${o.k===cid?'background:var(--primary-soft);color:var(--primary);font-weight:600':''}">${esc(o.l)}</div>`).join('');}
-function gradeClsPick(v){closeAllBkPops();S._gradeClass=v;const ev=gradeEventById(S._gradeEvent);const subs=gradeClassSubjects(v,ev);const curSub=(S._gradeView==='subject')?S._gradeSub:S._gradeSubCol;if(curSub&&!subs.includes(curSub)){if(S._gradeView==='subject')S._gradeSub=subs[0]||'';else S._gradeSubCol=subs[0]||'';}save();viewReload('grades');}
+function gradeClsPick(v){closeAllBkPops();S._gradeFiltered=true;S._gradeClass=v;const ev=gradeEventById(S._gradeEvent);const subs=gradeClassSubjects(v,ev);const curSub=(S._gradeView==='subject')?S._gradeSub:S._gradeSubCol;if(curSub&&!subs.includes(curSub)){if(S._gradeView==='subject')S._gradeSub=subs[0]||'';else S._gradeSubCol=subs[0]||'';}save();viewReload('grades');}
 function gradeSubSummary(){const gView=S._gradeView;const v=(gView==='subject')?S._gradeSub:S._gradeSubCol;const first=(S.subjects||[])[0];if(!v)return gView==='subject'?'请选择科目':'全部科目';const s=S.subjects.find(x=>x.id===v);return s?s.name:(first?first.name:'请选择科目');}
 function gradeSubOptsHtml(){const gView=S._gradeView;const v=(gView==='subject')?S._gradeSub:S._gradeSubCol;const ev=gradeEventById(S._gradeEvent);let subs=(ev?ev.subjects:[]).slice();if(S._gradeClass&&S._gradeClass!==ALL_CLASS)subs=gradeClassSubjects(S._gradeClass,ev);const items=subs.map(id=>{const s=subj(id);return {k:id,l:s?s.name:id};});return items.map(o=>`<div class="bk-range-opt" data-v="${esc(o.k)}" onclick="gradeSubPick('${esc(o.k)}')" style="${o.k===v?'background:var(--primary-soft);color:var(--primary);font-weight:600':''}">${esc(o.l)}</div>`).join('');}
 function gradeSubPick(v){
@@ -6483,14 +6483,14 @@ modal.addEventListener('submit',e=>{
     if(!Object.keys(scores).length){toast('请填写 姓名,分数');return;}
     const sj2=subj(subId);if(sj2)sj2.pending=false;
     e.subjectId=subId;e.name=v('name').trim()||defaultExamName(e);e.date=v('date');e.scores=scores;e.classId=clsId;e.sem=f.elements['gsem'].value;recomputeExamPoints();closeModal();viewReload('grades');toast('已更新成绩（积分已更新）');}
-  else if(form==='custom-sub'){const nm=v('subName').trim();if(!nm){toast('请输入科目名称');return;}S._gradeSub=ensureSubj(nm,true);closeModal();viewReload('grades');toast('已添加科目：'+nm+'（请为该科目录入一次成绩，否则不会被保留）');}
+  else if(form==='custom-sub'){const nm=v('subName').trim();if(!nm){toast('请输入科目名称');return;}S._gradeSub=ensureSubj(nm,true);S._gradeFiltered=true;closeModal();viewReload('grades');toast('已添加科目：'+nm+'（请为该科目录入一次成绩，否则不会被保留）');}
     else if(form==='edit-score'){const eid=f.dataset.eid;const nm=f.dataset.name;const sc=parseFloat(v('sc'));const e=S.exams.find(x=>x.id===eid);if(!e){toast('考试不存在');return;}
       if(isNaN(sc)){toast('请输入数字分数');return;}e.scores[nm]=sc;save();closeModal();viewReload('grades');toast('已修改成绩');}
     else if(form==='imp-grade'){const semV=(v('gsem')||'').trim();const clsIdV=(v('gcls')||'').trim();const subRaw=(v('gsubj')||'').trim();const nameV=(v('gname')||'').trim();if(!semV||!clsIdV){toast('请先选择学期与班级（科目、考试名称可留空：宽表会从文件自动读取）');return;}
       let subId=S.subjects.find(s=>s.name===subRaw)?S.subjects.find(s=>s.name===subRaw).id:'';
       if(!subId){subId=uid();S.subjects.push({id:subId,name:subRaw});}
       const classId=clsIdV;const sem=semV;const name=nameV; /* r70：classId===ALL_CLASS 表示「自动识别班级」 */
-      S._gradeSub=subId;S._gradeClass=clsIdV;S._gradeSem=sem;save();closeModal();
+      S._gradeSub=subId;S._gradeClass=clsIdV;S._gradeSem=sem;S._gradeFiltered=true;save();closeModal();
       importGrade(subId,{sem,classId,name});}
     else if(form==='exp-grade'){const subRaw=(v('gsubj')||'').trim();const allSubj=(subRaw==='__all__');
       let subId=allSubj?'__all__':(S.subjects.find(s=>s.id===subRaw)?subRaw:(S.subjects.find(s=>s.name===subRaw)?S.subjects.find(s=>s.name===subRaw).id:null));
@@ -6653,7 +6653,7 @@ document.body.addEventListener('click',e=>{
   else if(a==='del-cr'){delCustomRule(id);}
   else if(a==='edit-exam'){if(!id){toast('请先选择或自定义科目');openCustomSub();return;}modalExam(id);}
   else if(a==='add-exam'){modalExamAdd();}
-  else if(a==='pick-subj'){S._gradeSub=t.dataset.id;S._gradeView='subject';viewReload('grades');}
+  else if(a==='pick-subj'){S._gradeFiltered=true;S._gradeSub=t.dataset.id;S._gradeView='subject';viewReload('grades');}
   else if(a==='imp-grade'){if(!id){toast('请先选择或自定义科目');openCustomSub();return;}modalImportGrade(id);}
   else if(a==='dl-grade-tpl'){downloadGradeTemplate();}
   else if(a==='dl-grade-tpl-wide'){downloadGradeTemplateWide();}
