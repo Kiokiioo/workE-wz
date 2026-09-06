@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1197</title>
+<title>工作E · v20260902-r1199</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -1047,7 +1047,7 @@ form[data-form="rec"] .field.row input[type="text"]{width:100%;min-width:0}
 }
 .cmp-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .cmp-card{border:0.5px solid var(--border);border-radius:12px;padding:12px;background:var(--surface)}
-.cmp-card-name{font-weight:500;font-size:13px;margin-bottom:8px}
+.cmp-card-name{font-weight:500;font-size:15px;margin-bottom:8px}
 .cmp-card-row{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--text-2);margin:3px 0}
 .cmp-card-row b{font-size:15px;color:var(--text);font-weight:700}
 .cmp-card-delta{margin-top:8px;font-size:12px;font-weight:500}
@@ -2361,8 +2361,8 @@ function openDayDetail(iso){const wd=(new Date(iso).getDay()+6)%7+1;
     <div style="flex:1"><div style="font-weight:600;font-size:14px">${esc(t.subject)}${t.biweekly?' <span class="tag" style="background:var(--primary-soft);color:var(--primary);font-size:10px;margin-left:4px">隔周</span>':''}</div>
     <div class="s-meta">${esc(t.time||'')} · ${esc(classNameOf(t.classId))} · ${esc(t.classroom||'')}</div></div></div>`).join(''):'<div class="sub">这一天没有课</div>';
   openModal(iso+' 当日详情',`<div class="section-title"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('📅',16)}当天待办（截止日）</span></div>${dlHtml}
-    <div class="section-title" style="margin-top:14px">🗓️ 当天课表</div>${schHtml}
-    <button class="btn primary block" style="margin-top:14px" data-action="edit-todo" data-iso="${iso}">待办（${iso}）</button>`);
+    <div class="section-title" style="margin-top:14px"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('课表设置',16)}当天课表</span></div>${schHtml}
+    <button class="btn primary block" style="margin-top:14px;border-radius:99px" data-action="edit-todo" data-iso="${iso}">待办（${iso}）</button>`);
 }
 
 /* ============ NOTES ============ */
@@ -4763,11 +4763,18 @@ function gradeTopStat(){
   const _fs=fullScore(examStage(groupList[groupList.length-1].rep),subjName(subId));
   const excelN=recs.filter(x=>x.sc>=_fs*0.8).length;
   const failN=recs.filter(x=>x.sc<_fs*0.6).length;
-  /* 进退 TOP10：最后两个事件组之间（与表格进退列同口径，按学生所在班级取分） */
-  const lastG=groupList[groupList.length-1];
-  const prevG=groupList.length>1?groupList[groupList.length-2]:null;
+  /* 进退 TOP10（r1198）：全部考试=最后两个事件组；选中具体考试=该考试事件组与其前一组（按日期）。
+     与表格进退列同口径，按学生所在班级取分 */
+  let lastG,prevG;
+  if(S._gradeEvent){const ev0=gradeEventById(S._gradeEvent);const selSet=new Set((ev0&&ev0.exams?ev0.exams:[]).map(x=>x.id));
+    const kg=e=>(e.name||'')+'\u241F'+(e.sem||'')+'\u241F'+(e.date||'');
+    const gm=new Map();S.exams.filter(e=>e.subjectId===subId).forEach(e=>{const k=kg(e);if(!gm.has(k))gm.set(k,{rep:e,all:[e]});else gm.get(k).all.push(e);});
+    const allG=[...gm.values()].sort((a,b)=>a.rep.date.localeCompare(b.rep.date));
+    const idx=allG.findIndex(g=>g.all.some(e=>selSet.has(e.id)));
+    lastG=idx>=0?allG[idx]:groupList[groupList.length-1];prevG=idx>0?allG[idx-1]:null;
+  }else{lastG=groupList[groupList.length-1];prevG=groupList.length>1?groupList[groupList.length-2]:null;}
   let progs=[];
-  if(prevG){const seen=new Set(recs.map(x=>x.n));seen.forEach(n=>{
+  if(prevG&&lastG){const seen=new Set();lastG.all.concat(prevG.all).forEach(e=>Object.keys(e.scores||{}).forEach(n=>{if(f0&&!f0.has(n))return;seen.add(n);}));seen.forEach(n=>{
     const cur=pick(lastG,n).scores[n];const prev=pick(prevG,n).scores[n];
     if(cur!=null&&prev!=null&&cur!==prev)progs.push({n,d:cur-prev,s:cur});});
     progs.sort((a,b)=>b.d-a.d);}
@@ -4938,7 +4945,15 @@ let _pendingDelTodoId='';
 let _pendingDelNoteId='';
 let _pendingDelReviewId='';
 function gradeSortState(){return S._gradeSort||(S._gradeSort={key:'rank',dir:'asc'});}
-function gradeSortToggle(key){const s=gradeSortState();if(s.key===key)s.dir=s.dir==='asc'?'desc':'asc';else{s.key=key;s.dir='asc';}save();viewReload('grades');}
+function gradeSortToggle(key){const s=gradeSortState();if(s.key===key)s.dir=s.dir==='asc'?'desc':'asc';else{s.key=key;s.dir='asc';}save();
+  /* r1199：不再 viewReload 整页重建——整页重建会让顶部镜像滚条闪一下后消失（重渲染间隙 update() 判定隐藏）。
+     只刷表格主体 + row2，并保留横向滚动位置（同 gradeStudentSearch 方案） */
+  const _sl0=(()=>{const p=document.getElementById('scoreScroll')||document.getElementById('subjScroll');return p?p.scrollLeft:0;})();
+  const el=document.getElementById('grade_body');if(el)el.innerHTML=gradeBodyHtml();
+  const r2=document.getElementById('grade_row2');if(r2)r2.innerHTML=gradeRow2Html(gradeEventById(S._gradeEvent));
+  const sc=document.getElementById('scoreScroll');if(sc){sc.scrollLeft=_sl0;attachTopHScroll('scoreScroll','scoreHScroll');}
+  if((S._gradeView||'')==='subject'){const sc3=document.getElementById('subjScroll');if(sc3){sc3.scrollLeft=_sl0;attachTopHScroll('subjScroll','subjHScroll');}}
+  if((S._gradeView||'trend')==='trend')scrollTrendRight();}
 function gradeSortTh(label,key,extra){const s=gradeSortState();const act=s.key===key;const ar=act?(s.dir==='asc'?' ▲':' ▼'):'';const st='cursor:pointer;user-select:none'+(act?';color:var(--primary);font-weight:700':'')+(extra||'');return `<th data-action="grade-sort" data-key="${key}" style="${st}">${label}${ar}</th>`;}
 function gradeSortNames(names,e,rk,prev){const s=gradeSortState();return names.slice().sort((a,b)=>{let c;if(s.key==='name')c=a.localeCompare(b,'zh');else if(s.key==='score')c=(e.scores[a]||0)-(e.scores[b]||0);else c=(rk[a]||999)-(rk[b]||999);return s.dir==='asc'?c:-c;});}
 function gradeTrend(exams){
@@ -5038,13 +5053,14 @@ function gradeSubjStatNames(type){
   const _fs=fullScore(examStage(groupList[groupList.length-1]?groupList[groupList.length-1].rep:null),subjName(subId));
   const sub=subj(subId);
   const byNameExam=(a,b)=>a.n.localeCompare(b.n,'zh')||a.e.date.localeCompare(b.e.date)||b.sc-a.sc;
-  const rowHtml=x=>`<div class="rec" style="display:flex;align-items:center;gap:10px"><div style="flex:0 0 50px;width:50px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.n)}</div><div style="flex:1;min-width:0;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.e.name||'')}</div><div style="flex:0 0 60px;width:60px;text-align:center;font-weight:600;color:${type==='fail'?'var(--danger)':'var(--ok)'}">${x.sc}</div></div>`;
+  const rowHtml=x=>`<div class="rec" style="display:flex;align-items:center;gap:8px"><div style="flex:0 0 50px;width:50px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.n)}</div><div style="flex:1;min-width:0;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.e.name||'')}</div><div style="flex:0 0 40px;width:40px;text-align:center;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(subjName(x.e.subjectId)||'')}</div><div style="flex:0 0 60px;width:60px;text-align:center;font-weight:600;color:${type==='fail'?'var(--danger)':'var(--ok)'}">${x.sc}</div></div>`;
+  const scopeLbl=S._gradeEvent?(evTitle(gradeEventById(S._gradeEvent))||''):'全部考试';
   if(type==='fail'){const _lo=Math.round(_fs*0.6);const list=recs.filter(x=>x.sc<_lo).sort((a,b)=>byNameExam(a,b));
     const html=list.map(rowHtml).join('');
-    openModal((sub?sub.name+' · ':'')+'不及格（<'+_lo+'）· 全部考试',list.length?`<div class="timeline">${html}</div>`:'<div class="empty"><div class="em-ic">📭</div>没有符合条件的学生</div>',290);}
+    openModal((sub?sub.name+' · ':'')+'不及格（<'+_lo+'）· '+esc(scopeLbl),list.length?`<div class="timeline">${html}</div>`:'<div class="empty"><div class="em-ic">📭</div>没有符合条件的学生</div>',290);}
   else{const _hi=Math.round(_fs*0.8);const list=recs.filter(x=>x.sc>=_hi).sort((a,b)=>byNameExam(a,b));
     const html=list.map(rowHtml).join('');
-    openModal((sub?sub.name+' · ':'')+'优秀（≥'+_hi+'）· 全部考试',list.length?`<div class="timeline">${html}</div>`:'<div class="empty"><div class="em-ic">📭</div>没有符合条件的学生</div>',290);}
+    openModal((sub?sub.name+' · ':'')+'优秀（≥'+_hi+'）· '+esc(scopeLbl),list.length?`<div class="timeline">${html}</div>`:'<div class="empty"><div class="em-ic">📭</div>没有符合条件的学生</div>',290);}
 }
 function gradeStatNames(eid,type){const e=S.exams.find(x=>x.id===eid);if(!e)return;const f=gradeClassFilter();  const names=Object.keys(e.scores).filter(n=>!f||f.has(n));let list=[],title='';
   if(type==='avg'){const avg=names.length?names.reduce((a,n)=>a+e.scores[n],0)/names.length:0;title='平均分 '+avg.toFixed(1);list=names.slice().sort((a,b)=>e.scores[b]-e.scores[a]).map(n=>`<div class="rec"><div class="rc-body"><div class="rc-title">${esc(n)}</div></div><div style="text-align:right"><div class="rc-delta">${e.scores[n]}</div></div></div>`);}
@@ -5062,8 +5078,9 @@ function gradeEventStatNames(evId,type){
   let rows=[],title='';
   if(type==='fail'){title='不及格人数（平均分<'+_lo+'）';rows=list.filter((n,i)=>avgArr[i]<_lo).map((n,i)=>({n,avg:avgArr[i]})).sort((a,b)=>a.avg-b.avg);}
   else{title='优秀人数（平均分≥'+_hi+'）';rows=list.filter((n,i)=>avgArr[i]>=_hi).map((n,i)=>({n,avg:avgArr[i]})).sort((a,b)=>b.avg-a.avg);}
-  const html=rows.length?rows.map(o=>`<div class="rec"><div class="rc-body"><div class="rc-title">${esc(o.n)}</div></div><div style="text-align:right"><div class="rc-delta" style="color:${type==='fail'?'var(--danger)':'var(--ok)'}">${o.avg.toFixed(1)}</div></div></div>`).join(''):'<div class="empty"><div class="em-ic">📭</div>没有符合条件的学生</div>';
-  openModal(title,`<div class="timeline">${html}</div>`);}
+  const rowHtml=o=>`<div class="rec" style="display:flex;align-items:center;gap:8px"><div style="flex:0 0 50px;width:50px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(o.n)}</div><div style="flex:1;min-width:0;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(ev.name||'')}</div><div style="flex:0 0 40px;width:40px;text-align:center;color:var(--text-2)">${ev.subjects.length||1}科</div><div style="flex:0 0 60px;width:60px;text-align:center;font-weight:600;color:${type==='fail'?'var(--danger)':'var(--ok)'}">${o.avg.toFixed(1)}</div></div>`;
+  const html=rows.length?rows.map(rowHtml).join(''):'<div class="empty"><div class="em-ic">📭</div>没有符合条件的学生</div>';
+  openModal(title,`<div class="timeline">${html}</div>`,290);}
 function editScore(eid,name){const e=S.exams.find(x=>x.id===eid);if(!e)return;const cur=e.scores[name];
   openModal('修改成绩 · '+esc(name),`<form data-form="edit-score" data-eid="${eid}" data-name="${esc(name)}">
   ${field('分数','<input type="number" name="sc" value="'+(cur!=null?cur:'')+'">')}
