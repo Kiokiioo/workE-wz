@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1206</title>
+<title>工作E · v20260902-r1207</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -3689,7 +3689,9 @@ function attachTopHScroll(scrollId,trackId){
     thumb.style.transform='translateX('+(pct*maxX).toFixed(1)+'px)';
   }
   sc.addEventListener('scroll',update,{passive:true});
-  update(); /* r1192：同步先测一次——条默认 display:none 渲染，溢出当场显示，杜绝「先闪现再隐藏」的整页晃动；rAF 二次校准保留 */
+  /* r1207：撤掉 r1204 的同步 update()——科目页筛选后 scrollSubjectRight 在 2 帧后才把表格滚到最右，
+     同步测量会把滑块先画在 scrollLeft=0 处再快速滑到最右（闪滑）。回到 rAF×2：滑块首次落位即在最终位置；
+     「不溢出隐藏」的治本手段是 HTML 默认 display:none（r1204），不依赖这次同步测量。 */
   requestAnimationFrame(()=>requestAnimationFrame(update));
   function startDrag(e){
     dragging=true;startX=e.clientX;startScroll=sc.scrollLeft;
