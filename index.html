@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1212</title>
+<title>工作E · v20260902-r1223</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -104,7 +104,7 @@ a{color:inherit;text-decoration:none}
 .page-head{margin-bottom:18px}
 .page-head h1{font-size:23px;margin:0 0 4px}
 .page-head p{margin:0;color:var(--text-2);font-size:14px}
-.section-title{font-size:15px;font-weight:700;margin:0;display:flex;align-items:center;gap:8px;min-height:0}
+.section-title{font-size:15px;font-weight:700;margin:0 0 6px;display:flex;align-items:center;gap:8px;min-height:0}
 /* 成绩分析页：所有标题与图标的间距统一为 4px（覆盖默认 gap:8px，不影响其他视图） */
 #grade_body .section-title,#grade_row2 .section-title{gap:4px}
 #hist_grades>.section-title,#hist_courses>.section-title,#hist_classes>.section-title{margin-bottom:0}
@@ -765,15 +765,22 @@ form[data-form="addrule"] .field input[name="points"]{padding:0 6px;text-align:c
 .ed-done-title{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text);font:inherit;font-size:14px;box-sizing:border-box}
 .ed-done-title:focus{outline:none;border-color:var(--primary)}
 .field textarea.prog-ta{min-height:48px}
-/* 记录进度-今日任务：复选框与内容垂直齐平（用 .ex-chk-wrap 自定义 18×18 勾选框，flex 布局确保与文案中心对齐，与文字清晰错开） */
-/* 选择器 .field .prog-cb 特异性 (0,2,0) > .field label (0,1,1)，用来覆盖全局 .field label 的 display:block + font-size:13px，否则 flex 失效、文字变 13px；align-items:center 让 19px 框与 14px 中文方块字（line-height:1.4 → 19.6px 文本行 box）盒模型自动居中，偏差 ~0.8px，肉眼齐平（原 margin-top:3 / padding-top:1 是按英文 x-height 算的，对中文不适用，文字中点高于框中点 2.2px） */
+/* 记录进度-今日任务：复选框与内容垂直齐平（r1219：18×18 框，几何中心 (9,9)；勾 L=4.5×8.5 几何中心 (2.25,4.25)，左 6.75 上 4.75 让勾视觉居中于 18×18 框中心） */
+/* 选择器 .field .prog-cb 特异性 (0,2,0) > .field label (0,1,1)，用来覆盖全局 .field label 的 display:block + font-size:13px，否则 flex 失效、文字变 13px；align-items:center 让 18px 框与 14px 中文方块字（line-height:1.4 → 19.6px 文本行 box）盒模型自动居中，偏差 ~0.8px，肉眼齐平（原 margin-top:3 / padding-top:1 是按英文 x-height 算的，对中文不适用，文字中点高于框中点 2.2px） */
 .field .prog-cb{display:flex;align-items:center;gap:2px;cursor:pointer;padding:7px 0;border-bottom:1px solid var(--border);font-size:14px;line-height:1.4;width:100%;box-sizing:border-box}
 .field .prog-cb:last-child{border-bottom:none}
-.field .prog-cb .ex-chk-wrap{flex:none;width:19px;height:19px;display:inline-flex;align-items:center;justify-content:center;margin-top:0}
-.field .prog-cb .ex-chk-wrap input[type=checkbox]{appearance:none;-webkit-appearance:none;width:19px;height:19px;padding:0;box-sizing:border-box;border:2.5px solid var(--border);border-radius:4px;background:var(--surface);cursor:pointer;position:relative;flex:none;margin:0;transition:all .15s;outline:none}
+.field .prog-cb .ex-chk-wrap{flex:none;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;margin-top:0}
+.field .prog-cb .ex-chk-wrap input[type=checkbox]{appearance:none;-webkit-appearance:none;width:18px;height:18px;padding:0;box-sizing:border-box;border:2px solid var(--border);border-radius:50%;background:var(--surface);cursor:pointer;position:relative;flex:none;margin:0;transition:all .15s;outline:none}
 .field .prog-cb .ex-chk-wrap input[type=checkbox]:hover{border-color:var(--primary)}
 .field .prog-cb .ex-chk-wrap input[type=checkbox]:checked{background:var(--primary);border-color:var(--primary)}
-.field .prog-cb .ex-chk-wrap input[type=checkbox]:checked::after{content:'';position:absolute;left:3px;top:1px;width:5px;height:9px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+/* ↑ 必须显式写 width/height:auto + border:none + transform:none：下方通用规则 .ex-chk-wrap input[type=checkbox]:checked::after（第 1134 行附近）会补进 border-width:0 2px 2px 0 与 transform:rotate(45deg)，特异性虽低但只要本规则不声明就会生效——曾导致勾被旋转 45°，且 translate(-50%) 按 10+2px=12px 边框盒解析成 -6px（应为 -5px），勾恒定偏左上 1px。 */
+.field .prog-cb .ex-chk-wrap input[type=checkbox]:checked::after{content:'';position:absolute;left:0;top:0;right:0;bottom:0;width:auto;height:auto;border:none;transform:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 11.85l3.8 3.8L17.5 8.35'/%3E%3C/svg%3E") no-repeat center/14px 14px}
+/* r1216：教学进度列表复选框统一圆形（与进度弹窗 prog-cb 同家族），替代原生方形；r1219 同步 18×18 + 勾用 SVG 居中（left/top:50% + translate(-50%,-50%) 保证绝对居中，避免 border 2px 偏移） */
+input.plan-chk{appearance:none;-webkit-appearance:none;width:18px;height:18px;padding:0;box-sizing:border-box;border:2px solid var(--border);border-radius:50%;background:var(--surface);cursor:pointer;position:relative;flex:none;transition:all .15s;outline:none}
+input.plan-chk:hover{border-color:var(--primary)}
+input.plan-chk:checked{background:var(--primary);border-color:var(--primary)}
+/* 同样显式写 border:none/transform:none 作防御（r1222）：避免将来任何通用 :checked::after 规则补进旋转或边框 */
+input.plan-chk:checked::after{content:'';position:absolute;left:0;top:0;right:0;bottom:0;width:auto;height:auto;border:none;transform:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 11.85l3.8 3.8L17.5 8.35'/%3E%3C/svg%3E") no-repeat center/14px 14px}
 .field .prog-cb .prog-cb-txt{flex:1;min-width:0;padding-top:0;font-size:14px;color:var(--text);font-weight:normal}
 .field.row{display:flex;gap:10px}
 .field.row>*{flex:1}
@@ -1111,7 +1118,7 @@ svg{display:block;width:100%}
 .tl-gap .g-dot{position:absolute;left:35px;top:2px;width:14px;height:14px;border-radius:50%;border:1.5px solid var(--border);background:var(--surface)}
 .tl-gap .g-txt{font-size:11px;color:var(--text-2);background:var(--surface);border:1px solid var(--border);padding:1px 8px;border-radius:10px;display:inline-block}
 .timeline{position:relative;margin-top:6px}
-.rec{display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--border)}
+.rec{display:flex;gap:12px;padding:4px 0;border-bottom:1px solid var(--border)}
 .rec:last-child{border-bottom:none}
 .timeline .rec{position:relative;padding-left:14px;gap:6px}
 .timeline .rec .ex-chk-wrap{flex-shrink:0;width:16px;margin-left:-22px;display:flex;align-items:center}
@@ -2268,16 +2275,18 @@ function viewCourses(){
 function openClassProgress(clsName){const cl=S.classes.find(c=>c.name===clsName);const cid=cl?cl.id:'';
   const items=classPlan(cid);
   const done=items.filter(p=>p.done),up=items.filter(p=>!p.done);
-  const doneHtml=done.length?done.map(p=>`<div class="rec"><div class="ic" style="background:var(--ok)">✓</div>
+  /* r1219：done/up 每条列表项改用圆形 iconSvg（已完成/将进行），与 section-title 同家族、实际渲染 18×18 */
+  const doneHtml=done.length?done.map(p=>`<div class="rec"><span style="flex:none;display:inline-flex;align-items:center;justify-content:center;color:var(--ok)">${iconSvg('已完成',18)}</span>
     <div class="rc-body"><div class="rc-title">${esc(p.title)} ${p.tag?'<span class="tag">'+esc(p.tag)+'</span>':''}</div>
     ${p.note?`<div class="rc-sub">${noteArrowInline()}备注：${esc(p.note)}</div>`:''}
     <div class="rc-sub">完成于 ${esc(p.doneDate||'—')}</div></div></div>`).join(''):`<div class="sub">暂无「${esc(clsName)}」已完成教学任务</div>`;
   /* r77：新增/额外 任务单独成块，紧贴「✅ 已完成」下方；其余为「将进行（本次任务）」 */
   const tagItems=up.filter(p=>p.tag).slice().sort((a,b)=>a.order-b.order);
   const regItems=up.filter(p=>!p.tag).slice().sort((a,b)=>a.order-b.order);
-  const newHtml=tagItems.length?tagItems.map(p=>`<div class="rec"><div class="ic" style="background:var(--border);color:var(--text-2)">•</div>
+  /* r1219b：将进行 列表项沿用原始「灰色圆点」图标，仅把容器从圆角方改圆形（border-radius:50%）；section-title 仍用 iconSvg('将进行') 虚线圆 */
+  const newHtml=tagItems.length?tagItems.map(p=>`<div class="rec"><div class="ic" style="background:var(--border);color:var(--text-2);border-radius:50%">•</div>
     <div class="rc-body"><div class="rc-title">${esc(p.title)} <span class="tag">${esc(p.tag)}</span></div></div></div>`).join(''):'';
-  const upHtml=regItems.length?regItems.map(p=>`<div class="rec"><div class="ic" style="background:var(--border);color:var(--text-2)">•</div>
+  const upHtml=regItems.length?regItems.map(p=>`<div class="rec"><div class="ic" style="background:var(--border);color:var(--text-2);border-radius:50%">•</div>
     <div class="rc-body"><div class="rc-title">${esc(p.title)}</div></div></div>`).join(''):'<div class="sub">教学任务已全部完成 🎉</div>';
   openModal('教学进度 · '+esc(clsName),`<div class="section-title" style="font-size:13px;font-weight:600;color:var(--ok)">${iconSvg('已完成',18)}<span>已完成</span></div>${doneHtml}
     ${tagItems.length?'<div class="section-title" style="margin-top:16px;font-size:13px;font-weight:600">📋 新增进度安排</div>'+newHtml:''}
@@ -2290,9 +2299,10 @@ function openCourseProgress(id){
   const items=coursePlan(c);
   const done=items.filter(p=>p.done).slice().sort((a,b)=>(b.doneDate||'').localeCompare(a.doneDate||'')), up=items.filter(p=>!p.done);
   const dash='<hr style="border:none;border-top:1px dashed var(--border);margin:0;height:0;box-sizing:border-box">';
+  /* r1219：done/new/up 每条列表项改用圆形 iconSvg（已完成/将进行），与 section-title 同家族、实际渲染 18×18 */
   const doneRow=p=>`
     <div class="rec" style="align-items:flex-start;gap:8px;flex-wrap:wrap;border-bottom:none">
-      <div class="ic" style="background:var(--ok);flex:none">✓</div>
+      <span style="flex:none;display:inline-flex;align-items:center;justify-content:center;color:var(--ok)">${iconSvg('已完成',18)}</span>
       <div class="rc-body" style="flex:1;min-width:0">
         <div class="rc-title"><span class="rc-title-text">${esc(p.title)}${p.tag?'<span class="tag">'+esc(p.tag)+'</span>':''}</span>
           <input class="cp-ed" data-pid="${p.id}" style="display:none;width:100%;height:36px;margin-top:4px;padding:0 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px;box-sizing:border-box">
@@ -2311,19 +2321,20 @@ function openCourseProgress(id){
   /* r77：新增/额外 任务单独成块，紧贴「✅ 已完成」下方；其余为「将进行（本次任务）」 */
   const tagItems=up.filter(p=>p.tag).slice().sort((a,b)=>a.order-b.order);
   const regItems=up.filter(p=>!p.tag).slice().sort((a,b)=>a.order-b.order);
+  /* r1220b：将进行 列表项沿用原始「灰色圆点」图标，仅把容器从圆角方改圆形（border-radius:50%）；section-title 仍用 iconSvg('将进行') 虚线圆 */
   const newHtml=tagItems.length?tagItems.map(p=>`<div class="rec" style="align-items:center;border-bottom:none">
-      <div class="ic" style="background:var(--border);color:var(--text-2);flex:none">•</div>
+      <div class="ic" style="background:var(--border);color:var(--text-2);border-radius:50%">•</div>
       <div class="rc-body" style="flex:1;min-width:0"><div class="rc-title">${esc(p.title)} <span class="tag">${esc(p.tag)}</span></div></div>
     </div>`).join(''):'';
   const upHtml=regItems.length?regItems.map(p=>`<div class="rec" style="align-items:center;border-bottom:none">
-      <div class="ic" style="background:var(--border);color:var(--text-2);flex:none">•</div>
+      <div class="ic" style="background:var(--border);color:var(--text-2);border-radius:50%">•</div>
       <div class="rc-body" style="flex:1;min-width:0"><div class="rc-title">${esc(p.title)}</div></div>
     </div>`).join(''):'<div class="sub">教学任务已全部完成 🎉</div>';
   openModal('教学进度 · '+esc(c.name)+' '+esc(c.cls||''),`<div style="display:block">
     <div class="section-title" style="display:flex;width:100%;font-size:13px;font-weight:600;color:var(--ok)">${iconSvg('已完成',18)}<span>已完成</span></div>${doneHtml}
     ${tagItems.length?'<div class="section-title" style="display:flex;width:100%;margin-top:16px;font-size:13px;font-weight:600">📋 新增进度安排</div>'+newHtml:''}
     <div class="section-title" style="display:flex;width:100%;margin-top:16px;font-size:13px;font-weight:600;color:var(--text-2)">${iconSvg('将进行',18)}<span>将进行</span></div>${upHtml}
-    <button class="btn primary block" style="margin-top:16px" onclick="planClassJump('${esc(c.cls||'')}')">管理教学进度</button></div>`);
+    <button class="btn primary block" style="margin-top:16px;border-radius:99px" onclick="planClassJump('${esc(c.cls||'')}')">管理教学进度</button></div>`);
 }
 function openProgList(id){const c=course(id);if(!c)return;S._progCourse=id;const log=(c.progressLog||[]).slice().reverse();
   const html=log.length?log.map(r=>`<div class="rec"><div class="ic" style="background:var(--primary)">📌</div>
@@ -2744,10 +2755,13 @@ function buildRecTable(){
   return `<div class="card rec-card" style="padding:0;overflow:hidden"><table class="rec-table"><colgroup><col class="rec-c1"><col class="rec-c2"><col><col class="rec-c5"><col class="rec-c4"><col class="rec-c6"></colgroup><thead><tr><th class="rec-c1">学生</th><th class="rec-c2">班级</th><th>类型</th><th class="rec-c5">积分</th><th class="rec-c4">时间</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function addIconSvg(){return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>';}
-/* G 风格线性图标字典：viewBox 0 0 24 24、stroke 2 圆角端点，currentColor 继承 */
+/* G 风格线性图标字典：viewBox 0 0 24 24、stroke 2 圆角端点，currentColor 继承
+   pvb = 自定义 viewBox 覆盖（让图标内容铺满 SVG 容器，避免 viewBox 24x24 + r=9 留下 13% 内边距，
+   例如 iconSvg('已完成',18) 旧版 SVG 容器 18×18 但内圈仅 13.5×13.5；r1219 加 pvb['已完成']='3 3 18 18' 后内圈铺满 18×18） */
 function iconSvg(name,size){
   size=size||16;
   var p={};
+  var pvb={};
   p['upload']='<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>';
   p['download']='<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/>';
   p['trash']='<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>';
@@ -2755,14 +2769,16 @@ function iconSvg(name,size){
   p['edit']='<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>';
   /* 备课笔记-置顶（2026-09-04 落库：候选⑨「定位针」原样保存，水滴倒置+内圆） */
   p['置顶']='<path d="M12 20.5 C 12 20.5 6 13.6 6 9.5 a6 6 0 0 1 12 0 C 18 13.6 12 20.5 12 20.5 Z"/><circle cx="12" cy="9.5" r="2.1"/>';
-  /* 教学进度-已完成（2026-09-07 落库：配套方案②「圆·虚实对比」——实心圆+反白勾，与「将进行」同家族） */
+  /* 教学进度-已完成（2026-09-07 落库：配套方案②「圆·虚实对比」——实心圆+反白勾，与「将进行」同家族；r1219 加 viewBox 覆盖，让 18×18 容器里的实心圆也是 18×18） */
   p['已完成']='<circle cx="12" cy="12" r="9" fill="currentColor" stroke="none"/><path d="m8 12.5 2.8 2.8L16.5 9.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
-  /* 教学进度-将进行（2026-09-07 落库：配套方案②「圆·虚实对比」——虚线圆，与「已完成」同家族） */
+  pvb['已完成']='3 3 18 18';
+  /* 教学进度-将进行（2026-09-07 落库：配套方案②「圆·虚实对比」——虚线圆，与「已完成」同家族；r1219 加 viewBox 覆盖，让虚线圆也铺满 18×18） */
   p['将进行']='<circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/>';
+  pvb['将进行']='3 3 18 18';
   /* 复盘-系统汇总（2026-09-07 落库：候选①四宫格仪表盘，原样保存） */
   p['系统汇总']='<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>';
-  /* 复盘-教学任务（2026-09-07 落库：候选①清单双勾，原样保存） */
-  p['教学任务']='<path d="m3 7 2 2 4-4"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>';
+  /* 复盘-本周进度（2026-09-07 落库：候选①清单双勾，原样保存；原 key「教学任务」随分类改名） */
+  p['本周进度']='<path d="m3 7 2 2 4-4"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>';
   /* 复盘-考试汇总（2026-09-07 落库：候选③学士帽，原样保存） */
   p['考试汇总']='<path d="M22 10 12 5 2 10l10 5z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/>';
   /* 复盘-完成待办（2026-09-07 落库：候选⑤剪贴板勾，原样保存） */
@@ -2887,7 +2903,8 @@ p['搜索']='<circle cx="10.5" cy="10.5" r="7"/><path d="M10.5 6.6a3.9 3.9 0 0 1
   var _e2n={'📅':'日历'};
   for(var k in _e2n){if(p[_e2n[k]]&&!p[k])p[k]=p[_e2n[k]];}
   var d=p[name]||'';
-  return '<svg viewBox="0 0 24 24" width="'+size+'" height="'+size+'" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;width:'+size+'px;height:'+size+'px;flex-shrink:0">'+d+'</svg>';
+  var vb=pvb[name]||'0 0 24 24';
+  return '<svg viewBox="'+vb+'" width="'+size+'" height="'+size+'" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;width:'+size+'px;height:'+size+'px;flex-shrink:0">'+d+'</svg>';
 }
 /* 班级头像图标库：7 个班级语义图标（候选 1,2,3,4,8,9,12），48×48 viewBox，白色字形落在彩色圆圈上；
    按 classId 哈希到 0..6，一班一图标（用 stable 的字符串哈希确保首屏渲染稳定） */
@@ -3258,8 +3275,9 @@ function autoItems(text, kind){
   const out=[];
   const push=(label,key)=>{ if(label&&label.trim())out.push({label:label.trim(), key:(key!=null?key:label).trim()}); };
   if(kind==='tasks'){
-    text.split('\n').forEach(ln=>{ ['已完成','待完成'].forEach(p=>{ if(ln.indexOf(p)===0){ const rest=ln.slice(p.length).replace(/^\s*[:：]/,'').trim();
-      rest.split(/[、,，]/).forEach(x=>{x=x.trim();if(x)push(x,x);}); }}); });
+    /* r1214：格式「班级名：进度1、进度2」——label 带班级前缀展示，key 仅进度名（供与手动记录比对） */
+    text.split('\n').forEach(ln=>{const i=ln.indexOf('：'); if(i<=0)return; const cn=ln.slice(0,i).trim(); const rest=ln.slice(i+1);
+      rest.split(/[、,，]/).forEach(x=>{x=x.trim();if(x)push(cn?cn+'·'+x:x,x);});});
   } else if(kind==='todos'||kind==='notes'){
     const i=text.indexOf('\n'); const rest=(i>=0?text.slice(i+1):'').trim();
     rest.split(/[、,，]/).forEach(x=>{x=x.trim();if(x)push(x,x);});
@@ -3274,19 +3292,38 @@ function autoItems(text, kind){
 function reviewOverlapHtml(rv){
   if(rv.autoTasks==null)return '';
   const manual=(rv.done||'');
-  const cats=[{key:'autoTasks',kind:'tasks',label:'教学任务',ic:'教学任务'},{key:'autoProgress',kind:'progress',label:'教学进度',ic:'教学进度'},{key:'autoTodos',kind:'todos',label:'完成待办',ic:'完成待办'},{key:'autoNotes',kind:'notes',label:'备课笔记',ic:'备课笔记'},{key:'autoExams',kind:'exams',label:'考试汇总',ic:'考试汇总'}];
+  const cats=[{key:'autoProgress',kind:'progress',label:'教学进度',ic:'教学进度'},{key:'autoTasks',kind:'tasks',label:'本周进度',ic:'本周进度'},{key:'autoTodos',kind:'todos',label:'完成待办',ic:'完成待办'},{key:'autoExams',kind:'exams',label:'考试汇总',ic:'考试汇总'},{key:'autoNotes',kind:'notes',label:'备课笔记',ic:'备课笔记'}];
   let total=0,overlap=0; const rows=[];
   cats.forEach(c=>{
     const items=autoItems(rv[c.key]||'',c.kind);
     if(!items.length)return;
-    const tagged=items.map(it=>{ const hit=manual.indexOf(it.key)>=0; if(hit)overlap++; total++;
-      return `<span class="ov ${hit?'ov-ok':'ov-new'}" title="${hit?'你已在记录中提及':'系统自动汇总，你可能尚未记录'}">${esc(it.label)}${hit?' ✓':''}</span>`; });
-    rows.push(`<div style="margin:5px 0"><strong style="display:inline-flex;align-items:center;gap:5px">${iconSvg(c.ic,18)}<span>${c.label}：</span></strong> ${tagged.join(' ')}</div>`);
+    let tagged;
+    if(c.kind==='tasks'){
+      /* r1216：按班级聚合展示——一个班一个药丸「班级名 进度1 进度2」，班级间竖线分隔；hit 按条目标 ✓ */
+      const groups={},order=[];
+      items.forEach(it=>{ const i=it.label.indexOf('·'); const g=i>0?it.label.slice(0,i):''; const t=i>0?it.label.slice(i+1):it.label;
+        if(!groups[g]){groups[g]=[];order.push(g);}
+        const hit=manual.indexOf(it.key)>=0; if(hit)overlap++; total++;
+        groups[g].push(t+(hit?' ✓':'')); });
+      /* r1217：班级名=无框加粗文字，进度各一个小药丸框，班级间竖线分隔 */
+      tagged=order.map((g,gi)=>{
+        const pills=groups[g].map(x=>{ const hit=x.endsWith(' ✓');
+          return `<span class="ov ${hit?'ov-ok':'ov-new'}" title="${hit?'你已在记录中提及':'系统自动汇总，你可能尚未记录'}">${esc(hit?x.slice(0,-2):x)}${hit?' ✓':''}</span>`; }).join(' ');
+        /* r1218：班级名 13px，颜色跟随本组框内文字色（全部已记录→绿，否则灰） */
+        const allHit=groups[g].length&&groups[g].every(x=>x.endsWith(' ✓'));
+        return `${g?`<strong style="font-weight:600;font-size:13px;color:${allHit?'var(--ok)':'var(--text-2)'}">${esc(g)}</strong> `:''}${pills}${gi<order.length-1?' <span style="color:var(--border);font-weight:400">|</span>':''}`;
+      }).join(' ');
+      tagged=[tagged];
+    } else {
+      tagged=items.map(it=>{ const hit=manual.indexOf(it.key)>=0; if(hit)overlap++; total++;
+        return `<span class="ov ${hit?'ov-ok':'ov-new'}" title="${hit?'你已在记录中提及':'系统自动汇总，你可能尚未记录'}">${esc(it.label)}${hit?' ✓':''}</span>`; });
+    }
+    rows.push(`<div style="margin:5px 0"><strong style="display:inline-flex;align-items:center;gap:5px;vertical-align:middle">${iconSvg(c.ic,18)}<span>${c.label}：</span></strong> ${tagged.join(' ')}</div>`);
   });
   if(!total)return '';
   const newN=total-overlap;
   return `<div style="margin-top:10px;border-top:1px dashed var(--border);padding-top:8px">
-    <div class="sub" style="margin-bottom:6px"><span style="display:inline-flex;align-items:center;gap:5px;vertical-align:-2px">${iconSvg('系统汇总',18)}系统汇总</span> <b>${total}</b> 项 · 你已记录 <b style="color:var(--ok)">${overlap}</b> 项 · <span style="color:var(--primary)">系统补充 ${newN} 项</span></div>
+    <div class="sub" style="margin-bottom:6px"><span style="display:inline-flex;align-items:center;gap:5px;vertical-align:middle">${iconSvg('系统汇总',18)}系统汇总</span> <b>${total}</b> 项 · 你已记录 <b style="color:var(--ok)">${overlap}</b> 项 · <span style="color:var(--primary)">系统补充 ${newN} 项</span></div>
     ${rows.join('')}
   </div>`;
 }
@@ -5693,7 +5730,7 @@ function planItemsHtml(){
   const vis=planVisibleItems();
   if(!vis.length)return '<div class="sub">该筛选下暂无教学进度安排</div>';
   return vis.map((p,i)=>`<div class="rec-wrap" data-id="${p.id}">
-  <div class="rec" style="align-items:flex-start;gap:8px" draggable="true" data-id="${p.id}"><input type="checkbox" ${p.done?'checked':''} onchange="planToggle('${p.id}')" style="width:auto;flex:none;vertical-align:-2px;margin-top:2px">
+  <div class="rec" style="align-items:flex-start;gap:8px" draggable="true" data-id="${p.id}"><input type="checkbox" class="plan-chk" ${p.done?'checked':''} onchange="planToggle('${p.id}')" style="flex:none;margin-top:2px">
     <span style="flex:1;min-width:0;display:block">
     <div style="line-height:1.35">${esc(p.title)}</div>
     ${p.note?`<div style="margin-top:3px;font-size:12px;color:var(--text-2);line-height:1.3">${noteArrowInline()}备注：${esc(p.note)}</div>`:''}
@@ -6209,13 +6246,25 @@ function semTargetWeek(cur){
   if(pStart>pEnd)return null;
   return {pStart,pEnd};
 }
-function autoReviewData(){
+function autoReviewData(wFrom,wTo){
   const plan=S.plan||[];
-  const donePlan=plan.filter(p=>p.done);
-  let tasks='教学进度安排共 '+plan.length+' 项，已完成 '+donePlan.length+' 项。';
-  if(donePlan.length)tasks+='\n已完成：'+donePlan.map(p=>p.title).join('、');
-  const upPlan=plan.filter(p=>!p.done);
-  if(upPlan.length)tasks+='\n待完成：'+upPlan.map(p=>p.title).join('、');
+  /* r1214：本周进度=本周内完成（doneDate 落在本周）的进度，按班级分组标注；班级按 classes 管理顺序 */
+  const inWk=d=>d&&wFrom&&d>=wFrom&&d<=wTo;
+  const doneWk=plan.filter(p=>p.done&&inWk(p.doneDate));
+  let tasks;
+  if(doneWk.length){
+    const byCls={};
+    doneWk.forEach(p=>{const c=cls(p.classId);const k=(c&&c.name)||'未分班';(byCls[k]=byCls[k]||[]).push(p.title);});
+    /* r1218：分组排序与班级卡片一致——年级(一~九)→班级名拼音；未分班排最后 */
+    const GORD={'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
+    const cmeta={};(S.classes||[]).forEach(c=>{cmeta[c.name]=c;});
+    tasks=Object.keys(byCls).sort((a,b)=>{const ca=cmeta[a],cb=cmeta[b];
+      if(!ca&&cb)return 1; if(ca&&!cb)return -1;
+      if(!ca&&!cb)return a.localeCompare(b,'zh');
+      const ga=GORD[ca.grade]||99,gb=GORD[cb.grade]||99;
+      return ga-gb||String(ca.name||'').localeCompare(String(cb.name||''),'zh');
+    }).map(k=>k+'：'+byCls[k].join('、')).join('\n');
+  } else tasks='本周暂无完成的进度。';
   let progress='';
   if(S.courses&&S.courses.length)progress=S.courses.map(c=>c.name+'（'+(c.cls||'')+'）：'+courseProgress(c)+'%').join('\n');
   else progress='暂无课程进度记录。';
@@ -6239,12 +6288,15 @@ function maybeAutoReview(){
   const {pStart,pEnd}=wk;
   const label=pStart+' ~ '+pEnd.slice(5);
   const exist=S.reviews.find(r=>(r.week||'').indexOf(pStart)===0);
-  const d=autoReviewData();
+  const d=autoReviewData(pStart,pEnd);
   if(exist){
     if(exist.autoTasks==null){exist.autoTasks=d.tasks;exist.autoProgress=d.progress;exist.autoTodos=d.todos;exist.autoNotes=d.notes;exist.autoExams=d.exams;exist.auto=true;save();}
+    else if(exist.auto){ /* r1215：本周进度字段随最新数据重算（旧卡存的是旧格式/生成时刻快照，永不更新会让新规则永远看不到）；done 等手动栏不动 */
+      if(exist.autoTasks!==d.tasks){exist.autoTasks=d.tasks;save();}
+    }
     S._autoReviewWeek=pStart;save();return;
   }
-  S.reviews.push({id:uid(),week:label,done:'（本周自动汇总见下方各模块）',stuck:'',next:'',highlight:'',autoTasks:d.tasks,autoProgress:d.progress,autoTodos:d.todos,autoNotes:d.notes,autoExams:d.exams,auto:true});
+  S.reviews.push({id:uid(),week:label,done:'',stuck:'',next:'',highlight:'',autoTasks:d.tasks,autoProgress:d.progress,autoTodos:d.todos,autoNotes:d.notes,autoExams:d.exams,auto:true});
   S._autoReviewWeek=pStart;save();
 }
 function modalReview(id){const r=id?S.reviews.find(x=>x.id===id):{};
@@ -6258,7 +6310,7 @@ function modalReview(id){const r=id?S.reviews.find(x=>x.id===id):{};
   ${field('🔧 下周怎么改','<textarea name="next">'+esc(r.next||'')+'</textarea>')}
   ${field('⭐ 高光时刻','<input name="highlight" value="'+esc(r.highlight||'')+'">')}
   ${r.autoTasks!=null?`
-  ${field('📋 教学任务（可编辑）','<textarea name="autoTasks">'+esc(r.autoTasks||'')+'</textarea>')}
+  ${field('<span style="display:inline-flex;align-items:center;gap:5px">'+iconSvg('本周进度',18)+'本周进度（可编辑）</span>','<textarea name="autoTasks">'+esc(r.autoTasks||'')+'</textarea>')}
   ${field('📚 教学进度（可编辑）','<textarea name="autoProgress">'+esc(r.autoProgress||'')+'</textarea>')}
   ${field('<span style="display:inline-flex;align-items:center;gap:5px">'+iconSvg('完成待办',18)+'完成待办（可编辑）</span>','<textarea name="autoTodos">'+esc(r.autoTodos||'')+'</textarea>')}
   ${field('📝 备课笔记（可编辑）','<textarea name="autoNotes">'+esc(r.autoNotes||'')+'</textarea>')}
