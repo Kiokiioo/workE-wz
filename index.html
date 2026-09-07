@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1242</title>
+<title>工作E · v20260902-r1243</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -548,7 +548,7 @@ tbody tr:hover{background:var(--surface-2)}
   }
 }
 /* 删除键：红色 ✕ 图标（无背景/无边框）—— 全平台（网页/平板/手机）通用 */
-.rec-del{border:0;background:transparent;color:var(--danger);font-size:16px;line-height:1;cursor:pointer;padding:2px 6px;border-radius:6px}
+.rec-del{border:0;background:transparent;color:var(--danger);font-size:16px;line-height:1;cursor:pointer;padding:5px;border-radius:50%;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
 .rec-del:hover{background:var(--danger-soft,#fbeaea)}
 .rec-del:focus-visible{outline:2px solid var(--danger);outline-offset:1px}
 /* 手机端（≤640px）：课表表格隐藏，改为「课时卡片」网格（一排三列） */
@@ -1387,6 +1387,23 @@ function load(){for(const k in DEFAULTS)S[k]=store.get(k,DEFAULTS[k]);uiLocalLoa
   migrateTodos();normalizeTodos();normalizeStudentItems();
   if(normalizeCurSem()>0)save(); /* r1180：本地历史脏数据里若有多个「当前学期」，启动即唯一化并落盘 */
   if(healPlanSem()>0)save(); /* r1184：教学进度条目的孤儿学期标记（学期已删除/重建失联）清空落盘，列表按「无学期」恒显示 */
+  /* r1242：教学进度无 id 条目迁移。无 id 条目在 mergeState 里走 noId 通道（两端条目全部保留再拼接），
+     同一条「听力」在两端各一份 → 每轮双向合并都翻倍（×2→×4…）；且编辑按 id 寻址只能改到其中一条副本，
+     另一条不动 → 「iPhone 改成听觉、电脑仍是听力」的各显示各的（成绩有条目 id 所以正常）。
+     修法：一次性给无 id 条目生成「确定性内容 id」（稳定字段拼接，两端独立迁移得到相同 id → 合并同 id 收敛）；
+     已翻倍的相同条目按出现序加 _2/_3 后缀保留，不删任何数据（r117y：绝不按内容清洗）——
+     用户手动删掉多余的那条后会走墓碑跨端同步删除。迁移标记存本地，各端各迁一次。 */
+  if(store.get('_planIdMig',null)!==1&&S.plan&&S.plan.some(p=>p&&!p.id)){
+    const seen={};
+    S.plan.forEach(p=>{
+      if(!p||p.id)return;
+      const base='pm_'+[p.classId||'',p.subject||'',p.title||'',p.sem||'',p.doneDate||'',p.done?1:0].join('\u241F');
+      let n=(seen[base]||0)+1;seen[base]=n;
+      p.id=n===1?base:base+'_'+n;
+      if(!p._at)p._at=Date.now();
+    });
+    store.set('_planIdMig',1);save();
+  }
   /* r1181：归档库所有归档设置默认关闭——旧数据里已固化的 true 一次性迁移为关（标记存本地不进云端，各端各迁一次；迁移后用户手动开启不再被打回） */
   if(store.get('_arcOffMig',null)!==1){S.settings.autoArchive=false;S.settings.autoCats=Object.assign({},S.settings.autoCats,{sem:false,teach:false,class:false,grade:false});store.set('_arcOffMig',1);save();}
   // r93：首次启动把当前各集合 id 快照作为合并基线，避免把已有数据误判为「被删除」而清空其他端的同名条目
