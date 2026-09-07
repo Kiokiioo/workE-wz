@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1203</title>
+<title>工作E · v20260902-r1204</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -3543,7 +3543,7 @@ function gradeScoreHtml(ev){
   /* r86：长按绑定「姓名 / 分数 / 总分」三处；整行 <tr> 不绑（防左右滑误触）。
      班级/单科排名/总排名 格保持无长按。 */
   return `<div class="card" style="padding:0"><div style="padding:16px 16px 8px"><div class="section-title" style="padding:0;display:flex;align-items:center;gap:4px"><span style="color:#5b6675;display:inline-flex">${iconSvg('网格汇总',22)}</span><span>${esc(ev.name)} · 成绩汇总${hint}</span></div></div>
-    <div id="scoreHScroll" class="g-top-hscroll" style="position:sticky;top:0;z-index:10;background:var(--surface);padding:6px 16px;border-bottom:1px solid var(--border);box-shadow:0 1px 0 rgba(0,0,0,.02)"><div class="g-hscroll-bar" style="height:6px;background:var(--bg-2);border-radius:3px;position:relative;cursor:pointer;overflow:hidden"><div class="g-hscroll-thumb" style="position:absolute;top:0;left:0;height:100%;width:30%;background:var(--primary);border-radius:3px;min-width:32px;will-change:transform"></div></div></div>
+    <div id="scoreHScroll" class="g-top-hscroll" style="display:none;position:sticky;top:0;z-index:10;background:var(--surface);padding:6px 16px;border-bottom:1px solid var(--border);box-shadow:0 1px 0 rgba(0,0,0,.02)"><div class="g-hscroll-bar" style="height:6px;background:var(--bg-2);border-radius:3px;position:relative;cursor:pointer;overflow:hidden"><div class="g-hscroll-thumb" style="position:absolute;top:0;left:0;height:100%;width:30%;background:var(--primary);border-radius:3px;min-width:32px;will-change:transform"></div></div></div>
     <div id="scoreScroll" style="padding:0 16px 16px;overflow-x:auto;overflow-y:visible">
       <table class="score-fixed score-center" style="margin-top:8px">${cols}<thead>${header}</thead><tbody>${rows}</tbody></table>
     </div></div>`;
@@ -3655,7 +3655,7 @@ function gradeSubjectHtml(ev){
      该条 bar 跟随 subjScroll 的 scrollLeft 同步更新，thumb 拖拽后亦同步写入 scrollLeft；
      overflow 不溢出时不显示（hidden via attachTopHScroll）。 */
   return `<div class="card" style="padding:0"><div style="padding:16px 16px 8px"><div class="section-title" style="padding:0;display:flex;align-items:center;gap:6px"><span style="color:#5b6675;display:inline-flex">${iconSvg('单科折线',22)}</span><span>${esc(ev.name)} · ${esc(sub.name)} · ${esc(classNameOf(S._gradeClass)||'全部班级')} 成绩</span></div></div>
-    <div id="subjHScroll" class="g-top-hscroll" style="position:sticky;top:0;z-index:10;background:var(--surface);padding:6px 16px;border-bottom:1px solid var(--border);box-shadow:0 1px 0 rgba(0,0,0,.02)"><div class="g-hscroll-bar" style="height:6px;background:var(--bg-2);border-radius:3px;position:relative;cursor:pointer;overflow:hidden"><div class="g-hscroll-thumb" style="position:absolute;top:0;left:0;height:100%;width:30%;background:var(--primary);border-radius:3px;min-width:32px;will-change:transform"></div></div></div>
+    <div id="subjHScroll" class="g-top-hscroll" style="display:none;position:sticky;top:0;z-index:10;background:var(--surface);padding:6px 16px;border-bottom:1px solid var(--border);box-shadow:0 1px 0 rgba(0,0,0,.02)"><div class="g-hscroll-bar" style="height:6px;background:var(--bg-2);border-radius:3px;position:relative;cursor:pointer;overflow:hidden"><div class="g-hscroll-thumb" style="position:absolute;top:0;left:0;height:100%;width:30%;background:var(--primary);border-radius:3px;min-width:32px;will-change:transform"></div></div></div>
     <div id="subjScroll" style="padding:0 16px 16px;overflow-x:auto;overflow-y:visible">
       <table class="score-fixed score-center" style="margin-top:8px">${cols}<thead>${header}</thead><tbody>${rows}</tbody></table>
     </div></div>`;
@@ -3689,6 +3689,7 @@ function attachTopHScroll(scrollId,trackId){
     thumb.style.transform='translateX('+(pct*maxX).toFixed(1)+'px)';
   }
   sc.addEventListener('scroll',update,{passive:true});
+  update(); /* r1192：同步先测一次——条默认 display:none 渲染，溢出当场显示，杜绝「先闪现再隐藏」的整页晃动；rAF 二次校准保留 */
   requestAnimationFrame(()=>requestAnimationFrame(update));
   function startDrag(e){
     dragging=true;startX=e.clientX;startScroll=sc.scrollLeft;
