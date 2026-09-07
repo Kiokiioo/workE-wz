@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1205</title>
+<title>工作E · v20260902-r1206</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -426,7 +426,7 @@ th{color:var(--text-2);font-weight:600;font-size:13px}
 .score-fixed th,.score-fixed td{padding:10px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .score-fixed.score-center th,.score-fixed.score-center td{text-align:center}
 .score-fixed col.c-cls{width:70px}
-.score-fixed col.c-name{width:50px}
+.score-fixed col.c-name{width:60px}
 .score-fixed col.c-sub{width:64px}
 .score-fixed col.c-rk{width:32px}
 .score-fixed col.c-total{width:80px}
@@ -3533,7 +3533,7 @@ function gradeScoreHtml(ev){
   });
   const totalRank={};list.slice().sort((a,b)=>tot[b]-tot[a]).forEach((n,i)=>totalRank[n]=i+1);
   const subTh=subs.map(sid=>{const s=subj(sid);const act=st.key===sid;const ar=act?(st.dir==='asc'?' ▲':' ▼'):'';return `<th class="c-sub" data-action="grade-score-sort" data-k="${sid}" onpointerdown="lpStart(event,'${sid}')" onpointerup="lpCancel()" onpointerleave="lpCancel()" style="cursor:pointer;user-select:none${act?';color:var(--primary);font-weight:700':''}">${esc(s?s.name:'?')}${ar}</th><th class="c-rk" style="color:var(--text-2);font-weight:400;font-size:12px">排名</th>`;}).join('');
-  const cols=`<colgroup><col class="c-cls"><col class="c-name" style="width:50px">${subs.map(()=>'<col class="c-sub" style="width:50px"><col class="c-rk" style="width:30px">').join('')}<col class="c-total" style="width:50px"><col class="c-trk" style="width:30px"></colgroup>`;
+  const cols=`<colgroup><col class="c-cls"><col class="c-name" style="width:60px">${subs.map(()=>'<col class="c-sub" style="width:50px"><col class="c-rk" style="width:30px">').join('')}<col class="c-total" style="width:50px"><col class="c-trk" style="width:30px"></colgroup>`;
   const header=`<tr><th class="c-cls" data-action="grade-score-sort" data-k="cls" style="text-align:left;cursor:pointer${st.key==='cls'?';color:var(--primary);font-weight:700':''}">班级${st.key==='cls'?(st.dir==='asc'?' ▲':' ▼'):''}</th>
     <th class="c-name" data-action="grade-score-sort" data-k="name" style="cursor:pointer${st.key==='name'?';color:var(--primary);font-weight:700':''}">学生${st.key==='name'?(st.dir==='asc'?' ▲':' ▼'):''}</th>
     ${subTh}
