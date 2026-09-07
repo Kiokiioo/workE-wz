@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1223</title>
+<title>工作E · v20260902-r1236</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -173,7 +173,7 @@ a{color:inherit;text-decoration:none}
 .btn.sm{padding:10px 11px;font-size:13px}
 #stu_range_wrap .bk-range-trigger{border-radius:19px;height:36px}
 #dr_type_wrap .bk-range-trigger{border-radius:99px}
-#stu_cls_wrap .bk-range-trigger{border-radius:99px}
+#stu_cls_wrap .bk-range-trigger,#stu_time_wrap .bk-range-trigger{border-radius:99px} /* r1234：新增时间选择框同款圆角99 */
 #rec_cls_wrap .bk-range-trigger{height:38px;border-radius:99px}
 #rec_time_wrap .bk-range-trigger{height:38px;border-radius:99px}
 /* 学情跟进-新建班级弹窗：学期/学段/年级 圆角99（高度沿用基础 38） */
@@ -1391,6 +1391,10 @@ function load(){for(const k in DEFAULTS)S[k]=store.get(k,DEFAULTS[k]);uiLocalLoa
   if(store.get('_arcOffMig',null)!==1){S.settings.autoArchive=false;S.settings.autoCats=Object.assign({},S.settings.autoCats,{sem:false,teach:false,class:false,grade:false});store.set('_arcOffMig',1);save();}
   // r93：首次启动把当前各集合 id 快照作为合并基线，避免把已有数据误判为「被删除」而清空其他端的同名条目
   if(!S._syncVer){S._syncIds=syncIdsSnapshot(S);S._syncVer=1;}
+  /* r1232 修复：load() 时立即基于当前 s.points 初始化积分基线快照。
+     旧 r1208「积分是静默字段」逻辑的 if(_stuPtsMap) 在页面首次 save 时 _stuPtsMap=null 会跳过盖戳 → 学生条目 _at 留旧 → 跨端合并时另一端凭 _at 较新把 s.points=-2 回滚为 0 → 「有扣分记录但当前积分 0」。
+     修后：任何 s.points 的改动（考试/作业/违纪/答题/点名等）首次 save 就盖戳，跨端按 _at 择新时新端胜出。*/
+  _stuPtsMap={};(S.students||[]).forEach(s=>{if(s)_stuPtsMap[s.id]=s.points;});
 }
 // 将历史 S.tasks / S.deadlines 合并进统一的 S.todos（带 type 字段）
 function migrateTodos(){
@@ -1745,11 +1749,16 @@ function router(){
     else if(document.querySelector('.prog-edit-page')&&!/^#prog(\/|$)/.test(location.hash||''))progBack();
   }
   if(DEL_MODE){const b=document.getElementById(DEL_MODE.btnId);if(b)b.classList.remove('active');DEL_MODE=null;}
-  let r=location.hash.slice(1)||'home';let _np='';const _sl=r.indexOf('/');if(_sl>=0){_np=r.slice(_sl+1);r=r.slice(0,_sl);}if(!VIEWS[r]){location.hash='home';return;}
+  let r=location.hash.slice(1)||'home';let _np='';const _sl=r.indexOf('/');if(_sl>=0){_np=r.slice(_sl+1);r=r.slice(0,_sl);}
+  /* r1233：教学四大子面板 hash（todos/courses/notes/reviews）自动转回 #teach 并设置对应 tab，
+     保证「待办-进度-笔记-复盘」4 个胶囊 tab 始终可见——避免 viewReload 等路径把 hash 切到独立页
+     丢掉顶部 tab。触发场景：导入/筛选/删除后的 viewReload('reviews' 等) 会 location.hash='reviews'。 */
+  if(TEACH_ORDER.includes(r)){S._teachTab=r;save();location.hash='teach';return;}
+  if(!VIEWS[r]){location.hash='home';return;}
   /* 重新进入成绩页：视图与筛选重置为「趋势」tab 的默认（全部学期/全部考试/全部班级/最近考试科目）；页内切换子视图不受影响 */
   if(r==='grades'&&_prevRoute!=='grades'){S._gradeView='trend';gradeDefaultFor('trend');S._gradeFiltered=false;S._cmpItems=[];S._stuCmp=[];S._gradeScoreSort=undefined;S._gradeSubjSort=undefined;S._trendNums=false;_gradeThumbPrev=null;}
   /* 重新进入学情跟进：子标签与筛选恢复默认（班级/记录均默认全部班级）；页内切换子标签不受影响 */
-  if(r==='students'&&_prevRoute!=='students'){stuTab='stu';S._stuCls='all';S._stuSearch='';S._recCls='all';S._recTime=undefined;S._recFrom='';S._recTo='';save();_stuThumbPrev=null;}
+  if(r==='students'&&_prevRoute!=='students'){stuTab='stu';S._stuCls='all';S._stuSearch='';S._recCls='all';S._recTime=undefined;S._recFrom='';S._recTo='';S._stuTime=undefined; /* r1234：时间筛选重置回默认当前学期 */save();_stuThumbPrev=null;}
   const samePage=_prevRoute===r;
   _prevRoute=r;
   if(r!=='grades')cleanupPendingSubs();
@@ -2283,13 +2292,13 @@ function openClassProgress(clsName){const cl=S.classes.find(c=>c.name===clsName)
   /* r77：新增/额外 任务单独成块，紧贴「✅ 已完成」下方；其余为「将进行（本次任务）」 */
   const tagItems=up.filter(p=>p.tag).slice().sort((a,b)=>a.order-b.order);
   const regItems=up.filter(p=>!p.tag).slice().sort((a,b)=>a.order-b.order);
-  /* r1219b：将进行 列表项沿用原始「灰色圆点」图标，仅把容器从圆角方改圆形（border-radius:50%）；section-title 仍用 iconSvg('将进行') 虚线圆 */
+  /* r1224：section-title 将进行图标已从「虚线圆」改为「实心圆」（var(--text-2) 灰），与已完成同款实心圆设计，仅靠颜色区分；列表项仍是「灰点+ •」容器（border-radius:50%） */
   const newHtml=tagItems.length?tagItems.map(p=>`<div class="rec"><div class="ic" style="background:var(--border);color:var(--text-2);border-radius:50%">•</div>
     <div class="rc-body"><div class="rc-title">${esc(p.title)} <span class="tag">${esc(p.tag)}</span></div></div></div>`).join(''):'';
   const upHtml=regItems.length?regItems.map(p=>`<div class="rec"><div class="ic" style="background:var(--border);color:var(--text-2);border-radius:50%">•</div>
     <div class="rc-body"><div class="rc-title">${esc(p.title)}</div></div></div>`).join(''):'<div class="sub">教学任务已全部完成 🎉</div>';
   openModal('教学进度 · '+esc(clsName),`<div class="section-title" style="font-size:13px;font-weight:600;color:var(--ok)">${iconSvg('已完成',18)}<span>已完成</span></div>${doneHtml}
-    ${tagItems.length?'<div class="section-title" style="margin-top:16px;font-size:13px;font-weight:600">📋 新增进度安排</div>'+newHtml:''}
+    ${tagItems.length?'<div class="section-title" style="margin-top:16px;font-size:13px;font-weight:600;color:var(--primary)">'+iconSvg('新增进度',18)+'<span>新增进度安排</span></div>'+newHtml:''}
     <div class="section-title" style="margin-top:16px;font-size:13px;font-weight:600;color:var(--text-2)">${iconSvg('将进行',18)}<span>将进行</span></div>${upHtml}
     <button class="btn primary block" style="margin-top:16px" onclick="planClassJump('${esc(clsName)}')">去「教学设置」管理该班任务安排</button>`);
 }
@@ -2321,7 +2330,7 @@ function openCourseProgress(id){
   /* r77：新增/额外 任务单独成块，紧贴「✅ 已完成」下方；其余为「将进行（本次任务）」 */
   const tagItems=up.filter(p=>p.tag).slice().sort((a,b)=>a.order-b.order);
   const regItems=up.filter(p=>!p.tag).slice().sort((a,b)=>a.order-b.order);
-  /* r1220b：将进行 列表项沿用原始「灰色圆点」图标，仅把容器从圆角方改圆形（border-radius:50%）；section-title 仍用 iconSvg('将进行') 虚线圆 */
+  /* r1224：section-title 将进行图标已从「虚线圆」改为「实心圆」（var(--text-2) 灰）；列表项仍是「灰点+•」容器 */
   const newHtml=tagItems.length?tagItems.map(p=>`<div class="rec" style="align-items:center;border-bottom:none">
       <div class="ic" style="background:var(--border);color:var(--text-2);border-radius:50%">•</div>
       <div class="rc-body" style="flex:1;min-width:0"><div class="rc-title">${esc(p.title)} <span class="tag">${esc(p.tag)}</span></div></div>
@@ -2332,7 +2341,7 @@ function openCourseProgress(id){
     </div>`).join(''):'<div class="sub">教学任务已全部完成 🎉</div>';
   openModal('教学进度 · '+esc(c.name)+' '+esc(c.cls||''),`<div style="display:block">
     <div class="section-title" style="display:flex;width:100%;font-size:13px;font-weight:600;color:var(--ok)">${iconSvg('已完成',18)}<span>已完成</span></div>${doneHtml}
-    ${tagItems.length?'<div class="section-title" style="display:flex;width:100%;margin-top:16px;font-size:13px;font-weight:600">📋 新增进度安排</div>'+newHtml:''}
+    ${tagItems.length?'<div class="section-title" style="display:flex;width:100%;margin-top:16px;font-size:13px;font-weight:600;color:var(--primary)">'+iconSvg('新增进度',18)+'<span>新增进度安排</span></div>'+newHtml:''}
     <div class="section-title" style="display:flex;width:100%;margin-top:16px;font-size:13px;font-weight:600;color:var(--text-2)">${iconSvg('将进行',18)}<span>将进行</span></div>${upHtml}
     <button class="btn primary block" style="margin-top:16px;border-radius:99px" onclick="planClassJump('${esc(c.cls||'')}')">管理教学进度</button></div>`);
 }
@@ -2646,7 +2655,7 @@ function stuCardHtml(s){
     <div class="s-name" style="flex:1;font-size:15px" data-action="stu-detail" data-id="${s.id}">${esc(s.name)}</div>
     <button class="stu-cap ${s.concern?'on':''}" data-action="stu-cap" data-id="${s.id}" title="需关注" aria-label="需关注"></button>
     <div style="font-size:12px;color:var(--text-2);white-space:nowrap">${esc(classNameOf(s.classId))}</div>
-    <div style="margin-left:auto;white-space:nowrap"><span class="tag points" style="${s._col||'color:#4F6BED;background:#4F6BED1F'}">${s.points} 分</span></div></div>
+    <div style="margin-left:auto;white-space:nowrap"><span class="tag points" style="${s._col||'color:#4F6BED;background:#4F6BED1F'};width:40px;min-width:40px;max-width:40px;padding:2px 0;display:inline-block;text-align:center">${s._pts!=null?s._pts:s.points} 分</span></div></div>
     ${todos.length?`<div class="sub" style="margin-top:6px;margin-left:35px">待办：${todos.map(x=>`<span class="stu-item" data-lp="stu-item" data-stu="${s.id}" data-kind="todo" data-iid="${x.id}">${esc(x.text)}</span>`).join('')}</div>`:''}
     ${cis.length?`<div class="sub" style="margin-top:4px;margin-left:35px">沟通：${cis.map(x=>`<span class="stu-item" data-lp="stu-item" data-stu="${s.id}" data-kind="contact" data-iid="${x.id}">${esc(x.text)}</span>`).join('')}</div>`:''}</div>`;
 }
@@ -2682,12 +2691,55 @@ function stuIndexKey(name){
   for(const [edge,letter] of B){ if(code<=edge) return letter; }
   return '#';
 }
+/* r1234：学情跟进-学生 时间筛选。默认当前学期；选项=未归档学期 + 最近一周/最近一月/全部时间。
+   最近一周=本周一到今天（以周为单位，非最近七天）；最近一月=当月1日~月末（9月内全部，非最近三十天）；
+   全部时间=所有未归档学期的时间并集（rangeOf('all')）。
+   选中范围作用于卡片积分（四类记录 delta 之和）与班级内排名颜色。 */
+function stuTimeVal(){return S._stuTime||('sem:'+(curSem()?curSem().id:''));}
+function stuWeekRange(){const wr=weekRange();return {from:wr.f,to:todayISO()};}
+function stuMonthRange(){const d=new Date();return {from:isoOf(new Date(d.getFullYear(),d.getMonth(),1)),to:isoOf(new Date(d.getFullYear(),d.getMonth()+1,0))};}
+function stuTimeRange(){const v=stuTimeVal();if(v==='week')return stuWeekRange();if(v==='month')return stuMonthRange();return rangeOf(v);}
+function stuTimeItems(){
+  const items=S.semesters.filter(s=>!s.archived).map(s=>({k:'sem:'+s.id,l:s.name,pick:'stuTimeBk'}));
+  items.push({k:'week',l:'最近一周',pick:'stuTimeBk'});
+  items.push({k:'month',l:'最近一月',pick:'stuTimeBk'});
+  items.push({k:'all',l:'全部时间',pick:'stuTimeBk'});
+  return items;
+}
+function stuTimeSummary(){
+  const v=stuTimeVal();
+  if(v==='week')return '最近一周';
+  if(v==='month')return '最近一月';
+  if(v==='all')return '全部时间';
+  if(v&&v.indexOf('sem:')===0){const s=S.semesters.find(x=>x.id===v.slice(4));if(s)return s.name;}
+  return '当前学期';
+}
+function stuTimeBk(v){S._stuTime=v;viewReload('students');}
+/* 按时间范围重算学生积分：违纪+作业+答题+考试积分 四类记录在范围内的 delta 之和 */
+function stuScopedPoints(id,rg){
+  let t=0;const inR=d=>d>=rg.from&&d<=rg.to;
+  (S.violations||[]).forEach(r=>{if(r.studentId===id&&inR(r.date))t+=r.delta||0;});
+  (S.homeworks||[]).forEach(r=>{if(r.studentId===id&&inR(r.date))t+=r.delta||0;});
+  (S.answers||[]).forEach(r=>{if(r.studentId===id&&inR(r.date))t+=r.delta||0;});
+  (S.examPoints||[]).forEach(r=>{if(r.studentId===id&&inR(r.date))t+=r.delta||0;});
+  return t;
+}
+/* r1234：积分范围重算 + 班级内排名（buildStuListInner/stuSearch 共用）；x._pts 供 stuCardHtml 显示 */
+function stuApplyRanking(){
+  const rg=stuTimeRange();
+  const byClass={};
+  S.students.forEach(x=>{x._pts=stuScopedPoints(x.id,rg);if(!byClass[x.classId])byClass[x.classId]=[];byClass[x.classId].push(x);});
+  Object.values(byClass).forEach(arr=>arr.sort((a,b)=>b._pts-a._pts));
+  Object.values(byClass).forEach(arr=>arr.forEach((x,i)=>{x._cr=i+1;x._col=stuPointsColor(i+1,arr.length);}));
+}
 function stuListView(){
   const nonArch=S.classes.filter(c=>!c.archived);
   const clsId=(S._stuCls&&(S._stuCls==='all'||nonArch.some(c=>c.id===S._stuCls)))?S._stuCls:'all';
-  const sel=nonArch.length?`<div style="flex:1;min-width:140px">${selHtml('stu_cls', stuClsSummary(), bkOpts([{k:'all',l:'所有班级',pick:'stuClsFilter'},...nonArch.filter(c=>c.name!=='全部班级').map(c=>({k:c.id,l:c.name,pick:'stuClsFilter'}))], clsId))}</div>`:'';
+  /* r1234：行布局=班级-时间-删除-添加；时间/班级均分宽度(flex:1)，删除/添加固定 38px */
+  const sel=nonArch.length?`<div style="flex:1;min-width:0">${selHtml('stu_cls', stuClsSummary(), bkOpts([{k:'all',l:'所有班级',pick:'stuClsFilter'},...nonArch.filter(c=>c.name!=='全部班级').map(c=>({k:c.id,l:c.name,pick:'stuClsFilter'}))], clsId))}</div>`:'';
+  const tsel=`<div style="flex:1;min-width:0">${selHtml('stu_time', stuTimeSummary(), bkOpts(stuTimeItems(), stuTimeVal()))}</div>`;
   return `  <div class="field row stu-act" style="align-items:flex-end;flex-wrap:wrap;margin-bottom:10px">
-    ${sel}
+    ${sel}${tsel}
     <button class="btn sm stu-ie-btn" data-action="stu-del" data-lp="stu-del" id="stu_del_btn" style="flex:none;width:38px;height:38px;border-radius:99px;border:1px solid var(--border);background:#fff;padding:0;display:inline-flex;align-items:center;justify-content:center;color:#444441" aria-label="删除">${iconSvg('trash',16)}</button>
     <button class="btn primary sm add-spin" id="stu_add_btn" data-action="quick-add-stu" onclick="spinAddBtn(this)" style="flex:none;width:38px;height:38px;border-radius:50%;padding:0;display:inline-flex;align-items:center;justify-content:center" aria-label="添加学生">${addIconSvg()}</button>
   </div>
@@ -2699,10 +2751,7 @@ function buildStuListInner(){
   const q=(S._stuSearch||'').trim().toLowerCase();
   let list = q ? S.students.filter(s=>s.name.toLowerCase().includes(q))
                : S.students.filter(s=>clsId==='all'||s.classId===clsId);
-  const byClass={};
-  S.students.forEach(x=>{if(!byClass[x.classId])byClass[x.classId]=[];byClass[x.classId].push(x);});
-  Object.values(byClass).forEach(arr=>arr.sort((a,b)=>b.points-a.points));
-  Object.values(byClass).forEach(arr=>arr.forEach((x,i)=>{x._cr=i+1;x._col=stuPointsColor(i+1,arr.length);}));
+  stuApplyRanking(); /* r1234：积分按时间范围重算 + 班级内排名（默认当前学期） */
   list=list.sort((a,b)=>{const ka=stuIndexKey(a.name),kb=stuIndexKey(b.name);return ka<kb?-1:ka>kb?1:(a.name<b.name?-1:a.name>b.name?1:0);});
   const groups={};
   list.forEach(s=>{const k=stuIndexKey(s.name)||'#';if(!groups[k])groups[k]=[];groups[k].push(s);});
@@ -2718,11 +2767,8 @@ function stuSearch(v){S._stuSearch=v;save();
   // 班级选择仅在无搜索词时用于条件展示学生列表
   let list = q ? S.students.filter(s=>s.name.toLowerCase().includes(q))
                : S.students.filter(s=>clsId==='all'||s.classId===clsId);
-  // 班级内积分排名（按全量班级计算，不受过滤影响）
-  const byClass={};
-  S.students.forEach(x=>{if(!byClass[x.classId])byClass[x.classId]=[];byClass[x.classId].push(x);});
-  Object.values(byClass).forEach(arr=>arr.sort((a,b)=>b.points-a.points));
-  Object.values(byClass).forEach(arr=>arr.forEach((x,i)=>{x._cr=i+1;x._col=stuPointsColor(i+1,arr.length);}));
+  // 班级内积分排名（r1234：按时间范围重算，共用 stuApplyRanking）
+  stuApplyRanking();
   list=list.sort((a,b)=>{const ka=stuIndexKey(a.name),kb=stuIndexKey(b.name);return ka<kb?-1:ka>kb?1:(a.name<b.name?-1:a.name>b.name?1:0);});
   const groups={};
   list.forEach(s=>{const k=stuIndexKey(s.name)||'#';if(!groups[k])groups[k]=[];groups[k].push(s);});
@@ -2772,9 +2818,16 @@ function iconSvg(name,size){
   /* 教学进度-已完成（2026-09-07 落库：配套方案②「圆·虚实对比」——实心圆+反白勾，与「将进行」同家族；r1219 加 viewBox 覆盖，让 18×18 容器里的实心圆也是 18×18） */
   p['已完成']='<circle cx="12" cy="12" r="9" fill="currentColor" stroke="none"/><path d="m8 12.5 2.8 2.8L16.5 9.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
   pvb['已完成']='3 3 18 18';
-  /* 教学进度-将进行（2026-09-07 落库：配套方案②「圆·虚实对比」——虚线圆，与「已完成」同家族；r1219 加 viewBox 覆盖，让虚线圆也铺满 18×18） */
-  p['将进行']='<circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/>';
-  pvb['将进行']='3 3 18 18';
+  /* 教学进度-将进行（r1230 试验版：用户「不用实心圆+反白，就是实线圆+中心点」——
+     实线描边圆(继承 stroke currentColor/2px/round) + 同色实心中心点，与「已完成」实心+白勾同尺寸家族。
+     【原始 r1219 选定参数，回退时原样恢复】
+       p['将进行']='<circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/>';
+       pvb['将进行']='2 2 20 20';  （实线描边圆 stroke 外扩 1 单位，同样需要 2 2 20 20 零裁切） */
+  p['将进行']='<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/>';
+  pvb['将进行']='2 2 20 20';
+  /* 教学进度-新增进度（2026-09-07 落库：候选⑥「圆·加号·下横线」× 候选①配色「实心圆·反白」，用户指定组合，原样保存） */
+  p['新增进度']='<circle cx="12" cy="12" r="9" fill="currentColor" stroke="none"/><path d="M12 7.8v5.4M9.3 10.5h5.4M8.5 16h7" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>';
+  pvb['新增进度']='3 3 18 18';
   /* 复盘-系统汇总（2026-09-07 落库：候选①四宫格仪表盘，原样保存） */
   p['系统汇总']='<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>';
   /* 复盘-本周进度（2026-09-07 落库：候选①清单双勾，原样保存；原 key「教学任务」随分类改名） */
@@ -3299,26 +3352,28 @@ function reviewOverlapHtml(rv){
     if(!items.length)return;
     let tagged;
     if(c.kind==='tasks'){
-      /* r1216：按班级聚合展示——一个班一个药丸「班级名 进度1 进度2」，班级间竖线分隔；hit 按条目标 ✓ */
+      /* r1216：按班级聚合展示——一个班一个药丸「班级名 进度1 进度2」；每个班单独成行 */
       const groups={},order=[];
       items.forEach(it=>{ const i=it.label.indexOf('·'); const g=i>0?it.label.slice(0,i):''; const t=i>0?it.label.slice(i+1):it.label;
         if(!groups[g]){groups[g]=[];order.push(g);}
         const hit=manual.indexOf(it.key)>=0; if(hit)overlap++; total++;
         groups[g].push(t+(hit?' ✓':'')); });
-      /* r1217：班级名=无框加粗文字，进度各一个小药丸框，班级间竖线分隔 */
-      tagged=order.map((g,gi)=>{
+      /* r1217/r1231：班级名=无框加粗文字，进度各一个小药丸框；班级间逐行排列（不再用竖线分隔） */
+      tagged=order.map(g=>{
         const pills=groups[g].map(x=>{ const hit=x.endsWith(' ✓');
           return `<span class="ov ${hit?'ov-ok':'ov-new'}" title="${hit?'你已在记录中提及':'系统自动汇总，你可能尚未记录'}">${esc(hit?x.slice(0,-2):x)}${hit?' ✓':''}</span>`; }).join(' ');
         /* r1218：班级名 13px，颜色跟随本组框内文字色（全部已记录→绿，否则灰） */
         const allHit=groups[g].length&&groups[g].every(x=>x.endsWith(' ✓'));
-        return `${g?`<strong style="font-weight:600;font-size:13px;color:${allHit?'var(--ok)':'var(--text-2)'}">${esc(g)}</strong> `:''}${pills}${gi<order.length-1?' <span style="color:var(--border);font-weight:400">|</span>':''}`;
-      }).join(' ');
-      tagged=[tagged];
+        return `${g?`<strong style="font-weight:600;font-size:13px;color:${allHit?'var(--ok)':'var(--text-2)'}">${esc(g)}</strong> `:''}${pills}`;
+      });
     } else {
       tagged=items.map(it=>{ const hit=manual.indexOf(it.key)>=0; if(hit)overlap++; total++;
         return `<span class="ov ${hit?'ov-ok':'ov-new'}" title="${hit?'你已在记录中提及':'系统自动汇总，你可能尚未记录'}">${esc(it.label)}${hit?' ✓':''}</span>`; });
     }
-    rows.push(`<div style="margin:5px 0"><strong style="display:inline-flex;align-items:center;gap:5px;vertical-align:middle">${iconSvg(c.ic,18)}<span>${c.label}：</span></strong> ${tagged.join(' ')}</div>`);
+    /* r1231：分类标签单独一行；本周进度每班另起一行，其余分类仅首项与标题分行、其余并排 */
+    const sep=c.kind==='tasks'?'<br>':' ';
+    rows.push(`<div style="margin:5px 0"><strong style="display:inline-flex;align-items:center;gap:5px;vertical-align:middle">${iconSvg(c.ic,18)}<span>${c.label}</span></strong></div>
+<div style="margin:2px 0 4px 23px;line-height:1.8">${tagged.join(sep)}</div>`);
   });
   if(!total)return '';
   const newN=total-overlap;
@@ -5184,7 +5239,7 @@ function applyExamPoints(e,prev){
   const avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
   const byScore=names.slice().sort((a,b)=>e.scores[b]-e.scores[a]);
   const studentIdOf=n=>{const s=S.students.find(x=>x.name===n);return s?s.id:'';};
-  const add=(n,delta,reason)=>{const id=studentIdOf(n);if(!id)return;const s=stu(id);if(!s)return;s.points+=delta;S.examPoints.push({id:uid(),examId:e.id,studentId:id,name:n,reason,delta,date:e.date,examName:e.name});};
+  const add=(n,delta,reason)=>{const id=studentIdOf(n);if(!id)return;const s=stu(id);if(!s)return;s.points+=delta;s._at=Date.now();/* r1232：考试加减分当场给学生条目盖戳——另一端任何后续 merge 即便 _at 较新也不再有「空积分」副本可凭其覆盖；与 save() 内 _stuPtsMap 比对盖戳双保险。*/S.examPoints.push({id:uid(),examId:e.id,studentId:id,name:n,reason,delta,date:e.date,examName:e.name});};
   byScore.slice(0,er.topCount).forEach((n,i)=>add(n,er.topBase-i,'考试加分'));
   names.forEach(n=>{if(e.scores[n]<60)add(n,er.failPts,'考试不及格');});
   names.forEach(n=>{if(e.scores[n]>=60&&e.scores[n]<avg)add(n,er.belowAvgPts,'考试未达标');});
