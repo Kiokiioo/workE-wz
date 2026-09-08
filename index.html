@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1258</title>
+<title>工作E · v20260902-r1267</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -171,7 +171,6 @@ a{color:inherit;text-decoration:none}
 .btn.primary{background:var(--primary);border-color:var(--primary);color:var(--primary-text)}
 .btn.primary:hover{filter:brightness(1.05)}
 .btn.sm{padding:10px 11px;font-size:13px}
-#stu_range_wrap .bk-range-trigger{border-radius:19px;height:36px}
 #dr_type_wrap .bk-range-trigger{border-radius:99px}
 #stu_cls_wrap .bk-range-trigger,#stu_time_wrap .bk-range-trigger{border-radius:99px} /* r1234：新增时间选择框同款圆角99 */
 #rec_cls_wrap .bk-range-trigger{height:38px;border-radius:99px}
@@ -401,7 +400,7 @@ button[data-action="exp-plan"]{transition:background .12s ease}
 .stat-card .stat-top{display:flex;justify-content:space-between;align-items:center}
 .stat-card .stat-icon{width:24px;height:24px;border-radius:7px;background:var(--surface-2);color:var(--text-3);display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1}
 .stat-card.active .stat-icon{background:rgba(255,255,255,.22);color:#fff}
-.stat-card .stat-count{font-size:20px;font-weight:700;line-height:1}
+.stat-card .stat-count{font-size:20px;font-weight:700;line-height:1;flex:1;min-width:0;text-align:right;margin-left:6px}  /* r1261：数字右对齐（iPhone 8 张统计卡数字统一贴右） */
 .stat-card .stat-label{font-size:12px;color:var(--text-2)}
 /* 教学待办：搜索 + 添加待办 同一行（等高 38px） */
 .todo-toolbar{display:flex;align-items:stretch;gap:8px;margin:0 0 12px}
@@ -417,6 +416,7 @@ button[data-action="exp-plan"]{transition:background .12s ease}
 /* 教学进度-全部课程 / 备课笔记-课程 下拉触发 38高 99圆角 */
 #course_cls_wrap .bk-range-trigger,#note_cls_wrap .bk-range-trigger{height:38px;border-radius:99px}
 .stat-card.active .stat-label{color:rgba(255,255,255,.82)}
+/* r1267：「完成」卡选中后图标直接变白，与其他 7 张统计卡同款视觉（不强制紫、不改背景）。 */
 
 table{width:100%;border-collapse:collapse;font-size:14px}
 th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
@@ -867,6 +867,10 @@ form[data-form="plan-add"] input:not([type=hidden]):not([type=checkbox]):not(.bk
 /* 导入成绩弹窗：bk-range 弹层 + 名称/学期/班级/科目 高 38 + 圆角 99（与教学任务安排-学期同款） */
 form[data-form="imp-grade"] .bk-range-trigger{height:38px;border-radius:99px}
 form[data-form="imp-plan"] .bk-range-trigger{height:38px;border-radius:99px}
+/* r1260：编辑学生弹窗-班级 bk-range 弹层与「教学任务安排-学期」同款（38/99）；需关注胶囊沿用学生页 .stu-cap（高14） */
+form[data-form="stu"] .bk-range-trigger{height:38px;border-radius:99px}
+/* r1260：编辑学生弹窗-姓名/当前积分输入框圆角 99（与班级弹层、教学任务安排同款） */
+form[data-form="stu"] input:not([type=hidden]):not([type=checkbox]):not(.bk-trigger-input){height:38px;box-sizing:border-box;border-radius:99px;padding:0 14px;font-size:13px}
 form[data-form="imp-grade"] input:not([type=hidden]):not([type=checkbox]):not(.bk-trigger-input){height:38px;box-sizing:border-box;border-radius:99px;padding:0 14px}
 /* 教学进度-记录进度：完成时间的日期框 + 时间下拉（bk-range 弹层，与课表设置-学期同款）统一 高38 + 圆角99 */
 form[data-form="progress"] .bk-range-wrap{flex:1;min-width:0}
@@ -1050,6 +1054,7 @@ form[data-form="rec"] .field.row input[type="text"]{width:100%;min-width:0}
   form[data-form="tt"] input[name="time"],
   form[data-form="semester"] input:not([type=hidden]),
   form[data-form="plan-add"] input[name="ptitle"],
+  form[data-form="stu"] input:not([type=hidden]):not([type=checkbox]):not(.bk-trigger-input), /* r1260：编辑学生姓名/积分视觉 13px */
   form[data-form="imp-grade"] input[name="gname"]{
     font-size:16px!important;transform:scale(0.8125);transform-origin:left top;
     width:calc(100% * 1.2308)!important;height:46.77px!important;min-height:46.77px!important;
@@ -1431,6 +1436,20 @@ function load(){for(const k in DEFAULTS)S[k]=store.get(k,DEFAULTS[k]);uiLocalLoa
      旧 r1208「积分是静默字段」逻辑的 if(_stuPtsMap) 在页面首次 save 时 _stuPtsMap=null 会跳过盖戳 → 学生条目 _at 留旧 → 跨端合并时另一端凭 _at 较新把 s.points=-2 回滚为 0 → 「有扣分记录但当前积分 0」。
      修后：任何 s.points 的改动（考试/作业/违纪/答题/点名等）首次 save 就盖戳，跨端按 _at 择新时新端胜出。*/
   _stuPtsMap={};(S.students||[]).forEach(s=>{if(s)_stuPtsMap[s.id]=s.points;});
+  /* r1265：S.subjects 按 name 去重一次性迁移。历史上 form 'subj' 添加不查重 + 云同步合并产生同 name 多 id → 弹层渲染 7+ 个重复项。
+     保留 first occurrence，把后续同名 subject 的 exams 引用迁移到 first 的 id，再从 S.subjects 删除后续同名项。
+     标记存本地，幂等；触发迁移即 save（用户刷新前会看到一次性回流）。*/
+  /* r1266：改为每次 load 都跑——云同步合并会反复把同名科目 id 拉回来，一次性迁移不够。逻辑本身幂等（无重复时零开销）。*/
+  if(S.subjects && S.subjects.length){
+    const seen={};
+    const drops=[];
+    S.subjects.forEach(s=>{if(s&&s.name){if(seen[s.name]===undefined)seen[s.name]=s.id;else drops.push({fromId:s.id,toId:seen[s.name]});}});
+    if(drops.length){
+      drops.forEach(d=>{(S.exams||[]).forEach(e=>{if(e&&e.subjectId===d.fromId)e.subjectId=d.toId;});});
+      S.subjects=S.subjects.filter(s=>!drops.some(d=>d.fromId===s.id));
+      store.set('_subjDedupMig',1);save();
+    }
+  }
 }
 // 将历史 S.tasks / S.deadlines 合并进统一的 S.todos（带 type 字段）
 function migrateTodos(){
@@ -2252,7 +2271,7 @@ function viewTodos(){
   const catCnt=c=>S.todos.filter(x=>c==='其他'?isOtherCat(x.cat):x.cat===c).length;
   const statCard=(key,label,icon,count)=>` <button class="stat-card ${tab===key?'active':''}" data-action="todo-tab" data-t="${key}"><div class="stat-top"><div class="stat-icon">${icon}</div><div class="stat-count">${count}</div></div><div class="stat-label">${label}</div></button>`;
   // 顺序：全部 / 教学 / 学生 / 工作 / 活动 / 任务 / 其他 / 完成
-  const tHtml=statCard('all','全部',iconSvg('全部',22),allCnt)+statCard('教学','教学',iconSvg('教学',22),catCnt('教学'))+statCard('学生','学生',iconSvg('学生',22),catCnt('学生'))+statCard('工作','工作',iconSvg('工作',22),catCnt('工作'))+statCard('活动','活动',iconSvg('活动',22),catCnt('活动'))+statCard('任务','任务',iconSvg('任务',22),catCnt('任务'))+statCard('其他','其他',iconSvg('其他',22),catCnt('其他'))+statCard('done','完成',`<span style="color:var(--primary);display:inline-flex;align-items:center;justify-content:center">${iconSvg('完成',22)}</span>`,doneCnt);
+  const tHtml=statCard('all','全部',iconSvg('全部',22),allCnt)+statCard('教学','教学',iconSvg('教学',22),catCnt('教学'))+statCard('学生','学生',iconSvg('学生',22),catCnt('学生'))+statCard('工作','工作',iconSvg('工作',22),catCnt('工作'))+statCard('活动','活动',iconSvg('活动',22),catCnt('活动'))+statCard('任务','任务',iconSvg('任务',22),catCnt('任务'))+statCard('其他','其他',iconSvg('其他',22),catCnt('其他'))+statCard('done','完成',iconSvg('完成',22),doneCnt);
   const listHtml=todoListHtml();
   return `<div class="page-head"><h1>教学待办</h1></div>
   <div class="stat-row">${tHtml}</div>
@@ -2690,6 +2709,7 @@ function stuCardHtml(s){
     <div class="avatar" style="width:24px;height:24px;font-size:11px;background:${AV[S.students.indexOf(s)%AV.length]}" data-action="stu-detail" data-id="${s.id}">${esc(stuIndexKey(s.name))}</div>
     <div class="s-name" style="flex:1;font-size:15px" data-action="stu-detail" data-id="${s.id}">${esc(s.name)}</div>
     <button class="stu-cap ${s.concern?'on':''}" data-action="stu-cap" data-id="${s.id}" title="需关注" aria-label="需关注"></button>
+    <button class="ic-btn" type="button" data-action="edit-stu" data-id="${s.id}" title="编辑学生" aria-label="编辑学生">${iconSvg('edit',10)}</button>
     <div style="font-size:12px;color:var(--text-2);white-space:nowrap">${esc(classNameOf(s.classId))}</div>
     <div style="margin-left:auto;white-space:nowrap"><span class="tag points" style="${s._col||'color:#4F6BED;background:#4F6BED1F'};width:40px;min-width:40px;max-width:40px;padding:2px 0;display:inline-block;text-align:center">${s._pts!=null?s._pts:s.points} 分</span></div></div>
     ${todos.length?`<div class="sub" style="margin-top:6px;margin-left:35px">待办：${todos.map(x=>`<span class="stu-item" data-lp="stu-item" data-stu="${s.id}" data-kind="todo" data-iid="${x.id}">${esc(x.text)}</span>`).join('')}</div>`:''}
@@ -2890,8 +2910,14 @@ function iconSvg(name,size){
   p['package']='<path d="M16.5 9.4 7.5 4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>';
   /* 云下载 N：备份按钮（Feather download-cloud） */
   p['cloud-download']='<path d="M20 17.5A4.5 4.5 0 0 0 17 8h-1.3A8 8 0 1 0 4 15.2"/><polyline points="8 12 12 16 16 12"/><line x1="12" y1="16" x2="12" y2="22"/>';
+  /* 云上传 U：备份按钮（r1262 用户选定候选②「云·上箭头」，path 原样落库，禁止擅自加工） */
+  p['cloud-upload']='<path d="M20 12.5A4.5 4.5 0 0 0 17 3h-1.3A8 8 0 1 0 4 10.2"/><polyline points="8 17 12 13 16 17"/><line x1="12" y1="22" x2="12" y2="13"/>';
+  /* 复制·双层方块：备份按钮（r1263 用户从第二批候选中最终选定，Feather copy 原版 path 原样落库，禁止加工） */
+  p['copy-backup']='<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>';
   /* 收件箱：恢复-导入按钮（Feather inbox，外来数据导入语义） */
   p['inbox']='<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>';
+  /* 收件箱+箱内下方箭头：恢复按钮（r1264 用户选定候选③「箱内上方」，path 原样落库，禁止加工） */
+  p['inbox-down']='<path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><line x1="12" y1="6.5" x2="12" y2="11.5"/><polyline points="9.5 9 12 11.5 14.5 9"/>';
   /* 圆 X：重置-清除按钮（Feather x-circle，红色 destructive 用） */
   p['x-circle']='<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>';
   /* 课表/日历（emoji 📅，试点替换） */
@@ -3162,12 +3188,8 @@ function studentRecords(id,range){
 }
 function openStudentDetail(id){
   S._stuDetail=S._stuDetail||{};S._stuDetail.id=id;
-  /* r81：默认「全部学期」；对旧值（sem/30/7/custom/已归档学期）做迁移归位 */
-  const _v=S._stuDetail.range;
-  const _isValid=v=>v==='all'||(v&&v.indexOf('sem:')===0&&S.semesters.some(x=>x.id===v.slice(4)&&!x.archived));
-  if(!_isValid(_v))S._stuDetail.range='all';
-  const mode=S._stuDetail.range;
-  const range=rangeOf(mode);
+  /* r1260：范围选择器已删，详情弹窗默认跟随「学生-学生页面」当前选择的时间范围（stuTimeRange） */
+  const range=stuTimeRange();
   const s=stu(id);if(!s)return;
   const rec=studentRecords(id,range);
   const st=rec.stats;
@@ -3194,20 +3216,11 @@ function openStudentDetail(id){
       <div class="rc-body"><div class="rc-title">${it.title}</div>${it.sub?`<div class="rc-sub">${it.sub}</div>`:''}</div>
       ${it.delta!=null?`<div class="rc-delta" style="color:${it.delta>=0?'var(--ok)':'var(--danger)'}">${it.delta>0?'+':''}${it.delta}</div>`:''}${it.date?`<div class="rc-date">${esc(it.date)}</div>`:''}</div>`).join(''):
     emptyState('📭','该时间范围内还没有记录');
-  /* r81：范围下拉 = 全部学期 + 每个未归档学期；移除「当前学期 / 任意时间 / 近30天 / 近7天 / 自定义」 */
-  const rangeItems=[{k:'all',l:'全部学期'}].concat(S.semesters.filter(s=>!s.archived).map(s=>({k:'sem:'+s.id,l:s.name+'（'+s.start+'~'+s.end+'）'}))).map(o=>({k:o.k,l:o.l,pick:'stuRange'}));
   const drTypeItems=REC_TYPES.map(o=>({k:o.k,l:o.l,pick:'drTypePick'}));
   const curDr=S._stuDetail.drType||'违纪';
-  const customHtml=mode==='custom'?`<div class="field row" style="margin-top:8px"><div class="field"><label>起始</label><input type="date" value="${S._stuDetail.from||''}" onchange="stuRangeCustom('from',this.value)"></div>
-    <div class="field"><label>结束</label><input type="date" value="${S._stuDetail.to||''}" onchange="stuRangeCustom('to',this.value)"></div></div>`:'';
   const html=`
     ${statCards}
-    <div class="field row" style="align-items:flex-end;margin-top:12px">
-      <div class="field" style="flex:1">${selHtml('stu_range', stuRangeSummary(mode), bkOpts(rangeItems, mode))}</div>
-      <div class="field" style="flex:none"><button class="btn sm" style="border-radius:99px;height:36px;line-height:1;box-sizing:border-box;padding:0 18px" data-action="edit-stu" data-id="${id}">编辑学生</button></div>
-    </div>
-    ${customHtml}
-    <div class="field row" style="gap:6px;align-items:stretch">
+    <div class="field row" style="gap:6px;align-items:stretch;margin:12px 0">
       <div class="bk-range-wrap" id="dr_type_wrap" style="flex:none;width:90px">
         <div class="bk-range-trigger rec-type-combo" style="height:36px;padding:0 28px 0 12px" onclick="bkSelOpen('dr_type_pop',event)">
           <input id="dr_type" class="bk-trigger-input" value="${esc(curDr)}" placeholder="选择或输入类型" oninput="S._stuDetail&&(S._stuDetail.drType=this.value)" onclick="event.stopPropagation()">
@@ -3220,7 +3233,7 @@ function openStudentDetail(id){
       </div>
     </div>
     ${buildProcessedList(id)}
-    <div class="section-title" style="margin-top:16px">全部记录</div>
+    <div class="section-title" style="margin-top:0">全部记录</div>
     <div class="timeline">${timeline}</div>`;
   modal.innerHTML=`<div class="modal-head"><h3>${esc(s.name)} · ${esc(classNameOf(s.classId))}</h3></div><div class="modal-body">${html}</div>`;
   modalBack.classList.add('show');
@@ -3285,11 +3298,8 @@ function stuCapToggle(sid){
   s.concern=!s.concern;save();viewReload('students');
   toast(s.concern?'已标记需关注':'已取消需关注');
 }
-function stuRangeSummary(m){if(m==='all')return '全部学期';if(m&&m.indexOf('sem:')===0){const s=S.semesters.find(x=>x.id===m.slice(4));return s?s.name+'（'+s.start+'~'+s.end+'）':'全部学期';}return '全部学期';}
 function drTypeLabel(v){return v||'违纪';}
 function drTypePick(k){const lbl=recLabelOf(k);const inp=document.getElementById('dr_type');if(inp)inp.value=lbl;if(S._stuDetail)S._stuDetail.drType=lbl;closeAllBkPops();}
-function stuRange(mode){S._stuDetail.range=mode;openStudentDetail(S._stuDetail.id);}
-function stuRangeCustom(k,v){S._stuDetail[k]=v;openStudentDetail(S._stuDetail.id);}
 /* 选择框 = 输入框：把当前可见文字映射到 kind；不在预定义列表的自定义输入 → 'other'（计入"其他"） */
 function drTypeKind(lbl){return recKindByLabel(lbl);}
 function addDetailRecord(id){const s=stu(id);if(!s)return;const lbl=document.getElementById('dr_type').value.trim();
@@ -3307,7 +3317,7 @@ function addDetailRecord(id){const s=stu(id);if(!s)return;const lbl=document.get
   else if(kind==='contact'){if(!s.contactItems)s.contactItems=[];if(txt)s.contactItems.push({id:uid(),text:txt,createdAt:todayISO(),processed:false,processedAt:null,notes:[]});}
   else if(kind==='other'){S.answers.push({id:uid(),studentId:id,date:todayISO(),result:'other',delta:0,note:txt?lbl+'：'+txt:lbl});}
   save();closeModal();viewReload(curView());toast('已添加记录');}
-function openStuStat(id,type){const s=stu(id);if(!s)return;const range=rangeOf(S._stuDetail&&S._stuDetail.range||'all');
+function openStuStat(id,type){const s=stu(id);if(!s)return;const range=stuTimeRange(); /* r1260：与学生详情弹窗同口径（学生页时间范围） */
   const labels={viol:'违纪',ans:'答题',proc:'处理',other:'其他'};
   let rows=[];
   if(type==='viol')rows=S.violations.filter(v=>v.studentId===id&&inRange(v.date,range)).map(v=>`<div class="rec"><div class="ic" style="background:var(--danger)">${iconSvg('违纪',16)}</div><div class="rc-body"><div class="rc-title">${esc(v.type)}</div><div class="rc-sub">${esc(v.note||'')}</div></div><div style="text-align:right"><div class="rc-date">${esc(v.date)}</div><div class="rc-delta" style="color:var(--danger)">${v.delta} 分</div></div></div>`);
@@ -3341,7 +3351,7 @@ function openStuExam(id,eid){const s=stu(id);const e=S.exams.find(x=>x.id===eid)
     <div class="sq"><div class="n">${rank!=null?rank:'—'}</div><div class="l">班级排名</div></div>
     <div class="sq"><div class="n ${delta>0?'ok':delta<0?'danger':''}">${delta>0?'▲+'+delta:delta<0?'▼'+delta:'—'}</div><div class="l">较上次</div></div></div>
     <div class="sub" style="margin-top:10px">${esc(e.date)}</div>`);}
-function openStuExams(id){const s=stu(id);if(!s)return;const range=rangeOf(S._stuDetail&&S._stuDetail.range||'all');const rec=studentRecords(id,range);
+function openStuExams(id){const s=stu(id);if(!s)return;const range=stuTimeRange(); /* r1260：与学生详情弹窗同口径 */const rec=studentRecords(id,range);
   const items=rec.grades.length?rec.grades.map(g=>`<div class="rec" data-action="stu-exam" data-id="${id}" data-eid="${g.examId}" style="cursor:pointer">
       <div class="ic" style="background:var(--primary)">${iconSvg('成绩归档',16)}</div>
       <div class="rc-body"><div class="rc-title">${esc(g.name)}</div><div class="rc-sub">${esc(g.date)}</div></div>
@@ -5404,7 +5414,7 @@ function viewDraw(){
         ${d.mode==='name'?`<div class="field"><label>人数</label><input type="number" id="d_count" value="${d.count}" min="1" max="50" placeholder="1"></div>`:`<div class="field"><label>分组数量</label><input type="number" id="d_gc" value="${d.groupCount}" min="2" max="10"></div>`}
       </div>
       <div class="field" style="margin-bottom:${d.cond.type==='none'?'16px':'8px'}"><label>条件</label>${condSel}</div>
-      ${d.cond.type==='score'?`<div class="field" style="margin-bottom:8px"><label>科目</label>${selHtml('d_sub',drawSubSummary(),bkOpts(S.subjects.map(s=>({k:s.id,l:s.name,pick:'drawSubPick'})),d.cond.subjectId||''))}</div>`:''}
+      ${d.cond.type==='score'?`<div class="field" style="margin-bottom:8px"><label>科目</label>${selHtml('d_sub',drawSubSummary(),bkOpts((S.subjects||[]).filter((s,i,a)=>a.findIndex(x=>x.name===s.name)===i).map(s=>({k:s.id,l:s.name,pick:'drawSubPick'})),d.cond.subjectId||''))}</div>`:''}${d.cond.type==='score'?drawSubjHintHtml():''}
       ${d.cond.type==='score'?`<div class="field row" style="margin-bottom:16px"><div class="field" style="margin-bottom:0"><label>最高分</label><input type="number" id="d_max" value="${d.cond.max}"></div>
         <div class="field" style="margin-bottom:0"><label>最低分</label><input type="number" id="d_min" value="${d.cond.min}"></div></div>`:''}
       ${d.cond.type==='points'?`<div class="field row" style="margin-bottom:16px"><div class="field"><label>最高积分</label><input type="number" id="d_max" value="${d.cond.max}"></div>
@@ -5426,15 +5436,66 @@ function drawMode(v){S.draw.mode=v;if(v==='group')S._drawGroups=null;S._drawBatc
 function toggleDrawRepeat(){S.draw.repeat=!S.draw.repeat;save();viewReload('students');}
 function drawClassSet(v){S.draw.classId=(v==='全部班级')?ALL_CLASS:resolveClass(v);save();viewReload('students');}
 function drawCond(v){S.draw.cond.type=v;S.draw.cond.min='';S.draw.cond.max='';S.draw.cond.subjectId=S._gradeSub||(S.subjects[0]&&S.subjects[0].id)||'';save();viewReload('students');}
+/* r1266：抽签「限定成绩区间」按科目名称归一取考试——
+   历史隐患：S.subjects 曾出现同名多 id（添加不查重 + 云同步合并），或跨端导入时科目 id 与本端不一致，
+   导致 S.exams.subjectId 与下拉选中的 id 对不上 → 该科目明明有成绩却算出 0 人。
+   这里把「选中科目」展开为「所有同名科目的 id 集合」，只要 name 对得上就算同一科目。*/
+function drawSubjIds(sid){
+  if(!sid)return [];
+  const s=(S.subjects||[]).find(x=>x&&x.id===sid);
+  const ids=[];
+  if(s)(S.subjects||[]).forEach(x=>{if(x&&x.name===s.name&&ids.indexOf(x.id)<0)ids.push(x.id);});
+  if(ids.indexOf(sid)<0)ids.push(sid);
+  return ids;
+}
+/* r1266：取某学生在该科目「最近一场有他成绩」的分数。
+   旧逻辑 S.exams.filter(subjectId).pop() 只取数组末位一场：若那一场只含部分学生（补考/单班/异动），
+   其余学生即使有同科目成绩也会被判为「无成绩」→ 候选池 0 人。
+   现在遍历该科目全部考试，按日期取最新一条该生的分数；姓名比对做 trim 容错。*/
+function drawStuLatestScore(stu,sids,cid){
+  const nm=String((stu&&stu.name)||'').trim();
+  if(!nm)return null;
+  let best=null,bestDate='';
+  (S.exams||[]).forEach(e=>{
+    if(!e||!e.scores)return;
+    if(sids.length&&sids.indexOf(e.subjectId)<0)return;
+    if(cid&&cid!==ALL_CLASS&&e.classId&&e.classId!==ALL_CLASS&&e.classId!==cid&&e.classId!==(stu&&stu.classId))return;
+    let sc=null;
+    if(e.scores[nm]!=null)sc=e.scores[nm];
+    else{const k=Object.keys(e.scores).find(k=>String(k).trim()===nm);if(k!=null)sc=e.scores[k];}
+    if(sc==null||sc==='')return;
+    const dt=String(e.date||'');
+    if(best==null||dt>=bestDate){best=Number(sc);bestDate=dt;}
+  });
+  return best;
+}
+/* r1266：科目考试概况（用于抽签页诊断小字，让用户看到「已连到哪几场考试」） */
+function drawSubjStat(){
+  const ids=drawSubjIds(S.draw.cond.subjectId);
+  if(!ids.length)return {n:0};
+  const exs=(S.exams||[]).filter(e=>e&&e.scores&&ids.indexOf(e.subjectId)>=0);
+  if(!exs.length)return {n:0};
+  const sorted=exs.slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+  const last=sorted[sorted.length-1];
+  const nm={};exs.forEach(e=>Object.keys(e.scores||{}).forEach(n=>{if(String(n).trim())nm[String(n).trim()]=1;}));
+  return {n:exs.length,date:String(last.date||''),cnt:Object.keys(nm).length};
+}
+function drawSubjHintHtml(){
+  const st=drawSubjStat();
+  if(!st.n)return '<div style="margin:0 0 8px;font-size:12px;color:var(--text-2)">该科目暂无考试成绩</div>';
+  return '<div style="margin:0 0 8px;font-size:12px;color:var(--text-2)">已连接 '+st.n+' 场考试'+(st.date?'（最近 '+esc(st.date)+'）':'')+' · '+st.cnt+' 人有成绩</div>';
+}
 function drawCandidates(){
   let list=S.students.slice();
   if(S.draw.classId)list=list.filter(s=>s.classId===S.draw.classId);
   const c=S.draw.cond;
   if(c.type==='points'){const lo=parseInt(c.min),hi=parseInt(c.max);
     list=list.filter(s=>(lo===''||isNaN(lo)||s.points>=lo)&&(hi===''||isNaN(hi)||s.points<=hi));}
-  else if(c.type==='score'){const sj=c.subjectId;const ex=S.exams.filter(e=>e.subjectId===sj).pop();
-    const lo=parseInt(c.min),hi=parseInt(c.max);if(!ex)return[];
-    list=list.filter(s=>{const sc=ex.scores[s.name];return sc!=null&&(lo===''||isNaN(lo)||sc>=lo)&&(hi===''||isNaN(hi)||sc<=hi);});}
+  else if(c.type==='score'){const sids=drawSubjIds(c.subjectId);
+    const lo=parseInt(c.min),hi=parseInt(c.max);
+    const loOk=isNaN(lo),hiOk=isNaN(hi);
+    if(!sids.length)return[];
+    list=list.filter(s=>{const sc=drawStuLatestScore(s,sids,S.draw.classId);return sc!=null&&(loOk||sc>=lo)&&(hiOk||sc<=hi);});}
   return list;
 }
 function doDraw(){const cands=drawCandidates();if(!cands.length){toast('候选池为空');return;}
@@ -5761,8 +5822,8 @@ function viewSettings(){
     <div class="field row set-act bk-ops" style="margin-bottom:12px">
       <button class="btn danger" data-action="confirm-reset-all" title="重置" aria-label="重置" style="border-color:var(--danger);background:var(--surface)">${iconSvg('broom',20)}</button><!-- r117a：重置=重置全部数据（不再按时间/班级/范围局限），范围选择器仅供 归档/备份 使用 -->
       <button class="btn" data-action="do-arc-archive" title="归档" aria-label="归档">${iconSvg('package',20)}</button>
-      <button class="btn" data-action="do-manual-backup" title="备份" aria-label="备份">${iconSvg('cloud-download',20)}</button>
-      <button class="btn" data-action="do-restore-import" title="恢复" aria-label="恢复">${iconSvg('inbox',20)}</button>
+      <button class="btn" data-action="do-manual-backup" title="备份" aria-label="备份">${iconSvg('copy-backup',20)}</button>
+      <button class="btn" data-action="do-restore-import" title="恢复" aria-label="恢复">${iconSvg('inbox-down',20)}</button>
     </div>
     <div class="collapsible" id="arc_lib" style="margin-top:8px">
       <div class="section-title clickable" onclick="toggleCollapse('arc_lib')" style="font-size:15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('归档库',22)}归档库</span><span class="chev"></span></div>
@@ -6468,13 +6529,31 @@ function importStuBtn(id){if(id){importClass(id);return;}
   const c={id:uid(),name:nm,stage:f.elements['stage']?f.elements['stage'].value:'',grade:f.elements['grade']?f.elements['grade'].value:'',sem:(curSem()?curSem().id:'')};
   S.classes.push(c);addStuNames(c.id,f.elements['students']?f.elements['students'].value:'');
   save();closeModal();importClass(c.id);toast('班级已建，请选择名单文件');}
-function modalStu(id){const s=stu(id)||{};const cur=cls(s.classId)?cls(s.classId).name:'';
+/* r1259：脏班级视觉提示——班级名匹配 uid 形态（12+ 字符纯字母数字无中文）时给红边 + 警告 + 「选择其它班级」面板 */
+function looksLikeUid(s){const t=String(s||'').trim();if(t.length<12||t.length>40)return false;return /^[a-z0-9]+$/i.test(t)&&!/[一-龥]/.test(t);}
+function modalStu(id){
+  const s=stu(id)||{};
+  const curCls=s.classId?cls(s.classId):null;
+  const dirtyCls=!!s.classId&&(!curCls||looksLikeUid(curCls.name));
+  const nonArch=S.classes.filter(c=>!c.archived&&c.name!=='全部班级'&&!looksLikeUid(c.name));
+  const defId=(curCls&&!looksLikeUid(curCls.name))?curCls.id:'';
+  const warn=dirtyCls?`<div style="margin:0 0 10px;padding:8px 10px;border:1px solid #f6d4d4;background:#fff5f5;border-radius:6px;color:#b1322f;font-size:12px;line-height:1.5">⚠️ 该学生当前班级数据异常（<b>${esc(s.classId)}</b>），不是真实班级，请从下方选择一个班级后保存。</div>`:'';
+  const clsOpts=nonArch.map(c=>({k:c.id,l:c.name,pick:'stuClsPick'}));
+  if(!id||dirtyCls)clsOpts.unshift({k:'',l:'选择班级',pick:'stuClsPick'});
+  const clsSel=selHtml('stu_edit_cls',(curCls&&!dirtyCls)?curCls.name:'选择班级',bkOpts(clsOpts,defId))+`<input type="hidden" name="classId" value="${esc(defId)}">`;
+  const cOn=s.concern?'on':'';
+  const cVal=s.concern?'1':'0';
+  const nameField=field('姓名','<input name="name" required value="'+esc(s.name||'')+'">');
+  const clsField=field('班级',clsSel);
+  const ptsField=field('当前积分','<input type="number" name="points" value="'+(s.points||0)+'">');
+  const capField=`<div class="field" style="margin-bottom:0"><label>需关注</label><div style="display:flex;align-items:center;gap:8px;min-height:38px"><button type="button" class="stu-cap ${cOn}" onclick="stuCapToggleModal(this)" aria-label="需关注" style="margin:0"></button><span class="stu-cap-txt" style="font-size:12px;color:var(--text-2)">${s.concern?'已标记':'未标记'}</span><input type="hidden" name="concern" value="${cVal}"></div></div>`;
   openModal(id?'编辑学生':'添加学生',`<form data-form="stu" data-id="${id||''}">
-  ${field('姓名','<input name="name" required value="'+esc(s.name||'')+'">')}
-  ${field('班级（选择或输入新建）','<input list="cls_dl" name="classId" value="'+esc(cur)+'" placeholder="选择或输入班级">'+clsDatalist())}
-  ${field('当前积分','<input type="number" name="points" value="'+(s.points||0)+'">')}
-  ${field('需关注','<select name="concern"><option value="0">否</option><option value="1" '+(s.concern?'selected':'')+'>是</option></select>')}
+  ${warn}
+  <div class="field row">${nameField}${clsField}</div>
+  <div class="field row">${ptsField}${capField}</div>
   <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">保存</button></div></form>`);}
+function stuClsPick(v){const f=document.querySelector('form[data-form="stu"]');const hid=f&&f.querySelector('input[name="classId"]');if(hid)hid.value=v;const w=document.getElementById('stu_edit_cls_wrap');const t=w&&w.querySelector('.bk-trigger-text');if(t)t.textContent=v?classNameOf(v):'选择班级';closeAllBkPops();}
+function stuCapToggleModal(btn){const on=btn.classList.toggle('on');const f=btn.closest('form');if(!f)return;const hid=f.querySelector('input[name="concern"]');if(hid)hid.value=on?'1':'0';const tx=f.querySelector('.stu-cap-txt');if(tx)tx.textContent=on?'已标记':'未标记';}
 /* 学生页顶部圆形加号：快速添加学生（仅 班级 + 姓名） */
 function modalQuickAddStu(){const nonArch=S.classes.filter(c=>!c.archived);
   // 默认班级：当前页已选（非 all） > 上次选择 > 空
@@ -6637,7 +6716,7 @@ modal.addEventListener('submit',e=>{
     save();closeModal();reloadCur('students');toast('已保存'+(added?('，新增 '+added+' 名学生'):''));}
   else if(form==='bulk-stu'){const cid=f.dataset.id;if(!cls(cid)){toast('班级不存在');return;}
     const added=addStuNames(cid,v('students'));save();closeModal();reloadCur('settings');toast(added?('已新增 '+added+' 名学生'):'没有可新增的姓名');}
-  else if(form==='stu'){const id=f.dataset.id;const cid=resolveClass(v('classId'));const o={name:v('name'),classId:cid,points:+v('points')||0,concern:v('concern')==='1'};
+  else if(form==='stu'){const id=f.dataset.id;const cid=v('classId');const o={name:v('name'),classId:cid,points:+v('points')||0,concern:v('concern')==='1'};
     if(id){Object.assign(stu(id),o);stu(id)._at=Date.now();}else S.students.push({id:uid(),...o,_at:Date.now(),todoItems:[],contactItems:[]});save();closeModal();viewReload('students');toast('已保存');}
   else if(form==='qa_stu'){if(!submitQaStu())return;}
   else if(form==='rec'){
@@ -6664,7 +6743,7 @@ modal.addEventListener('submit',e=>{
       msg='已登记并记 '+(delta>0?'+':'')+delta+' 分';}
     else{delta=0;s.points+=0;S.violations.push({id:uid(),studentId:s.id,cls:s.classId,type,date,delta:0,note:note});msg='已记录';}
     save();closeModal();viewReload(curView());toast(msg);}
-  else if(form==='subj'){const n=v('name').trim();if(!n){toast('请输入科目名');return;}S.subjects.push({id:uid(),name:n});save();closeModal();viewReload('grades');toast('已添加科目');}
+  else if(form==='subj'){const n=v('name').trim();if(!n){toast('请输入科目名');return;}if((S.subjects||[]).some(s=>s.name===n)){toast('该科目已存在');closeModal();return;}S.subjects.push({id:uid(),name:n});save();closeModal();viewReload('grades');toast('已添加科目');} /* r1265：科目添加查重，防止产生同名多 id */
   else if(form==='addrule'){const type=(v('type')||'').trim();if(!type){toast('请填写类型');return;}
     const points=parseInt(v('points'))||0;
     if((S.customRules||[]).some(c=>c.type===type)){toast('该类型已存在');return;}
@@ -6995,7 +7074,12 @@ document.addEventListener('click',function(e){var m=e.target.closest&&e.target.c
 document.addEventListener('click',closeBkRangeMenu);
 function modalFill(id,kind){if(!id)return;const map={todos:S.todos,course:S.courses,note:S.notes,stu:S.students,review:S.reviews};
   const o=(map[kind]||[]).find(x=>x.id===id);if(!o)return;
-  setTimeout(()=>{for(const k in o){const el=modal.querySelector('[name='+k+']');if(el)el.value=o[k];if(k==='concern'&&modal.querySelector('[name=concern]'))modal.querySelector('[name=concern]').value=o.concern?'1':'0';}if(kind==='note')initTagInput();},30);}
+  /* r1260：stu 弹窗班级存于 hidden input name=classId（id 值，非 name），concern 同步切胶囊；其余字段原样回填 */
+  setTimeout(()=>{for(const k in o){
+    if(k==='classId'&&kind==='stu'){const cid=o.classId||'';const c=cls(cid);const dirty=c&&looksLikeUid(c.name);const hid=modal.querySelector('[name=classId]');if(hid)hid.value=(c&&!dirty)?cid:'';const t=modal.querySelector('#stu_edit_cls_wrap .bk-trigger-text');if(t)t.textContent=(c&&!dirty)?c.name:'选择班级';continue;}
+    const el=modal.querySelector('[name='+k+']');if(el)el.value=o[k];
+    if(k==='concern'){const hid=modal.querySelector('[name=concern]');if(hid)hid.value=o.concern?'1':'0';const cap=modal.querySelector('.stu-cap');if(cap)cap.classList.toggle('on',!!o.concern);const tx=modal.querySelector('.stu-cap-txt');if(tx)tx.textContent=o.concern?'已标记':'未标记';}
+  }if(kind==='note')initTagInput();},30);}
 function closeDrawer(){document.getElementById('drawer').classList.remove('show');document.querySelector('.drawer-backdrop').classList.remove('show');}
 
 /* ============ theme ============ */
