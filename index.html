@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1246</title>
+<title>工作E · v20260902-r1248</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -457,29 +457,33 @@ th{color:var(--text-2);font-weight:600;font-size:13px}
 .tt-table th,.tt-table td{border-bottom:1px dashed var(--border)}
 tbody tr:hover{background:var(--surface-2)}
 /* r1243：记录表 班级/积分 列固定 60px（桌面 auto 布局下作为宽度基准，手机 fixed 布局 media 内同样 60） */
-/* r1244/1245：记录表列宽与对齐——班级 60 居中、积分 60 右对齐、时间 65 右对齐；表头全部居中且字号统一 13px */
+/* r1244-1247：记录表列宽与对齐——姓名 65、班级 65、积分 60 居中、时间 70 右对齐、类型居中；表头全部居中且字号统一 13px */
 .rec-table th{text-align:center;font-size:13px}
-.rec-table th.rec-c2,.rec-table td.rec-c2{width:60px;text-align:center}
-.rec-table col.rec-c4,.rec-table th.rec-c4,.rec-table td.rec-c4{width:65px}
-.rec-table td.rec-c4,.rec-table td.rec-c5{text-align:right;white-space:nowrap}
+.rec-table th.rec-c1,.rec-table td.rec-c1{width:65px}
+.rec-table th.rec-c2,.rec-table td.rec-c2{width:65px;text-align:center}
+.rec-table col.rec-c4,.rec-table th.rec-c4,.rec-table td.rec-c4{width:70px}
+.rec-table td.rec-c4{text-align:right;white-space:nowrap}
 .rec-table td.rec-c2{white-space:nowrap}
-.rec-table th.rec-c5,.rec-table td.rec-c5{width:60px}
+.rec-table th:nth-child(3),.rec-table td:nth-child(3){text-align:center}
+.rec-table th.rec-c5,.rec-table td.rec-c5{width:60px;text-align:center;white-space:nowrap}
+.rec-table th,.rec-table td{padding:10px 4px} /* r1248：桌面端列间距与手机端统一为 4（原全局 12） */
 /* 手机端（≤640px）：积分流水表列宽固定（table-layout:fixed 保证不被内容撑开） */
 @media(max-width:640px){
   .rec-table{table-layout:fixed}
   .rec-card{border-top:none;border-bottom:none}
   .rec-table th,.rec-table td{padding:10px 4px} /* r117d：列左右间距回调 4 */
   .rec-table col.rec-c1{width:65px}
-  .rec-table col.rec-c2{width:60px}
+  .rec-table col.rec-c2{width:65px}
   .rec-table col.rec-c5{width:60px}
   .rec-table col.rec-c6{width:32px}
   .rec-table th.rec-c1,.rec-table td.rec-c1{width:65px;font-weight:600;line-height:1.15;white-space:normal;word-break:break-all;text-align:center}
   .rec-table td.rec-c1{font-size:15px}
-  .rec-table th.rec-c2,.rec-table td.rec-c2{width:60px;font-size:13px}
-  .rec-table th.rec-c4,.rec-table td.rec-c4{width:65px;font-size:13px}
+  .rec-table th.rec-c2,.rec-table td.rec-c2{width:65px;font-size:13px}
+  .rec-table th.rec-c4,.rec-table td.rec-c4{width:70px;font-size:13px}
   .rec-table th.rec-c5,.rec-table td.rec-c5{width:60px;font-weight:600;white-space:normal}
   .rec-table th.rec-c6,.rec-table td.rec-c6{width:32px;text-align:center}
   .rec-table td.rec-c4{font-size:13px;text-align:right}
+  .rec-table td.rec-c5{text-align:center}
   .rec-table th:not(.rec-c1):not(.rec-c5):not(.rec-c6),.rec-table td:not(.rec-c1):not(.rec-c5):not(.rec-c6){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 }
 
