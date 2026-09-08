@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1254</title>
+<title>工作E · v20260902-r1256</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -2821,7 +2821,7 @@ function buildRecTable(){
     return r.date>=rg.from&&r.date<=rg.to;
   }).sort((a,b)=>b.date.localeCompare(a.date));
   const rows=recs.length?recs.map(r=>{const s=stu(r.studentId);return `
-  <tr><td class="rec-c1"><span class="s-name" data-action="stu-detail" data-id="${r.studentId}">${esc(s.name)}</span></td><td class="rec-c2">${esc(classNameOf(s.classId))}</td><td>${esc(r.type)}${r.examName?`<div style="font-size:11px;color:var(--text-2);margin-top:2px">${esc(r.examName)}</div>`:''}</td>
+  <tr><td class="rec-c1"><span class="s-name" data-action="stu-detail" data-id="${r.studentId}">${esc(s.name)}</span></td><td class="rec-c2">${esc(classNameOf(s.classId))}</td><td>${esc(r.type)}${r.examName?`<div style="font-size:11px;color:var(--text-2);margin-top:0">${esc(r.examName)}</div>`:''}</td>
   <td class="rec-c5" style="color:${r.delta>=0?'var(--ok)':'var(--danger)'}">${r.delta>0?'+':''}${r.delta} 分</td>
   <td class="rec-c4">${esc(r.date.slice(2))}</td>
   <td>${r.src==='ep'?'':`<button class="rec-del" data-action="${r.src==='viol'?'del-viol':'del-hw'}" data-id="${r.id}" aria-label="删除" title="删除">✕</button>`}</td></tr>`;}).join(''):
@@ -6246,10 +6246,14 @@ function saveProgressForm(f){
   const cid=f.dataset.id;const c=course(cid);if(!c){toast('课程不存在');return false;}
   const when=v('whenDate')||todayISO();const whenTime=v('whenTime')||classTimeToday(c.cls);const cl=resolveClass(c.cls);const subj=(c.subject||'').trim();const editing=!!S._progEditPid;
   // 只追加完成，绝不清除已完成的任务
+  /* r1256 铁律：勾选完成必须无条件盖戳——原实现仅在有备注时 touchPlan(newlyDone)，无备注的
+     「记录完成新进度」只改 p.done/doneDate 不盖 _at，跨端合并按 _at 择新时对端旧值（未完成态）反压，
+     表现为「iPhone 记录的完成进度电脑端不同步」（课表/待办路径本就盖戳所以正常） */
   const newlyDone=[];const noteRaw=(v('note')||'').trim();
   coursePlan(c).forEach(p=>{const el=f.elements['pdone_'+p.id];const want=!!(el&&el.checked);if(want&&!p.done){p.done=true;p.doneDate=when;newlyDone.push(p);}});
+  if(newlyDone.length)touchPlan(newlyDone);
   if(noteRaw){
-    if(newlyDone.length){newlyDone.forEach(p=>{p.note=noteRaw;});touchPlan(newlyDone);}
+    if(newlyDone.length){newlyDone.forEach(p=>{p.note=noteRaw;});}
     else{const undone=coursePlan(c).filter(p=>!p.done).sort((a,b)=>a.order-b.order);if(undone.length){undone[0].note=noteRaw;touchPlan(undone[0]);}}
   }
   const nts=v('nextTask').split('\n').map(x=>x.trim()).filter(Boolean);
