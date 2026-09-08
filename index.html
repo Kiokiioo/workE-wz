@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1256</title>
+<title>工作E · v20260902-r1258</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -1414,6 +1414,14 @@ function load(){for(const k in DEFAULTS)S[k]=store.get(k,DEFAULTS[k]);uiLocalLoa
       if(!p._at)p._at=Date.now();
     });
     store.set('_planIdMig',1);save();
+  }
+  /* r1258：备课笔记创设时间回填。老版本创建的笔记没有 created 字段，首次编辑时
+     saveNoteEdit 的 prev.created||Date.now() 会把 created 写成编辑当天 → 卡片/首页置顶的时间随编辑跳动（用户报「二次编辑后时间变成编辑时间」）。
+     修法：启动一次性给缺失 created 的笔记补 created = n._at || Date.now()（_at 是迄今最近一次写入时间戳，
+     用作创设时间的近似值；回填后编辑路径 prev.created 命中、不再被改写成今天）。幂等：补过后无笔记缺 created，条件即不满足。 */
+  if(S.notes&&S.notes.some(n=>n&&!n.created)){
+    S.notes.forEach(n=>{if(n&&!n.created)n.created=(n._at||Date.now());});
+    save();
   }
   /* r1181：归档库所有归档设置默认关闭——旧数据里已固化的 true 一次性迁移为关（标记存本地不进云端，各端各迁一次；迁移后用户手动开启不再被打回） */
   if(store.get('_arcOffMig',null)!==1){S.settings.autoArchive=false;S.settings.autoCats=Object.assign({},S.settings.autoCats,{sem:false,teach:false,class:false,grade:false});store.set('_arcOffMig',1);save();}
@@ -6614,7 +6622,7 @@ modal.addEventListener('submit',e=>{
     save();closeModal();viewReload(curView());toast('已保存');}
   else if(form==='course'){const id=f.dataset.id;const cur=id?course(id):{};const o={name:v('name'),cls:v('cls'),subject:(v('subject')||'').trim(),sem:(v('sem')||'').trim(),progress:cur.progress||0,next:cur.next||'',color:v('color')};
     if(id){Object.assign(course(id),o);}else S.courses.push({id:uid(),...o});save();closeModal();reloadCourses();toast('已保存');}
-  else if(form==='note'){const id=f.dataset.id;const o={cat:v('cat').trim(),title:v('title'),content:v('content'),tags:v('tags'),created:Date.now()};
+  else if(form==='note'){const id=f.dataset.id;const o={cat:v('cat').trim(),title:v('title'),content:v('content'),tags:v('tags'),created:id?((S.notes.find(x=>x.id===id)||{}).created||Date.now()):Date.now()};
     /* r113：条目盖 _at 新鲜度戳——否则置顶/编辑走状态级 _savedAt 裁决，会被另一端「推得晚但内容旧」的副本回滚（置顶无法同步的根因） */
     if(id){const t=S.notes.find(x=>x.id===id);Object.assign(t,o);t._at=Date.now();}else S.notes.push({id:uid(),...o,_at:Date.now()});save();closeModal();if(!reloadPanelInHub('notes'))viewReload('notes');toast('已保存');}
   else if(form==='review'){const id=f.dataset.id;const o={week:v('week'),done:v('done'),stuck:v('stuck'),next:v('next'),highlight:v('highlight')};
@@ -6701,7 +6709,11 @@ modal.addEventListener('submit',e=>{
     S._ttLastCls=rawCls;S._ttLastSubj=sbj;
     if(id){const cur=S.timetable.find(x=>x.id===id);Object.assign(cur,Object.assign({},base,{classId:clsIds[0]||''}));if(biweekly&&!cur.biweeklyRefWeek){cur.biweeklyRefWeek=isoWeekOfYear(new Date());}else if(!biweekly){delete cur.biweeklyRefWeek;}}else{const refW=biweekly?isoWeekOfYear(new Date()):null;clsIds.forEach(cid=>S.timetable.push({id:uid(),...base,classId:cid,biweeklyRefWeek:refW}));}save();closeModal();viewReload('settings');toast('已保存');}
   /* r116f：保存逻辑抽成 saveProgressForm(f)（弹窗与全屏进度编辑页共用）；此处只负责关弹窗+刷新 */
-  else if(form==='progress'){if(saveProgressForm(f)!==false){closeModal();reloadCourses();}}
+  /* r1257：从哪来回哪去——首页长按课表卡记录进度，保存后留在首页原位置（原实现 reloadCourses 会跳到教学进度页）；
+     教学进度/课程面板内进入的仍走 reloadCourses 原地刷新。首页重渲染不保滚动，故先取 scrollY 再写回 */
+  else if(form==='progress'){if(saveProgressForm(f)!==false){closeModal();
+    if((location.hash.slice(1)||'home')==='home'){const _y=window.scrollY||0;viewReload('home');window.scrollTo(0,_y);}
+    else reloadCourses();}}
   else if(form==='semester'){const id=f.dataset.id;const start=v('start'),end=v('end'),nm=v('name').trim();
     if(id){const s=S.semesters.find(x=>x.id===id);if(s){s.name=nm||autoSemName(start,end);s.start=start;s.end=end;if(s.current)syncSemSettings();}save();closeModal();viewReload('settings');toast('学期已更新');}
     else{const oldCur=S.semesters.find(x=>x.current&&!x.archived)||S.semesters.find(x=>x.current);S.ttBySem=S.ttBySem||{};if(oldCur)S.ttBySem[oldCur.id]=S.timetable.slice();
