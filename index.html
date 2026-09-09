@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1283</title>
+<title>工作E · v20260902-r1284</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -4541,6 +4541,8 @@ function gradeTabsThumb(){
   if(!thumb){thumb=document.createElement('span');thumb.className='tab-thumb';wrap.appendChild(thumb);}
   const wr=wrap.getBoundingClientRect();const ar=active.getBoundingClientRect();
   const left=ar.left-wr.left, width=ar.width;
+  /* r1284：iOS Safari 下 flex 容器内 absolute 子元素 top:4px;bottom:4px 不拉伸、高度塌陷为图标高（蓝 pill 只盖住图标行）。显式给高度，摆脱对 top/bottom 拉伸的依赖 */
+  thumb.style.top='4px';thumb.style.bottom='auto';thumb.style.height=ar.height+'px';
   const prev=_gradeThumbPrev;
   thumb.style.transition='none';
   if(prev){thumb.style.transform='translateX('+prev.left+'px)';thumb.style.width=prev.width+'px';}
@@ -4561,6 +4563,8 @@ function stuTabsThumb(){
   if(!thumb){thumb=document.createElement('span');thumb.className='tab-thumb';wrap.appendChild(thumb);}
   const wr=wrap.getBoundingClientRect();const ar=active.getBoundingClientRect();
   const left=ar.left-wr.left, width=ar.width;
+  /* r1284：同上，学情跟进 icon-tabs 在真实 iOS Safari 切换时蓝 pill 高度塌陷，显式定高 */
+  thumb.style.top='4px';thumb.style.bottom='auto';thumb.style.height=ar.height+'px';
   const prev=_stuThumbPrev;
   thumb.style.transition='none';
   if(prev){thumb.style.transform='translateX('+prev.left+'px)';thumb.style.width=prev.width+'px';}
@@ -4579,6 +4583,8 @@ function teachHubThumb(){
   if(!thumb){thumb=document.createElement('span');thumb.className='tab-thumb';wrap.appendChild(thumb);}
   const wr=wrap.getBoundingClientRect();const ar=active.getBoundingClientRect();
   const left=ar.left-wr.left, width=ar.width;
+  /* r1284：教学 hub tabs 同源，显式定高防 iOS Safari 塌陷 */
+  thumb.style.top='4px';thumb.style.bottom='auto';thumb.style.height=ar.height+'px';
   const prev=_teachHubThumbPrev;
   thumb.style.transition='none';
   if(prev){thumb.style.transform='translateX('+prev.left+'px)';thumb.style.width=prev.width+'px';}
