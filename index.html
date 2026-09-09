@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1280</title>
+<title>工作E · v20260902-r1282</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -398,10 +398,10 @@ button[data-action="exp-plan"]{transition:background .12s ease}
 .stat-card{flex:1 1 0;min-width:72px;padding:10px 12px;border-radius:14px;background:var(--surface);border:1px solid var(--border);display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:all .15s;font:inherit;text-align:left;color:var(--text);font-family:inherit}
 .stat-card:hover{border-color:var(--primary)}
 .stat-card.active{background:var(--primary);color:#fff;border-color:var(--primary)}
-.stat-card .stat-top{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:6px}  /* r1268 + r1280：width:100% 防 iOS Safari <button>+flex 时 align-items:stretch 失效导致 margin-left:auto 推不动 */：去掉 space-between，改用 .stat-count{margin-left:auto} 推右——iOS WebKit 上 flex:1 + 短数字（"0"/"7"）盒子不撑开，数字贴右失败 */
+.stat-card .stat-top{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:6px}  /* r1282：grid 列布局 1fr 撑满，count 走 justify-self:end 推右——只改计数对齐（图标和标签不动） */
 .stat-card .stat-icon{width:24px;height:24px;border-radius:7px;background:var(--surface-2);color:var(--text-3);display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1}
 .stat-card.active .stat-icon{background:rgba(255,255,255,.22);color:#fff}
-.stat-card .stat-count{font-size:20px;font-weight:700;line-height:1;justify-self:end;text-align:right}  /* r1268 + r1280：text-align:right 兜底字符级右对齐 */：margin-left:auto 把数字推到右边，跨所有 WebKit/Blink/Gecko 都生效（r1261 的 flex:1+text-align:right 在 iPhone Safari 单字符失效） */
+.stat-card .stat-count{font-size:20px;font-weight:700;line-height:1;justify-self:end}  /* r1282 */
 .stat-card .stat-label{font-size:12px;color:var(--text-2)}
 /* 教学待办：搜索 + 添加待办 同一行（等高 38px） */
 .todo-toolbar{display:flex;align-items:stretch;gap:8px;margin:0 0 12px}
