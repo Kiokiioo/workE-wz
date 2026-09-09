@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1284</title>
+<title>工作E · v20260902-r1285</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -4204,9 +4204,9 @@ function stuCmpBuildSelectors(){
   stuCmpFillExam();
   const evs=stuCmpScopeEvents(d.semId,d.examId);
   const classIds=[...new Set([].concat.apply([],evs.map(e=>e.classIds)))].filter(Boolean);
-  const subjIds=[...new Set([].concat.apply([],evs.map(e=>e.subjects)))].filter(Boolean);
+  const scoredSubs=stuCmpSubjScored(d.semId,d.examId).map(s=>s.id); /* r1285 */
   d.classId=(d.classId&&classIds.includes(d.classId))?d.classId:(classIds[0]||'');
-  d.subjId=(d.subjId&&subjIds.includes(d.subjId))?d.subjId:(subjIds[0]||'');
+  d.subjId=(d.subjId&&scoredSubs.includes(d.subjId))?d.subjId:(scoredSubs[0]||'');
   stuCmpFillCls();stuCmpFillSubj();
   stuCmpRefreshStudents();
   stuCmpRefreshSelectors();
@@ -4231,14 +4231,19 @@ function stuCmpFillCls(){
   const p=document.getElementById('stucmp_cls_pop');if(!p)return;
   p.innerHTML=classIds.map(cid=>`<div class="bk-range-opt" data-v="${esc(cid)}" onclick="stuCmpPick('cls','${esc(cid)}')" style="${cid===d.classId?'background:var(--primary-soft);color:var(--primary);font-weight:600':''}">${esc(classNameOf(cid))}</div>`).join('')||'<div class="bk-range-opt" style="opacity:.5;cursor:default">无班级</div>';
 }
+/* r1285：科目下拉只列「当前学期/考试范围内有成绩的科目」——对齐 r1277 抽签 drawSubjScored 同款口径：
+   该 subjectId 在范围事件里含 ≥1 个有效分数（非 null/''/NaN）才算；无名/无成绩科目不再出现（消除「?」项） */
+function stuCmpSubjScored(semId,examId){
+  const scored={};
+  [].concat.apply([],stuCmpScopeEvents(semId,examId).map(e=>e.exams)).forEach(e=>{
+    if(!e||!e.scores)return;
+    Object.keys(e.scores).forEach(k=>{const v=e.scores[k];if(v!=null&&v!==''&&!isNaN(parseFloat(v)))scored[e.subjectId]=1;});
+  });
+  return (S.subjects||[]).filter(s=>s&&s.id&&s.name&&scored[s.id]);
+}
 function stuCmpFillSubj(){
   const d=window._stuCmpDraft;
-  const evs=stuCmpScopeEvents(d.semId,d.examId);
-  const inExam=[...new Set([].concat.apply([],evs.map(e=>e.subjects)))].filter(Boolean);
-  const merged=new Set();
-  (S.subjects||[]).forEach(s=>{if(s&&s.id)merged.add(s.id);});
-  inExam.forEach(id=>merged.add(id));
-  const items=[...merged].map(sid=>{const s=subj(sid);return {k:sid,l:(s&&s.name)?s.name:'?'};});
+  const items=stuCmpSubjScored(d.semId,d.examId).map(s=>({k:s.id,l:s.name}));
   items.push({k:'all',l:'全部科目'});
   const p=document.getElementById('stucmp_subj_pop');if(!p)return;
   p.innerHTML=items.map(o=>`<div class="bk-range-opt" data-v="${esc(o.k)}" onclick="stuCmpPick('subj','${esc(o.k)}')" style="${o.k===d.subjId?'background:var(--primary-soft);color:var(--primary);font-weight:600':''}">${esc(o.l)}</div>`).join('')||'<div class="bk-range-opt" style="opacity:.5;cursor:default">无科目</div>';
@@ -4277,8 +4282,8 @@ function stuCmpPick(field,val){
   if(field==='sem'||field==='exam'){
     const evs=stuCmpScopeEvents(d.semId,d.examId);
     const classIds=[...new Set([].concat.apply([],evs.map(e=>e.classIds)))].filter(Boolean);
-    const subjIds=[...new Set([].concat.apply([],evs.map(e=>e.subjects)))].filter(Boolean);
-    d.classId=classIds[0]||'';d.subjId=subjIds[0]||'';
+    const scoredSubs=stuCmpSubjScored(d.semId,d.examId).map(s=>s.id); /* r1285 */
+    d.classId=classIds[0]||'';d.subjId=scoredSubs[0]||'';
     stuCmpFillCls();stuCmpFillSubj();
     stuCmpRefreshStudents();
   } else if(field==='cls'){d.classId=val;stuCmpRefreshStudents();}
