@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1282</title>
+<title>工作E · v20260902-r1283</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -395,13 +395,13 @@ button[data-action="exp-plan"]{transition:background .12s ease}
 .view-students .grade-tabs.has-icon-tabs .tab{height:auto !important}
 /* 教学待办：统计卡筛选条（8 张：全部/教学/学生/工作/活动/任务/其他/完成） */
 .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 14px}
-.stat-card{flex:1 1 0;min-width:72px;padding:10px 12px;border-radius:14px;background:var(--surface);border:1px solid var(--border);display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:all .15s;font:inherit;text-align:left;color:var(--text);font-family:inherit}
+.stat-card{-webkit-appearance:none;appearance:none;flex:1 1 0;min-width:72px;padding:10px 12px;border-radius:14px;background:var(--surface);border:1px solid var(--border);display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:all .15s;font:inherit;text-align:left;color:var(--text);font-family:inherit}  /* r1283：+appearance:none 重置 iOS Safari button 默认外观（intrinsic padding/min-width），让内部 flex 布局可预测 */
 .stat-card:hover{border-color:var(--primary)}
 .stat-card.active{background:var(--primary);color:#fff;border-color:var(--primary)}
-.stat-card .stat-top{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:6px}  /* r1282：grid 列布局 1fr 撑满，count 走 justify-self:end 推右——只改计数对齐（图标和标签不动） */
-.stat-card .stat-icon{width:24px;height:24px;border-radius:7px;background:var(--surface-2);color:var(--text-3);display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1}
+.stat-card .stat-top{display:flex;align-items:center;gap:6px;width:100%}  /* r1283：flex 跨 iOS Safari 稳；count flex:1+text-align:right 推右——仅动对齐（图标位置不变） */
+.stat-card .stat-icon{flex-shrink:0;width:24px;height:24px;border-radius:7px;background:var(--surface-2);color:var(--text-3);display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1}  /* r1283：+flex-shrink:0 防止 iOS Safari flex 挤压图标 */
 .stat-card.active .stat-icon{background:rgba(255,255,255,.22);color:#fff}
-.stat-card .stat-count{font-size:20px;font-weight:700;line-height:1;justify-self:end}  /* r1282 */
+.stat-card .stat-count{font-size:20px;font-weight:700;line-height:1;flex:1;text-align:right}  /* r1283 */
 .stat-card .stat-label{font-size:12px;color:var(--text-2)}
 /* 教学待办：搜索 + 添加待办 同一行（等高 38px） */
 .todo-toolbar{display:flex;align-items:stretch;gap:8px;margin:0 0 12px}
