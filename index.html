@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1267</title>
+<title>工作E · v20260902-r1276</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -212,10 +212,11 @@ a{color:inherit;text-decoration:none}
 .task .t-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
 .task .t-line1{display:flex;align-items:center;gap:10px;padding-left:4px}
 .task .t-line1 .closed-badge{margin-left:auto;flex:none}
-.task .check{box-sizing:border-box;width:16px;height:16px;border-radius:5px;border:2px solid var(--border);background:var(--surface);flex:none;display:flex;
+.task .check{box-sizing:border-box;width:16px;height:16px;border-radius:5px;border:2px solid var(--border);background:var(--surface);flex:none;display:flex;position:relative;
   align-items:center;justify-content:center;font-size:11px;color:#fff;cursor:pointer}
 .task .check.ab{background:var(--danger);border-color:var(--danger)}
-.task.done .check{background:var(--ok);border-color:var(--ok)}
+.task.done .check{background:var(--ok);border-color:var(--ok);color:transparent}  /* r1269：✓ 文字透明化，改用 ::after SVG 勾（stroke-width=4 更粗，与 ex-chk/plan-chk 同款 path） */
+.task.done .check::after{content:'';position:absolute;left:0;top:0;right:0;bottom:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 11.85l3.8 3.8L17.5 8.35'/%3E%3C/svg%3E") no-repeat center/12px 12px}
 /* 勾选完成瞬间：复选框自身带 done 类 → 弹入呈现 ✓（与首页 .ht-check.done 同机制，落点可见）。
    仅在 taskToggleTodo 单击时给复选框加 done 触发一次；todoRow 静态渲染不写 done 类，故列表加载/重渲染不会误触发 */
 .task .check.done{animation:htpop .24s ease}
@@ -397,10 +398,10 @@ button[data-action="exp-plan"]{transition:background .12s ease}
 .stat-card{flex:1 1 0;min-width:72px;padding:10px 12px;border-radius:14px;background:var(--surface);border:1px solid var(--border);display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:all .15s;font:inherit;text-align:left;color:var(--text);font-family:inherit}
 .stat-card:hover{border-color:var(--primary)}
 .stat-card.active{background:var(--primary);color:#fff;border-color:var(--primary)}
-.stat-card .stat-top{display:flex;justify-content:space-between;align-items:center}
+.stat-card .stat-top{display:flex;justify-content:flex-start;align-items:center;gap:6px}  /* r1268：去掉 space-between，改用 .stat-count{margin-left:auto} 推右——iOS WebKit 上 flex:1 + 短数字（"0"/"7"）盒子不撑开，数字贴右失败 */
 .stat-card .stat-icon{width:24px;height:24px;border-radius:7px;background:var(--surface-2);color:var(--text-3);display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1}
 .stat-card.active .stat-icon{background:rgba(255,255,255,.22);color:#fff}
-.stat-card .stat-count{font-size:20px;font-weight:700;line-height:1;flex:1;min-width:0;text-align:right;margin-left:6px}  /* r1261：数字右对齐（iPhone 8 张统计卡数字统一贴右） */
+.stat-card .stat-count{font-size:20px;font-weight:700;line-height:1;margin-left:auto}  /* r1268：margin-left:auto 把数字推到右边，跨所有 WebKit/Blink/Gecko 都生效（r1261 的 flex:1+text-align:right 在 iPhone Safari 单字符失效） */
 .stat-card .stat-label{font-size:12px;color:var(--text-2)}
 /* 教学待办：搜索 + 添加待办 同一行（等高 38px） */
 .todo-toolbar{display:flex;align-items:stretch;gap:8px;margin:0 0 12px}
@@ -746,6 +747,8 @@ form[data-form="addrule"] .field input[name="points"]{padding:0 6px;text-align:c
 .sw::before{content:'';position:absolute;top:1px;left:1px;width:12px;height:12px;background:#fff;border-radius:50%;transition:left .2s;box-shadow:0 1px 1px rgba(0,0,0,.25)}
 .sw:checked{background:#4F6BED}
 .sw:checked::before{left:12px}
+/* r1273b：低于班级均分标记胶囊（仅成绩汇总/科目页两处）选中态用成绩橙 */
+.sw.warn-sw:checked{background:var(--warn)}
 /* 时间/班级下拉：闭合态参考范围下拉 trigger（appearance:none + 自定义 ▾ 箭头） */
 .bk-sel-trigger{appearance:none;-webkit-appearance:none;width:100%;height:38px;padding:0 28px 0 8px;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:10px;font-size:13px;cursor:pointer;font-family:inherit;line-height:38px;background-image:url("data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");background-repeat:no-repeat;background-position:right 10px center;box-sizing:border-box;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .bk-sel-trigger:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
@@ -912,6 +915,11 @@ form[data-form="rec"] .field.row input[type="text"]{width:100%;min-width:0}
 .combo-pill>button{flex:none;border:0;border-left:1px solid var(--border);background:rgba(0,0,0,.05);color:var(--text);padding:0 18px;font-size:14px;font-family:inherit;cursor:pointer;min-width:50px;height:100%}
 .combo-pill>button:hover{background:rgba(0,0,0,.09)}
 .combo-pill>button:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+/* r1268：学生详情「新增记录」独立圆输入（无 combo-pill 包装）+ 圆形确认按钮 = 纯 + 图标（与学生页 add-spin 同款）
+   .field input 的 10px 圆角规则特异性更高，必须用 .field input.dr-input-pill 双选择器压住 */
+.field input.dr-input-pill{height:36px;border:1px solid var(--border);border-radius:99px;padding:0 14px;background:var(--surface);font:inherit;font-size:14px;color:var(--text);outline:0;box-sizing:border-box}
+.field input.dr-input-pill::placeholder{color:var(--text-2)}
+.field input.dr-input-pill:focus{border-color:var(--primary);background:var(--surface)}
 
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 .cal .wd{text-align:center;font-size:12px;color:var(--text-2);padding:4px 0}
@@ -2922,6 +2930,8 @@ function iconSvg(name,size){
   p['x-circle']='<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>';
   /* 课表/日历（emoji 📅，试点替换） */
   p['日历']='<rect x="4" y="5" width="16" height="15" rx="1.5"/><path d="M4 9 h16"/><path d="M8 3 v3"/><path d="M16 3 v3"/><circle cx="12" cy="14" r="1.5" fill="currentColor" stroke="none"/>';
+  /* 清除（2026-09-09 落库：候选②「橡皮擦」Lucide eraser，原样保存，禁止加工；抽签清除历史/清除对比/归档备份-重置共用） */
+  p['清除']='<path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/>';
   /* 备份/导出（软盘 emoji 💾 替换，path 取 bak_fullreplace 字典 p['保存/导出']） */
   p['保存/导出']='<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/>';
   /* 归档备份（方案F：星标文件夹，emoji 🗂️ 替换） */
@@ -3220,17 +3230,15 @@ function openStudentDetail(id){
   const curDr=S._stuDetail.drType||'违纪';
   const html=`
     ${statCards}
-    <div class="field row" style="gap:6px;align-items:stretch;margin:12px 0">
+    <div class="field row" style="gap:8px;align-items:center;margin:12px 0">
       <div class="bk-range-wrap" id="dr_type_wrap" style="flex:none;width:90px">
         <div class="bk-range-trigger rec-type-combo" style="height:36px;padding:0 28px 0 12px" onclick="bkSelOpen('dr_type_pop',event)">
           <input id="dr_type" class="bk-trigger-input" value="${esc(curDr)}" placeholder="选择或输入类型" oninput="S._stuDetail&&(S._stuDetail.drType=this.value)" onclick="event.stopPropagation()">
         </div>
         <div class="bk-range-pop" id="dr_type_pop" style="display:none">${bkOpts(drTypeItems,curDr)}</div>
       </div>
-      <div class="combo-pill" style="flex:1;min-width:0">
-        <input id="dr_text" placeholder="新增记录" style="flex:1;min-width:0">
-        <button onclick="addDetailRecord('${id}')">确认</button>
-      </div>
+      <input id="dr_text" class="dr-input-pill" placeholder="新增记录" style="flex:1;min-width:0">
+      <button type="button" class="btn primary sm add-spin" onclick="addDetailRecord('${id}')" style="flex:none;width:36px;height:36px;border-radius:50%;padding:0;display:inline-flex;align-items:center;justify-content:center" title="确认" aria-label="确认">${addIconSvg()}</button>
     </div>
     ${buildProcessedList(id)}
     <div class="section-title" style="margin-top:0">全部记录</div>
@@ -3697,11 +3705,11 @@ function gradeScoreHtml(ev){
     <th class="c-name" data-action="grade-score-sort" data-k="name" style="cursor:pointer${st.key==='name'?';color:var(--primary);font-weight:700':''}">学生${st.key==='name'?(st.dir==='asc'?' ▲':' ▼'):''}</th>
     ${subTh}
     <th class="c-total" data-action="grade-score-sort" data-k="total" style="cursor:pointer${st.key==='total'?';color:var(--primary);font-weight:700':''}">总分${st.key==='total'?(st.dir==='asc'?' ▲':' ▼'):''}</th><th class="c-trk" style="color:var(--text-2);font-weight:400;font-size:12px">排名</th></tr>`;
-  const rows=list.map(n=>{const cid0=stuByName(n)?stuByName(n).classId:'';const lpSid=subs[0]||'';const lpEv=`onpointerdown="lpSubjStuStart('${esc(n)}',event,'${esc(lpSid)}')" onpointerup="lpSubjStuCancel()" onpointerleave="lpSubjStuCancel()"`;const lpAttrs=lpEv+` style="cursor:pointer"`;const subCells=subs.map((sid,i)=>{const o=subExams[i];const e=pickSubExam(o,n);let sc=e?e.scores[n]:null;const pe=(prevPickByStu[n]||{})[sid];const ps=pe?pe.scores[n]:null;let ar='';if(ps!=null&&sc!=null){const d=sc-ps;const dim=Math.abs(d)<=5?'opacity:.4':'';if(d>0)ar='<span style="color:var(--ok);font-size:10px;margin-left:2px;'+dim+'">▲</span>';else if(d<0)ar='<span style="color:var(--danger);font-size:10px;margin-left:2px;'+dim+'">▼</span>';}if(sc!=null)sc=sc+ar;if(sc==null)return `<td>—</td><td>—</td>`;/* r1205：单科排名按学生自己班级那条 exam 算（原 o.rk 只取 all[0] 一个班的考试，其余班恒 —） */const rkMap=examClassRank(e);const rk=rkMap?rkMap[n]:null;return `<td class="c-sub" ${lpAttrs}>${sc}</td><td class="c-rk" style="color:var(--text-2)">${rk!=null?rk:'—'}</td>`;}).join('');return `<tr data-name="${esc(n)}"><td class="c-cls" style="text-align:left">${esc(classNameOf(cid0))}</td><td class="c-name" style="font-weight:700" ${lpAttrs}>${esc(n)}</td>${subCells}<td class="c-total" style="font-weight:700;cursor:pointer" ${lpEv}>${tot[n]}</td><td class="c-trk">${totalRank[n]!=null?totalRank[n]:'—'}</td></tr>`;}).join('');
+  const rows=list.map(n=>{const cid0=stuByName(n)?stuByName(n).classId:'';const lpSid=subs[0]||'';const lpEv=`onpointerdown="lpSubjStuStart('${esc(n)}',event,'${esc(lpSid)}')" onpointerup="lpSubjStuCancel()" onpointerleave="lpSubjStuCancel()"`;const lpAttrs=lpEv+` style="cursor:pointer"`;const subCells=subs.map((sid,i)=>{const o=subExams[i];const e=pickSubExam(o,n);let sc=e?e.scores[n]:null;const pe=(prevPickByStu[n]||{})[sid];const ps=pe?pe.scores[n]:null;let ar='';if(ps!=null&&sc!=null){const d=sc-ps;const dim=Math.abs(d)<=5?'opacity:.4':'';if(d>0)ar='<span style="color:var(--ok);font-size:10px;margin-left:2px;'+dim+'">▲</span>';else if(d<0)ar='<span style="color:var(--danger);font-size:10px;margin-left:2px;'+dim+'">▼</span>';}if(sc!=null){const _ca=(belowAvgOn()&&e)?examClassAvgOf(e,cid0):null;const _num=(_ca!=null&&sc<_ca)?'<span style="color:var(--warn)">'+sc+'</span>':''+sc;sc='<b>'+_num+'</b>'+ar;}if(sc==null)return `<td>—</td><td>—</td>`;/* r1205：单科排名按学生自己班级那条 exam 算（原 o.rk 只取 all[0] 一个班的考试，其余班恒 —） */const rkMap=examClassRank(e);const rk=rkMap?rkMap[n]:null;return `<td class="c-sub" ${lpAttrs}>${sc}</td><td class="c-rk" style="color:var(--text-2)">${rk!=null?rk:'—'}</td>`;}).join('');return `<tr data-name="${esc(n)}"><td class="c-cls" style="text-align:left">${esc(classNameOf(cid0))}</td><td class="c-name" style="font-weight:700" ${lpAttrs}>${esc(n)}</td>${subCells}<td class="c-total" style="font-weight:700;cursor:pointer" ${lpEv}>${tot[n]}</td><td class="c-trk">${totalRank[n]!=null?totalRank[n]:'—'}</td></tr>`;}).join('');
   const hint='';
   /* r86：长按绑定「姓名 / 分数 / 总分」三处；整行 <tr> 不绑（防左右滑误触）。
      班级/单科排名/总排名 格保持无长按。 */
-  return `<div class="card" style="padding:0"><div style="padding:16px 16px 8px"><div class="section-title" style="padding:0;display:flex;align-items:center;gap:4px"><span style="color:#5b6675;display:inline-flex">${iconSvg('网格汇总',22)}</span><span>${esc(ev.name)} · 成绩汇总${hint}</span></div></div>
+  return `<div class="card" style="padding:0"><div style="padding:16px 16px 8px"><div class="section-title" style="padding:0;display:flex;align-items:center;gap:4px"><span style="color:#5b6675;display:inline-flex">${iconSvg('网格汇总',22)}</span><span>${esc(ev.name)} · 成绩汇总${hint}</span><input type="checkbox" class="sw warn-sw" ${belowAvgOn()?'checked':''} onchange="toggleBelowAvg(this.checked)" onclick="event.stopPropagation()" aria-label="低于班级均分橙色标记"></div></div>
     <div id="scoreHScroll" class="g-top-hscroll" style="display:none;position:sticky;top:0;z-index:10;background:var(--surface);padding:6px 16px;border-bottom:1px solid var(--border);box-shadow:0 1px 0 rgba(0,0,0,.02)"><div class="g-hscroll-bar" style="height:6px;background:var(--bg-2);border-radius:3px;position:relative;cursor:pointer;overflow:hidden"><div class="g-hscroll-thumb" style="position:absolute;top:0;left:0;height:100%;width:30%;background:var(--primary);border-radius:3px;min-width:32px;will-change:transform"></div></div></div>
     <div id="scoreScroll" style="padding:0 16px 16px;overflow-x:auto;overflow-y:visible">
       <table class="score-fixed score-center" style="margin-top:8px">${cols}<thead>${header}</thead><tbody>${rows}</tbody></table>
@@ -3709,6 +3717,11 @@ function gradeScoreHtml(ev){
 }
 function gradeScoreSort(){return S._gradeScoreSort||(S._gradeScoreSort={key:'total',dir:'desc'});}
 function gradeScoreSortToggle(k){const s=gradeScoreSort();if(s.key===k)s.dir=s.dir==='asc'?'desc':'asc';else{s.key=k;s.dir=(k==='total'?'desc':'asc');}save();renderGradesBodyKeepScroll();}
+/* r1273：低于班级均分橙色标记开关——成绩汇总/科目页标题右侧胶囊（归档页 .sw 同款），默认开启；UI 状态不进云（r103）。 */
+function belowAvgOn(){return S._belowAvg!==false;}
+/* r1273c：自包含「某考试某班平均分」——不踩 classStudents 双定义地雷（L7825 对象版全局覆盖 L5333 姓名版，classAvg 恒 null）。 */
+function examClassAvgOf(exam,cid){if(!exam||!exam.scores)return null;const scs=S.students.filter(s=>s.classId===cid).map(s=>exam.scores[s.name]).filter(v=>v!=null);return scs.length?scs.reduce((a,b)=>a+b,0)/scs.length:null;}
+function toggleBelowAvg(on){S._belowAvg=!!on;save();renderGradesBodyKeepScroll();}
 /* r116i：排序/搜索重渲染保留横向滚动位置——innerHTML 替换与 scrollLeft 写回在同一任务内完成（中间不产生绘制帧），
    否则容器重建后 scrollLeft 归零：内容先跳最左，iOS Safari 再异步恢复旧位置，呈现为「滚条和内容迅速左右晃一下」。 */
 function renderGradesBodyKeepScroll(){
@@ -3806,14 +3819,14 @@ function gradeSubjectHtml(ev){
       const d=prev!=null?sc-prev:0;
       const rkMap=examClassRank(e);
       const rk=rkMap?rkMap[n]:null;
-      return `<td ${lpAttrs}><b>${sc}</b></td><td style="color:${d>0?'var(--ok)':d<0?'var(--danger)':'var(--text-2)'}">${d>0?'▲+'+d:d<0?'▼'+d:'—'}</td><td>${rk!=null?rk:'—'}</td>`;
+      const _ca=belowAvgOn()?examClassAvgOf(e,cid0):null;const _scHtml=(_ca!=null&&sc<_ca)?'<span style="color:var(--warn)">'+sc+'</span>':sc;return `<td ${lpAttrs}><b>${_scHtml}</b></td><td style="color:${d>0?'var(--ok)':d<0?'var(--danger)':'var(--text-2)'}">${d>0?'▲+'+d:d<0?'▼'+d:'—'}</td><td>${rk!=null?rk:'—'}</td>`;
     }).join('');
     return `<tr data-name="${esc(n)}"><td style="text-align:left;color:var(--text-2)">${esc(classNameOf(cid0))}</td><td style="font-weight:700" ${lpAttrs}>${esc(n)}</td>${cells}<td style="font-weight:700;cursor:pointer" ${lpEv}>${avgMap[n]!=null?avgMap[n].toFixed(1):'—'}</td><td>${avgRank[n]!=null?avgRank[n]:'—'}</td></tr>`;
   }).join('');
   /* r77：在卡片内顶部加 sticky 的自定义横滚条（系统手势易触发页面切换，故给用户一个稳定可拖拽的顶部横滚条）
      该条 bar 跟随 subjScroll 的 scrollLeft 同步更新，thumb 拖拽后亦同步写入 scrollLeft；
      overflow 不溢出时不显示（hidden via attachTopHScroll）。 */
-  return `<div class="card" style="padding:0"><div style="padding:16px 16px 8px"><div class="section-title" style="padding:0;display:flex;align-items:center;gap:6px"><span style="color:#5b6675;display:inline-flex">${iconSvg('单科折线',22)}</span><span>${esc(ev.name)} · ${esc(sub.name)} · ${esc(classNameOf(S._gradeClass)||'全部班级')} 成绩</span></div></div>
+  return `<div class="card" style="padding:0"><div style="padding:16px 16px 8px"><div class="section-title" style="padding:0;display:flex;align-items:center;gap:6px"><span style="color:#5b6675;display:inline-flex">${iconSvg('单科折线',22)}</span><span>${esc(ev.name)} · ${esc(sub.name)} · ${esc(classNameOf(S._gradeClass)||'全部班级')} 成绩</span><input type="checkbox" class="sw warn-sw" ${belowAvgOn()?'checked':''} onchange="toggleBelowAvg(this.checked)" onclick="event.stopPropagation()" aria-label="低于班级均分橙色标记"></div></div>
     <div id="subjHScroll" class="g-top-hscroll" style="display:none;position:sticky;top:0;z-index:10;background:var(--surface);padding:6px 16px;border-bottom:1px solid var(--border);box-shadow:0 1px 0 rgba(0,0,0,.02)"><div class="g-hscroll-bar" style="height:6px;background:var(--bg-2);border-radius:3px;position:relative;cursor:pointer;overflow:hidden"><div class="g-hscroll-thumb" style="position:absolute;top:0;left:0;height:100%;width:30%;background:var(--primary);border-radius:3px;min-width:32px;will-change:transform"></div></div></div>
     <div id="subjScroll" style="padding:0 16px 16px;overflow-x:auto;overflow-y:visible">
       <table class="score-fixed score-center" style="margin-top:8px">${cols}<thead>${header}</thead><tbody>${rows}</tbody></table>
@@ -3992,7 +4005,7 @@ function gradeCompareHtml(ev){
   const baseTable=`<div class="card" style="padding:16px;margin-bottom:14px"><div class="section-title" style="margin-bottom:10px">${esc(ev.name)}班级对比· 年级平均 ${meanAll?meanAll.toFixed(1):'—'}</div><div class="cmp-cards">${cards}</div></div>`;
   const itemsHtml=items.length?items.map((it,i)=>cmpItemHtml(it,i)).join(''):'';
   const stuItems=(S._stuCmp=S._stuCmp||[]);
-  const stuSection=`<div class="card" style="padding:16px;margin:14px 0"><div class="section-title" style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center"><span>学生个人对比</span><div style="display:flex;gap:8px;align-items:center"><button class="btn sm stu-ie-btn" type="button" data-action="stucmp-clear" data-lp="stucmp-clear" id="stucmp_clear_btn" style="flex:none;width:38px;height:38px;border-radius:99px;border:1px solid var(--border);background:#fff;padding:0;display:inline-flex;align-items:center;justify-content:center;color:#444441" title="清除对比" aria-label="清除对比" ${stuItems.length?'':'disabled'}>${iconSvg('broom',22)}</button><button class="home-add-btn add-spin solid" type="button" data-action="stucmp-add" onclick="spinAddBtn(this)" title="添加对比" aria-label="添加对比" style="margin-left:0">${addIconSvg()}</button></div></div>${stuItems.length?stuItems.map((it,i)=>stuCmpItemHtml(it,i)).join(''):'<div class="sub" style="color:var(--text-2)">尚未添加学生对比项</div>'}</div>`;
+  const stuSection=`<div class="card" style="padding:16px;margin:14px 0"><div class="section-title" style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center"><span>学生个人对比</span><div style="display:flex;gap:8px;align-items:center"><button class="btn sm stu-ie-btn" type="button" data-action="stucmp-clear" data-lp="stucmp-clear" id="stucmp_clear_btn" style="flex:none;width:38px;height:38px;border-radius:99px;border:1px solid var(--border);background:#fff;padding:0;display:inline-flex;align-items:center;justify-content:center;color:#444441" title="清除对比" aria-label="清除对比" ${stuItems.length?'':'disabled'}>${iconSvg('清除',22)}</button><button class="home-add-btn add-spin solid" type="button" data-action="stucmp-add" onclick="spinAddBtn(this)" title="添加对比" aria-label="添加对比" style="margin-left:0">${addIconSvg()}</button></div></div>${stuItems.length?stuItems.map((it,i)=>stuCmpItemHtml(it,i)).join(''):'<div class="sub" style="color:var(--text-2)">尚未添加学生对比项</div>'}</div>`;
   return baseTable+itemsHtml+stuSection;
 }
 function cmpMetrics(ev,classId,th){
@@ -5404,7 +5417,7 @@ function viewDraw(){
   const histAll=(S._drawHistory||[]);
   const weekList=histAll.filter(_isWeek),olderList=histAll.filter(h=>!_isWeek(h));
   const histRow=h=>`<div class="draw-rec"><span class="draw-rec-nm">${h.names.map(n=>`<span>${esc(n)}</span>`).join('、')}</span>${h.cls?`<span class="draw-rec-cls">${esc(h.cls)}</span>`:''}${h.delta!=null?`<span class="draw-rec-sc ${h.delta>=0?'ok':'bad'}">${h.delta>0?'+':''}${h.delta}分</span>`:'<span class="draw-rec-sc">—</span>'}<span class="draw-rec-tm">${esc(h.time)}</span></div>`;
-  const fold=(key,label,arr)=>{const collapsed=!!(S._drawFold&&S._drawFold[key]);return `<div class="draw-fold"><div class="draw-fold-h${collapsed?' collapsed':''}" data-action="toggle-draw-fold" data-key="${key}"><span style="flex:1">${label}（${arr.length}）</span><span class="chev ${collapsed?'':'open'}"></span><button class="btn sm ghost" data-action="clear-draw-history" data-key="${key}" style="margin:0 0 0 8px">清除</button></div><div class="draw-fold-b" style="${collapsed?'display:none':''}">${arr.length?arr.map(histRow).join(''):'<div class="sub" style="margin:0 16px;padding:11px 0;color:var(--text-2)">无记录</div>'}</div></div>`;};
+  const fold=(key,label,arr)=>{const collapsed=!!(S._drawFold&&S._drawFold[key]);return `<div class="draw-fold"><div class="draw-fold-h${collapsed?' collapsed':''}" data-action="toggle-draw-fold" data-key="${key}"><span style="flex:1">${label}（${arr.length}）</span><span class="chev ${collapsed?'':'open'}"></span><button class="btn sm ghost" data-action="clear-draw-history" data-key="${key}" style="margin:0 0 0 8px;padding:0 7px;height:26px;border:none" title="清除" aria-label="清除">${iconSvg('清除',16)}</button></div><div class="draw-fold-b" style="${collapsed?'display:none':''}">${arr.length?arr.map(histRow).join(''):'<div class="sub" style="margin:0 16px;padding:11px 0;color:var(--text-2)">无记录</div>'}</div></div>`;};
   return `<div class="grid cols-2 view-draw" style="align-items:stretch">
     <div class="card"><div class="section-title">抽签设置<button class="pill-toggle ${d.repeat?'on':''}" onclick="toggleDrawRepeat()" aria-label="重复抽取开关"></button><span class="count" style="margin-left:auto">当前候选池：${base.length} 人</span></div>
       <div class="field row">
@@ -5415,8 +5428,7 @@ function viewDraw(){
       </div>
       <div class="field" style="margin-bottom:${d.cond.type==='none'?'16px':'8px'}"><label>条件</label>${condSel}</div>
       ${d.cond.type==='score'?`<div class="field" style="margin-bottom:8px"><label>科目</label>${selHtml('d_sub',drawSubSummary(),bkOpts((S.subjects||[]).filter((s,i,a)=>a.findIndex(x=>x.name===s.name)===i).map(s=>({k:s.id,l:s.name,pick:'drawSubPick'})),d.cond.subjectId||''))}</div>`:''}${d.cond.type==='score'?drawSubjHintHtml():''}
-      ${d.cond.type==='score'?`<div class="field row" style="margin-bottom:16px"><div class="field" style="margin-bottom:0"><label>最高分</label><input type="number" id="d_max" value="${d.cond.max}"></div>
-        <div class="field" style="margin-bottom:0"><label>最低分</label><input type="number" id="d_min" value="${d.cond.min}"></div></div>`:''}
+      ${d.cond.type==='score'?`<div class="field row" style="margin-bottom:16px"><div class="field" style="margin-bottom:0"><label>最高分</label><input type="number" id="d_max" value="${d.cond.max}"></div><div class="field" style="margin-bottom:0"><label>最低分</label><input type="number" id="d_min" value="${d.cond.min}"></div></div>`:''}
       ${d.cond.type==='points'?`<div class="field row" style="margin-bottom:16px"><div class="field"><label>最高积分</label><input type="number" id="d_max" value="${d.cond.max}"></div>
         <div class="field"><label>最低积分</label><input type="number" id="d_min" value="${d.cond.min}"></div></div>`:''}
       <div style="display:flex;gap:10px">
@@ -5448,27 +5460,6 @@ function drawSubjIds(sid){
   if(ids.indexOf(sid)<0)ids.push(sid);
   return ids;
 }
-/* r1266：取某学生在该科目「最近一场有他成绩」的分数。
-   旧逻辑 S.exams.filter(subjectId).pop() 只取数组末位一场：若那一场只含部分学生（补考/单班/异动），
-   其余学生即使有同科目成绩也会被判为「无成绩」→ 候选池 0 人。
-   现在遍历该科目全部考试，按日期取最新一条该生的分数；姓名比对做 trim 容错。*/
-function drawStuLatestScore(stu,sids,cid){
-  const nm=String((stu&&stu.name)||'').trim();
-  if(!nm)return null;
-  let best=null,bestDate='';
-  (S.exams||[]).forEach(e=>{
-    if(!e||!e.scores)return;
-    if(sids.length&&sids.indexOf(e.subjectId)<0)return;
-    if(cid&&cid!==ALL_CLASS&&e.classId&&e.classId!==ALL_CLASS&&e.classId!==cid&&e.classId!==(stu&&stu.classId))return;
-    let sc=null;
-    if(e.scores[nm]!=null)sc=e.scores[nm];
-    else{const k=Object.keys(e.scores).find(k=>String(k).trim()===nm);if(k!=null)sc=e.scores[k];}
-    if(sc==null||sc==='')return;
-    const dt=String(e.date||'');
-    if(best==null||dt>=bestDate){best=Number(sc);bestDate=dt;}
-  });
-  return best;
-}
 /* r1266：科目考试概况（用于抽签页诊断小字，让用户看到「已连到哪几场考试」） */
 function drawSubjStat(){
   const ids=drawSubjIds(S.draw.cond.subjectId);
@@ -5485,6 +5476,44 @@ function drawSubjHintHtml(){
   if(!st.n)return '<div style="margin:0 0 8px;font-size:12px;color:var(--text-2)">该科目暂无考试成绩</div>';
   return '<div style="margin:0 0 8px;font-size:12px;color:var(--text-2)">已连接 '+st.n+' 场考试'+(st.date?'（最近 '+esc(st.date)+'）':'')+' · '+st.cnt+' 人有成绩</div>';
 }
+/* r1272：每位学生「该科目所有考试平均分」= 该生在该科目全部考试中有效分数的算术平均。
+   作为「限定成绩区间」筛选的单一值源（替换 r1266 的「最近一场单次分数」口径）：
+     - 看不到单次发挥失常/超常，看的是该生整体水平
+     - 与用户设定的 [最低分, 最高分] 区间做包含判断（min/max 都含等号） */
+function drawStudentSubjAvg(stu,sids,cid){
+  const nm=String((stu&&stu.name)||'').trim();
+  if(!nm)return null;
+  let sum=0,cnt=0;
+  (S.exams||[]).forEach(e=>{
+    if(!e||!e.scores)return;
+    if(sids.length&&sids.indexOf(e.subjectId)<0)return;
+    if(cid&&cid!==ALL_CLASS&&e.classId&&e.classId!==ALL_CLASS&&e.classId!==cid&&e.classId!==(stu&&stu.classId))return;
+    let sc=null;
+    if(e.scores[nm]!=null)sc=e.scores[nm];
+    else{const k=Object.keys(e.scores).find(k=>String(k).trim()===nm);if(k!=null)sc=e.scores[k];}
+    if(sc==null||sc==='')return;
+    const num=parseFloat(sc);
+    if(!isNaN(num)){sum+=num;cnt++;}
+  });
+  return cnt?sum/cnt:null;
+}
+function drawStudentSubjAvg(stu,sids,cid){
+  const nm=String((stu&&stu.name)||'').trim();
+  if(!nm)return null;
+  let sum=0,cnt=0;
+  (S.exams||[]).forEach(e=>{
+    if(!e||!e.scores)return;
+    if(sids.length&&sids.indexOf(e.subjectId)<0)return;
+    if(cid&&cid!==ALL_CLASS&&e.classId&&e.classId!==ALL_CLASS&&e.classId!==cid&&e.classId!==(stu&&stu.classId))return;
+    let sc=null;
+    if(e.scores[nm]!=null)sc=e.scores[nm];
+    else{const k=Object.keys(e.scores).find(k=>String(k).trim()===nm);if(k!=null)sc=e.scores[k];}
+    if(sc==null||sc==='')return;
+    const num=parseFloat(sc);
+    if(!isNaN(num)){sum+=num;cnt++;}
+  });
+  return cnt?sum/cnt:null;
+}
 function drawCandidates(){
   let list=S.students.slice();
   if(S.draw.classId)list=list.filter(s=>s.classId===S.draw.classId);
@@ -5492,10 +5521,9 @@ function drawCandidates(){
   if(c.type==='points'){const lo=parseInt(c.min),hi=parseInt(c.max);
     list=list.filter(s=>(lo===''||isNaN(lo)||s.points>=lo)&&(hi===''||isNaN(hi)||s.points<=hi));}
   else if(c.type==='score'){const sids=drawSubjIds(c.subjectId);
-    const lo=parseInt(c.min),hi=parseInt(c.max);
-    const loOk=isNaN(lo),hiOk=isNaN(hi);
     if(!sids.length)return[];
-    list=list.filter(s=>{const sc=drawStuLatestScore(s,sids,S.draw.classId);return sc!=null&&(loOk||sc>=lo)&&(hiOk||sc<=hi);});}
+    const lo=parseFloat(c.min),hi=parseFloat(c.max);
+    list=list.filter(s=>{const sc=drawStudentSubjAvg(s,sids,S.draw.classId);return sc!=null&&(isNaN(lo)||sc>=lo)&&(isNaN(hi)||sc<=hi);});}
   return list;
 }
 function doDraw(){const cands=drawCandidates();if(!cands.length){toast('候选池为空');return;}
@@ -5820,7 +5848,7 @@ function viewSettings(){
       </div>
     </div>
     <div class="field row set-act bk-ops" style="margin-bottom:12px">
-      <button class="btn danger" data-action="confirm-reset-all" title="重置" aria-label="重置" style="border-color:var(--danger);background:var(--surface)">${iconSvg('broom',20)}</button><!-- r117a：重置=重置全部数据（不再按时间/班级/范围局限），范围选择器仅供 归档/备份 使用 -->
+      <button class="btn danger" data-action="confirm-reset-all" title="重置" aria-label="重置" style="border-color:var(--danger);background:var(--surface)">${iconSvg('清除',20)}</button><!-- r117a：重置=重置全部数据（不再按时间/班级/范围局限），范围选择器仅供 归档/备份 使用 -->
       <button class="btn" data-action="do-arc-archive" title="归档" aria-label="归档">${iconSvg('package',20)}</button>
       <button class="btn" data-action="do-manual-backup" title="备份" aria-label="备份">${iconSvg('copy-backup',20)}</button>
       <button class="btn" data-action="do-restore-import" title="恢复" aria-label="恢复">${iconSvg('inbox-down',20)}</button>
