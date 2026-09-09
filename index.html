@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1276</title>
+<title>工作E · v20260902-r1278</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -1821,7 +1821,7 @@ function router(){
   /* 重新进入成绩页：视图与筛选重置为「趋势」tab 的默认（全部学期/全部考试/全部班级/最近考试科目）；页内切换子视图不受影响 */
   if(r==='grades'&&_prevRoute!=='grades'){S._gradeView='trend';gradeDefaultFor('trend');S._gradeFiltered=false;S._cmpItems=[];S._stuCmp=[];S._gradeScoreSort=undefined;S._gradeSubjSort=undefined;S._trendNums=false;_gradeThumbPrev=null;}
   /* 重新进入学情跟进：子标签与筛选恢复默认（班级/记录均默认全部班级）；页内切换子标签不受影响 */
-  if(r==='students'&&_prevRoute!=='students'){stuTab='stu';S._stuCls='all';S._stuSearch='';S._recCls='all';S._recTime=undefined;S._recFrom='';S._recTo='';S._stuTime=undefined; /* r1234：时间筛选重置回默认当前学期 */save();_stuThumbPrev=null;}
+  if(r==='students'&&_prevRoute!=='students'){stuTab='stu';S._stuCls='all';S._stuSearch='';S._recCls='all';S._recTime=undefined;S._recFrom='';S._recTo='';S._stuTime=undefined;S.draw.cond={type:'none',subjectId:'',min:'',max:''}; /* r1278：从其他页面重新进入学生页，抽签条件恢复默认不限制（页内切 tab 不受影响） */ /* r1234：时间筛选重置回默认当前学期 */save();_stuThumbPrev=null;}
   const samePage=_prevRoute===r;
   _prevRoute=r;
   if(r!=='grades')cleanupPendingSubs();
@@ -5427,7 +5427,7 @@ function viewDraw(){
         ${d.mode==='name'?`<div class="field"><label>人数</label><input type="number" id="d_count" value="${d.count}" min="1" max="50" placeholder="1"></div>`:`<div class="field"><label>分组数量</label><input type="number" id="d_gc" value="${d.groupCount}" min="2" max="10"></div>`}
       </div>
       <div class="field" style="margin-bottom:${d.cond.type==='none'?'16px':'8px'}"><label>条件</label>${condSel}</div>
-      ${d.cond.type==='score'?`<div class="field" style="margin-bottom:8px"><label>科目</label>${selHtml('d_sub',drawSubSummary(),bkOpts((S.subjects||[]).filter((s,i,a)=>a.findIndex(x=>x.name===s.name)===i).map(s=>({k:s.id,l:s.name,pick:'drawSubPick'})),d.cond.subjectId||''))}</div>`:''}${d.cond.type==='score'?drawSubjHintHtml():''}
+      ${d.cond.type==='score'?`<div class="field" style="margin-bottom:8px"><label>科目</label>${selHtml('d_sub',drawSubSummary(),bkOpts(drawSubjScored().map(s=>({k:s.id,l:s.name,pick:'drawSubPick'})),d.cond.subjectId||''))}</div>`:''}${d.cond.type==='score'?drawSubjHintHtml():''}
       ${d.cond.type==='score'?`<div class="field row" style="margin-bottom:16px"><div class="field" style="margin-bottom:0"><label>最高分</label><input type="number" id="d_max" value="${d.cond.max}"></div><div class="field" style="margin-bottom:0"><label>最低分</label><input type="number" id="d_min" value="${d.cond.min}"></div></div>`:''}
       ${d.cond.type==='points'?`<div class="field row" style="margin-bottom:16px"><div class="field"><label>最高积分</label><input type="number" id="d_max" value="${d.cond.max}"></div>
         <div class="field"><label>最低积分</label><input type="number" id="d_min" value="${d.cond.min}"></div></div>`:''}
@@ -5497,22 +5497,23 @@ function drawStudentSubjAvg(stu,sids,cid){
   });
   return cnt?sum/cnt:null;
 }
-function drawStudentSubjAvg(stu,sids,cid){
-  const nm=String((stu&&stu.name)||'').trim();
-  if(!nm)return null;
-  let sum=0,cnt=0;
+/* r1277：抽签「限定成绩区间」科目下拉只列「有成绩的科目」——
+   name 归一组（drawSubjIds）内任一 subjectId 的考试含 ≥1 个有效分数才算有成绩 */
+function drawSubjScored(){
+  const scored={};
   (S.exams||[]).forEach(e=>{
     if(!e||!e.scores)return;
-    if(sids.length&&sids.indexOf(e.subjectId)<0)return;
-    if(cid&&cid!==ALL_CLASS&&e.classId&&e.classId!==ALL_CLASS&&e.classId!==cid&&e.classId!==(stu&&stu.classId))return;
-    let sc=null;
-    if(e.scores[nm]!=null)sc=e.scores[nm];
-    else{const k=Object.keys(e.scores).find(k=>String(k).trim()===nm);if(k!=null)sc=e.scores[k];}
-    if(sc==null||sc==='')return;
-    const num=parseFloat(sc);
-    if(!isNaN(num)){sum+=num;cnt++;}
+    let has=false;
+    Object.keys(e.scores).forEach(k=>{const v=e.scores[k];if(v!=null&&v!==''&&!isNaN(parseFloat(v)))has=true;});
+    if(has)scored[e.subjectId]=1;
   });
-  return cnt?sum/cnt:null;
+  const seen={};const out=[];
+  (S.subjects||[]).forEach(s=>{
+    if(!s||!s.id||!s.name||seen[s.name])return;
+    if(!drawSubjIds(s.id).some(id=>scored[id]))return;
+    seen[s.name]=1;out.push(s);
+  });
+  return out;
 }
 function drawCandidates(){
   let list=S.students.slice();
