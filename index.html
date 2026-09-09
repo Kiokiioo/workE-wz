@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1278</title>
+<title>工作E · v20260902-r1279</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -5427,7 +5427,7 @@ function viewDraw(){
         ${d.mode==='name'?`<div class="field"><label>人数</label><input type="number" id="d_count" value="${d.count}" min="1" max="50" placeholder="1"></div>`:`<div class="field"><label>分组数量</label><input type="number" id="d_gc" value="${d.groupCount}" min="2" max="10"></div>`}
       </div>
       <div class="field" style="margin-bottom:${d.cond.type==='none'?'16px':'8px'}"><label>条件</label>${condSel}</div>
-      ${d.cond.type==='score'?`<div class="field" style="margin-bottom:8px"><label>科目</label>${selHtml('d_sub',drawSubSummary(),bkOpts(drawSubjScored().map(s=>({k:s.id,l:s.name,pick:'drawSubPick'})),d.cond.subjectId||''))}</div>`:''}${d.cond.type==='score'?drawSubjHintHtml():''}
+      ${d.cond.type==='score'?`<div class="field" style="margin-bottom:8px"><label>科目</label>${selHtml('d_sub',drawSubSummary(),bkOpts(drawSubjScored().map(s=>({k:s.id,l:s.name,pick:'drawSubPick'})),drawSubjActiveId()))}</div>`:''}${d.cond.type==='score'?drawSubjHintHtml():''}
       ${d.cond.type==='score'?`<div class="field row" style="margin-bottom:16px"><div class="field" style="margin-bottom:0"><label>最高分</label><input type="number" id="d_max" value="${d.cond.max}"></div><div class="field" style="margin-bottom:0"><label>最低分</label><input type="number" id="d_min" value="${d.cond.min}"></div></div>`:''}
       ${d.cond.type==='points'?`<div class="field row" style="margin-bottom:16px"><div class="field"><label>最高积分</label><input type="number" id="d_max" value="${d.cond.max}"></div>
         <div class="field"><label>最低积分</label><input type="number" id="d_min" value="${d.cond.min}"></div></div>`:''}
@@ -5447,7 +5447,7 @@ function viewDraw(){
 function drawMode(v){S.draw.mode=v;if(v==='group')S._drawGroups=null;S._drawBatch=null;save();viewReload('students');}
 function toggleDrawRepeat(){S.draw.repeat=!S.draw.repeat;save();viewReload('students');}
 function drawClassSet(v){S.draw.classId=(v==='全部班级')?ALL_CLASS:resolveClass(v);save();viewReload('students');}
-function drawCond(v){S.draw.cond.type=v;S.draw.cond.min='';S.draw.cond.max='';S.draw.cond.subjectId=S._gradeSub||(S.subjects[0]&&S.subjects[0].id)||'';save();viewReload('students');}
+function drawCond(v){S.draw.cond.type=v;S.draw.cond.min='';S.draw.cond.max='';S.draw.cond.subjectId=(S._gradeSub&&drawSubjScored().some(s=>drawSubjIds(s.id).indexOf(S._gradeSub)>=0))?S._gradeSub:drawSubjDefaultId(); /* r1279：默认取有成绩科目（_gradeSub 仅在仍有成绩时沿用） */save();viewReload('students');}
 /* r1266：抽签「限定成绩区间」按科目名称归一取考试——
    历史隐患：S.subjects 曾出现同名多 id（添加不查重 + 云同步合并），或跨端导入时科目 id 与本端不一致，
    导致 S.exams.subjectId 与下拉选中的 id 对不上 → 该科目明明有成绩却算出 0 人。
@@ -5462,7 +5462,7 @@ function drawSubjIds(sid){
 }
 /* r1266：科目考试概况（用于抽签页诊断小字，让用户看到「已连到哪几场考试」） */
 function drawSubjStat(){
-  const ids=drawSubjIds(S.draw.cond.subjectId);
+  const ids=drawSubjIds(drawSubjActiveId()); /* r1279 */
   if(!ids.length)return {n:0};
   const exs=(S.exams||[]).filter(e=>e&&e.scores&&ids.indexOf(e.subjectId)>=0);
   if(!exs.length)return {n:0};
@@ -5515,13 +5515,25 @@ function drawSubjScored(){
   });
   return out;
 }
+/* r1279：抽签科目默认值=「有成绩科目」的第一个（派生值不锁存，随成绩数据实时变化） */
+function drawSubjDefaultId(){
+  const sc=drawSubjScored();
+  if(sc[0]&&sc[0].id)return sc[0].id;
+  return (S.subjects[0]&&S.subjects[0].id)||'';
+}
+/* 生效科目：已选科目仍在「有成绩」集合（含同名归一组）则取其归一代表 id，否则回落默认 */
+function drawSubjActiveId(){
+  const cur=(S.subjects||[]).find(s=>s&&s.id===S.draw.cond.subjectId);
+  const hit=cur&&drawSubjScored().find(s=>s.name===cur.name);
+  return (hit&&hit.id)||drawSubjDefaultId();
+}
 function drawCandidates(){
   let list=S.students.slice();
   if(S.draw.classId)list=list.filter(s=>s.classId===S.draw.classId);
   const c=S.draw.cond;
   if(c.type==='points'){const lo=parseInt(c.min),hi=parseInt(c.max);
     list=list.filter(s=>(lo===''||isNaN(lo)||s.points>=lo)&&(hi===''||isNaN(hi)||s.points<=hi));}
-  else if(c.type==='score'){const sids=drawSubjIds(c.subjectId);
+  else if(c.type==='score'){const sids=drawSubjIds(drawSubjActiveId()); /* r1279 */
     if(!sids.length)return[];
     const lo=parseFloat(c.min),hi=parseFloat(c.max);
     list=list.filter(s=>{const sc=drawStudentSubjAvg(s,sids,S.draw.classId);return sc!=null&&(isNaN(lo)||sc>=lo)&&(isNaN(hi)||sc<=hi);});}
@@ -7947,7 +7959,7 @@ function drawModeSummary(){return S.draw.mode==='group'?'随机分组':'随机�
 function drawRepeatSummary(){return S.draw.repeat?'可重复':'不重复';}
 function drawRepeatPick(v){S.draw.repeat=v==='1';save();viewReload('students');}
 function drawCondSummary(){const t=S.draw.cond.type||'none';return t==='score'?'限定成绩区间':t==='points'?'限定积分区间':'不限制（全部学生）';}
-function drawSubSummary(){const sid=S.draw.cond.subjectId;const s=(S.subjects||[]).find(x=>x.id===sid);return s?s.name:'无科目';}
+function drawSubSummary(){const sid=drawSubjActiveId(); /* r1279 */const s=(S.subjects||[]).find(x=>x.id===sid);return s?s.name:'无科目';}
 function drawSubPick(k){S.draw.cond.subjectId=k;save();viewReload('students');}
 function bkOpenRangeMenu(e){e.stopPropagation();const m=document.getElementById('bk_range_pop');const open=m&&m.style.display==='block';closeAllBkPops();
   if(m&&!open){const isMobile=window.matchMedia&&window.matchMedia('(max-width:640px)').matches;
