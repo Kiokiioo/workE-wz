@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1293</title>
+<title>工作E · v20260902-r1296</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -1117,12 +1117,16 @@ svg{display:block;width:100%}
 .draw-fold-b{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-top:2px;overflow:hidden}
 .draw-rec{display:flex;align-items:center;gap:11px;margin:0 16px;padding:11px 0;border-bottom:1px dashed var(--border);font-size:14px}
 .draw-rec:last-child{border-bottom:none}
-.draw-rec-nm{font-weight:600;color:var(--text)}
+.draw-rec-nm{font-weight:600;color:var(--text);min-width:0}
 .draw-rec-cls{color:var(--text-2)}
 .draw-rec-sc{font-weight:600}
 .draw-rec-sc.ok{color:var(--ok)}
 .draw-rec-sc.bad{color:var(--danger)}
-.draw-rec-tm{color:var(--text-2);margin-left:auto;font-size:12px;white-space:nowrap}
+.draw-rec-tm{color:var(--text-2);font-size:12px;white-space:nowrap;flex:none;margin-left:auto}
+.draw-rec .rec-act{display:flex;align-items:center;gap:6px;flex:none}
+.dr-seg{display:flex;gap:8px}
+.dr-seg .dr-type{flex:1;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text-2);font-size:13px;cursor:pointer;-webkit-appearance:none;appearance:none;-webkit-tap-highlight-color:transparent;transition:background .12s ease}
+.dr-seg .dr-type.active{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
 .pill{display:inline-block;padding:4px 12px;border-radius:20px;background:var(--chip);font-size:13px;color:var(--text-2)}
 
 /* student detail */
@@ -2851,7 +2855,9 @@ function buildRecTable(){
   const recs=[
     ...S.violations.map(r=>({id:r.id,src:'viol',studentId:r.studentId,type:r.type,date:r.date,delta:r.delta})),
     ...S.homeworks.map(r=>({id:r.id,src:'hw',studentId:r.studentId,type:'作业·'+r.status,date:r.date,delta:r.delta})),
-    ...(S.examPoints||[]).map(r=>({id:r.id,src:'ep',studentId:r.studentId,type:r.reason||'考试积分',examName:r.examName||'',date:r.date,delta:r.delta})) /* r116y：成绩产生的加减积分也进入记录列表（删除随考试，无单独删除钮） */
+    ...(S.examPoints||[]).map(r=>({id:r.id,src:'ep',studentId:r.studentId,type:r.reason||'考试积分',examName:r.examName||'',date:r.date,delta:r.delta})) /* r116y：成绩产生的加减积分也进入记录列表（删除随考试，无单独删除钮） */,
+    /* r1294：抽签/答题产生的加减分（S.answers）也进入记录列表，与违纪/作业/成绩积分对齐；无单条删除钮（删除随学生/班级） */
+    ...(S.answers||[]).map(r=>({id:r.id,src:'ans',studentId:r.studentId,type:(r.result==='correct'?'点名·答对':r.result==='wrong'?'点名·答错':r.result==='none'?'点名·未答':(r.note?('自定义·'+r.note):'自定义')),date:r.date,delta:r.delta}))
   ].filter(r=>{
     const s=stu(r.studentId);if(!s)return false;
     if(clsVal!=='all'&&s.classId!==clsVal)return false;
@@ -2863,7 +2869,7 @@ function buildRecTable(){
   <tr><td class="rec-c1"><span class="s-name" data-action="stu-detail" data-id="${r.studentId}">${esc(s.name)}</span></td><td class="rec-c2">${esc(classNameOf(s.classId))}</td><td>${esc(r.type)}${r.examName?`<div style="font-size:11px;color:var(--text-2);margin-top:0">${esc(r.examName)}</div>`:''}</td>
   <td class="rec-c5" style="color:${r.delta>=0?'var(--ok)':'var(--danger)'}">${r.delta>0?'+':''}${r.delta} 分</td>
   <td class="rec-c4">${esc(r.date.slice(2))}</td>
-  <td>${r.src==='ep'?'':`<button class="rec-del" data-action="${r.src==='viol'?'del-viol':'del-hw'}" data-id="${r.id}" aria-label="删除" title="删除">✕</button>`}</td></tr>`;}).join(''):
+  <td>${r.src==='ep'||r.src==='ans'?'':`<button class="rec-del" data-action="${r.src==='viol'?'del-viol':'del-hw'}" data-id="${r.id}" aria-label="删除" title="删除">✕</button>`}</td></tr>`;}).join(''):
   `<tr><td colspan="6">${emptyState('🗒','暂无记录')}</td></tr>`;
   return `<div class="card rec-card" style="padding:0;overflow:hidden"><table class="rec-table"><colgroup><col class="rec-c1"><col class="rec-c2"><col><col class="rec-c5"><col class="rec-c4"><col class="rec-c6"></colgroup><thead><tr><th class="rec-c1">学生</th><th class="rec-c2">班级</th><th>类型</th><th class="rec-c5">积分</th><th class="rec-c4">时间</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
@@ -5439,7 +5445,7 @@ function viewDraw(){
   const drawnToday=(S._drawDrawn||[]).filter(x=>{const dt=new Date(_drawName(x)?(typeof x==='string'?x:x.time):'');const n=new Date();return dt.getFullYear()===n.getFullYear()&&dt.getMonth()===n.getMonth()&&dt.getDate()===n.getDate();});
   const histAll=(S._drawHistory||[]);
   const weekList=histAll.filter(_isWeek),olderList=histAll.filter(h=>!_isWeek(h));
-  const histRow=h=>`<div class="draw-rec"><span class="draw-rec-nm">${h.names.map(n=>`<span>${esc(n)}</span>`).join('、')}</span>${h.cls?`<span class="draw-rec-cls">${esc(h.cls)}</span>`:''}${h.delta!=null?`<span class="draw-rec-sc ${h.delta>=0?'ok':'bad'}">${h.delta>0?'+':''}${h.delta}分</span>`:'<span class="draw-rec-sc">—</span>'}<span class="draw-rec-tm">${esc(h.time)}</span></div>`;
+  const histRow=h=>{const rid=h.id||(h.id=uid());const canEdit=h.delta!=null;return `<div class="draw-rec"><span class="draw-rec-nm">${h.names.map(n=>`<span>${esc(n)}</span>`).join('、')}</span>${h.cls?`<span class="draw-rec-cls">${esc(h.cls)}</span>`:''}${h.delta!=null?`<span class="draw-rec-sc ${h.delta>=0?'ok':'bad'}">${h.delta>0?'+':''}${h.delta}分</span>`:'<span class="draw-rec-sc">—</span>'}<span class="draw-rec-tm">${esc(h.time)}</span><span class="rec-act">${canEdit?`<button class="ic-btn-del" type="button" data-action="del-draw-rec" data-id="${rid}" title="删除并撤销加减分" aria-label="删除">${iconSvg('x',10)}</button><button class="ic-btn" type="button" data-action="edit-draw-rec" data-id="${rid}" title="编辑" aria-label="编辑">${iconSvg('edit',10)}</button>`:`<button class="ic-btn-del" type="button" data-action="del-draw-rec" data-id="${rid}" title="删除" aria-label="删除">${iconSvg('x',10)}</button>`}</span></div>`;};
   const fold=(key,label,arr)=>{const collapsed=!!(S._drawFold&&S._drawFold[key]);return `<div class="draw-fold"><div class="draw-fold-h${collapsed?' collapsed':''}" data-action="toggle-draw-fold" data-key="${key}"><span style="flex:1">${label}（${arr.length}）</span><span class="chev ${collapsed?'':'open'}"></span><button class="btn sm ghost" data-action="clear-draw-history" data-key="${key}" style="margin:0 0 0 8px;padding:0 7px;height:26px;border:none" title="清除" aria-label="清除">${iconSvg('清除',16)}</button></div><div class="draw-fold-b" style="${collapsed?'display:none':''}">${arr.length?arr.map(histRow).join(''):'<div class="sub" style="margin:0 16px;padding:11px 0;color:var(--text-2)">无记录</div>'}</div></div>`;};
   return `<div class="grid cols-2 view-draw" style="align-items:stretch">
     <div class="card"><div class="section-title">抽签设置<button class="pill-toggle ${d.repeat?'on':''}" onclick="toggleDrawRepeat()" aria-label="重复抽取开关"></button><span class="count" style="margin-left:auto">当前候选池：${base.length} 人</span></div>
@@ -5584,14 +5590,15 @@ function doDraw(){const cands=drawCandidates();if(!cands.length){toast('候选�
   S._drawBatch=picks.map(p=>({id:p.id,name:p.name,cls:p.classId}));save();drawRoll(picks.map(p=>p.name),cands,()=>openDrawPick(S._drawBatch.slice()));}
 function drawResult(kind){const batch=S._drawBatch;if(!batch||!batch.length)return;
   const delta=kind==='correct'?S.rules.drawCorrect:kind==='wrong'?S.rules.drawWrong:S.rules.drawNone;
+  const _hid=S._drawHistory&&S._drawHistory[0]&&S._drawHistory[0].id;
   const names=batch.map(p=>p.name);
-  batch.forEach(p=>{const s=stu(p.id);if(!s)return;s.points+=delta;S.answers.push({id:uid(),studentId:p.id,date:todayISO(),result:kind,delta});});
+  batch.forEach(p=>{const s=stu(p.id);if(!s)return;s.points+=delta;S.answers.push({id:uid(),studentId:p.id,date:todayISO(),result:kind,delta,batchId:_hid});});
   save();S._drawBatch=null;viewReload('students');drawPopup(names,delta);}
 function showDrawCustom(){const batch=S._drawBatch;if(!batch||!batch.length){toast('请先抽签');return;}
   openModal('选择积分',`<div class="field"><label>每人积分（正数=加分记为"正确"，负数=扣分记为"错误"）</label><input type="number" id="dc_pts" value="1"></div>
   <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary" onclick="applyDrawCustom()">确定</button></div>`);}
 function applyDrawCustom(){const el=document.getElementById('dc_pts');if(!el)return;const pts=parseInt(el.value)||0;const batch=S._drawBatch;if(!batch||!batch.length)return;
-  const names=batch.map(p=>p.name);batch.forEach(p=>{const s=stu(p.id);if(!s)return;s.points+=pts;S.answers.push({id:uid(),studentId:p.id,date:todayISO(),result:pts>=0?'correct':'wrong',delta:pts});});
+  const _hid=S._drawHistory&&S._drawHistory[0]&&S._drawHistory[0].id;const names=batch.map(p=>p.name);batch.forEach(p=>{const s=stu(p.id);if(!s)return;s.points+=pts;S.answers.push({id:uid(),studentId:p.id,date:todayISO(),result:pts>=0?'correct':'wrong',delta:pts,batchId:_hid});});
   save();S._drawBatch=null;viewReload('students');drawPopup(names,pts);}
 function drawPopup(names,delta){let el=document.getElementById('drawPop');if(el)el.remove();
   el=document.createElement('div');el.id='drawPop';
@@ -5653,7 +5660,8 @@ function openDrawPick(batch){
 function applyDrawOutcome(kind,batch,el,box){
   const delta=kind==='correct'?S.rules.drawCorrect:kind==='wrong'?S.rules.drawWrong:S.rules.drawNone;
   const label=kind==='correct'?'正确':kind==='wrong'?'错误':'完成';
-  batch.forEach(p=>{const s=stu(p.id);if(!s)return;s.points+=delta;S.answers.push({id:uid(),studentId:p.id,date:todayISO(),result:kind,delta});
+  const _hid=S._drawHistory&&S._drawHistory[0]&&S._drawHistory[0].id;
+  batch.forEach(p=>{const s=stu(p.id);if(!s)return;s.points+=delta;S.answers.push({id:uid(),studentId:p.id,date:todayISO(),result:kind,delta,batchId:_hid});
     S._drawDrawn=S._drawDrawn||[];if(!S._drawDrawn.some(x=>(typeof x==='string'?x:x.name)===p.name))S._drawDrawn.push({name:p.name,time:nowStr()});});
   S._drawBatch=null;save();if(S._drawHistory&&S._drawHistory.length)S._drawHistory[0].delta=delta;viewReload('students');
   const pos=delta>=0;
@@ -5675,7 +5683,8 @@ function drawPickCustom(batch,el,box){
 }
 function applyDrawCustomOutcome(pts,batch,el,box){
   const kind=pts>=0?'correct':'wrong';
-  batch.forEach(p=>{const s=stu(p.id);if(!s)return;s.points+=pts;S.answers.push({id:uid(),studentId:p.id,date:todayISO(),result:kind,delta:pts});
+  const _hid=S._drawHistory&&S._drawHistory[0]&&S._drawHistory[0].id;
+  batch.forEach(p=>{const s=stu(p.id);if(!s)return;s.points+=pts;S.answers.push({id:uid(),studentId:p.id,date:todayISO(),result:kind,delta:pts,batchId:_hid});
     S._drawDrawn=S._drawDrawn||[];if(!S._drawDrawn.some(x=>(typeof x==='string'?x:x.name)===p.name))S._drawDrawn.push({name:p.name,time:nowStr()});});
   S._drawBatch=null;save();if(S._drawHistory&&S._drawHistory.length)S._drawHistory[0].delta=pts;viewReload('students');
   const pos=pts>=0;
@@ -5688,7 +5697,12 @@ function applyDrawCustomOutcome(pts,batch,el,box){
 }
 function resetDraw(){S._drawDrawn=[];S._drawBatch=null;S._drawGroups=null;save();viewReload('students');}
 function nowStr(){const d=new Date();const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());}
-function pushDrawHistory(names){S._drawHistory=S._drawHistory||[];const d=S.draw;S._drawHistory.unshift({time:nowStr(),mode:d.mode,cls:classNameOf(d.classId),names:names.slice()});if(S._drawHistory.length>50)S._drawHistory.length=50;}
+function pushDrawHistory(names){S._drawHistory=S._drawHistory||[];const d=S.draw;S._drawHistory.unshift({id:uid(),time:nowStr(),mode:d.mode,cls:classNameOf(d.classId),names:names.slice()});if(S._drawHistory.length>50)S._drawHistory.length=50;}
+function drawRecStudent(name,clsName){const cls=(S.classes||[]).find(c=>c.name===clsName);const list=cls?(S.students||[]).filter(s=>s.classId===cls.id):(S.students||[]);return list.find(s=>s.name===name)||(S.students||[]).find(s=>s.name===name)||null;}
+function drawRecMatchAnswers(h){if(h&&h.id){const bb=(S.answers||[]).filter(a=>a.batchId===h.id);if(bb.length)return bb;}const dstr=(h&&h.time||'').slice(0,10);return (S.answers||[]).filter(a=>{if(a.batchId)return false;if((a.date||'')!==dstr)return false;if(h&&h.delta!=null&&a.delta!==h.delta)return false;const st=stu(a.studentId);if(!st)return false;return (h&&h.names||[]).indexOf(st.name)>=0;});}
+function modalDrawRecEdit(hid){const h=(S._drawHistory||[]).find(x=>x.id===hid);if(!h)return;const oldDelta=h.delta!=null?h.delta:0;const nameStr=(h.names||[]).join('、');const html=`<div class="sub" style="margin-bottom:8px">${esc(nameStr)}${h.cls?(' · '+esc(h.cls)):''} · ${esc(h.time||'')}</div><div class="field"><label>结果类型</label><div class="dr-seg" id="dr_seg"><button type="button" class="dr-type" data-r="correct" onclick="drPick('correct')">正确</button><button type="button" class="dr-type" data-r="wrong" onclick="drPick('wrong')">错误</button><button type="button" class="dr-type" data-r="none" onclick="drPick('none')">完成</button></div></div><div class="field"><label>加减分（正数加分 / 负数扣分）</label><input type="number" id="dr_score" value="${oldDelta}" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:10px;font-size:15px;box-sizing:border-box"></div><div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="button" class="btn primary" onclick="drSave('${hid}')">保存</button></div>`;openModal('编辑抽签记录',html);const initType=oldDelta>0?'correct':oldDelta<0?'wrong':'none';const seg=document.getElementById('dr_seg');if(seg){const b=seg.querySelector('[data-r="'+initType+'"]');if(b)b.classList.add('active');}}
+function drPick(type){const seg=document.getElementById('dr_seg');if(seg)seg.querySelectorAll('.dr-type').forEach(b=>b.classList.toggle('active',b.dataset.r===type));const sc=document.getElementById('dr_score');if(!sc)return;sc.value=type==='correct'?S.rules.drawCorrect:type==='wrong'?S.rules.drawWrong:0;}
+function drSave(hid){const h=(S._drawHistory||[]).find(x=>x.id===hid);if(!h){closeModal();return;}const oldDelta=h.delta!=null?h.delta:0;const score=parseInt((document.getElementById('dr_score')||{}).value)||0;const result=score>0?'correct':score<0?'wrong':'none';const matched=drawRecMatchAnswers(h);if(matched.length){matched.forEach(an=>{const s=stu(an.studentId);if(s)s.points+=(score-an.delta);an.delta=score;an.result=result;});}else{(h.names||[]).forEach(nm=>{const s=drawRecStudent(nm,h.cls);if(s)s.points+=(score-oldDelta);});}h.delta=score;h.result=result;save();closeModal();viewReload('students');toast('已保存');}
 function toggleDrawFold(key,t){S._drawFold=S._drawFold||{week:false,older:false};S._drawFold[key]=!S._drawFold[key];save();
   const fold=t&&t.closest?t.closest('.draw-fold'):null;if(!fold)return;
   const h=fold.querySelector('.draw-fold-h');if(h)h.classList.toggle('collapsed',S._drawFold[key]);
@@ -7061,6 +7075,8 @@ document.body.addEventListener('click',e=>{
   else if(a==='edit-tt-row'){modalTt(id);}
   else if(a==='add-tt-cell'){const day=parseInt(t.dataset.day,10)||1,period=parseInt(t.dataset.period,10)||1;const fc=S.classes.find(c=>!c.archived&&c.name!=='全部班级');modalTt(null,{day,period,classId:(fc&&fc.id)||ALL_CLASS});}
   else if(a==='del-tt'){S.timetable=S.timetable.filter(y=>y.id!==id);save();viewReload('settings');}
+  else if(a==='del-draw-rec'){const h=(S._drawHistory||[]).find(x=>x.id===id);if(!h)return;const d=h.delta!=null?h.delta:0;if(!confirm('删除该抽签记录'+(d?'并撤销其加减分（'+d+' 分）？':'？')))return;if(d){const claimed=new Set();drawRecMatchAnswers(h).forEach(an=>{const s=stu(an.studentId);if(s)s.points-=an.delta;claimed.add(an.id);});if(claimed.size)S.answers=S.answers.filter(a=>!claimed.has(a.id));}S._drawHistory=S._drawHistory.filter(x=>x.id!==id);save();viewReload('students');toast('已删除');}
+  else if(a==='edit-draw-rec'){modalDrawRecEdit(id);}
   else if(a==='imp-plan'){modalImportPlan();}
   else if(a==='plan-add-modal'){modalPlanAdd();}
   else if(a==='plan-edit'){modalPlanAdd(id);}
