@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1290</title>
+<title>工作E · v20260902-r1291</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -2802,11 +2802,11 @@ function stuApplyRanking(){
 function stuListView(){
   const nonArch=S.classes.filter(c=>!c.archived);
   const clsId=(S._stuCls&&(S._stuCls==='all'||nonArch.some(c=>c.id===S._stuCls)))?S._stuCls:'all';
-  /* r1234：行布局=班级-时间-删除-添加；时间/班级均分宽度(flex:1)，删除/添加固定 38px */
+  /* r1234：行布局=班级-时间-删除-添加；r1291：改为 时间-班级-删除-添加；时间/班级均分宽度(flex:1)，删除/添加固定 38px */
   const sel=nonArch.length?`<div style="flex:1;min-width:0">${selHtml('stu_cls', stuClsSummary(), bkOpts([{k:'all',l:'所有班级',pick:'stuClsFilter'},...nonArch.filter(c=>c.name!=='全部班级').map(c=>({k:c.id,l:c.name,pick:'stuClsFilter'}))], clsId))}</div>`:'';
   const tsel=`<div style="flex:1;min-width:0">${selHtml('stu_time', stuTimeSummary(), bkOpts(stuTimeItems(), stuTimeVal()))}</div>`;
   return `  <div class="field row stu-act" style="align-items:flex-end;flex-wrap:wrap;margin-bottom:10px">
-    ${sel}${tsel}
+    ${tsel}${sel}
     <button class="btn sm stu-ie-btn" data-action="stu-del" data-lp="stu-del" id="stu_del_btn" style="flex:none;width:38px;height:38px;border-radius:99px;border:1px solid var(--border);background:#fff;padding:0;display:inline-flex;align-items:center;justify-content:center;color:#444441" aria-label="删除">${iconSvg('trash',16)}</button>
     <button class="btn primary sm add-spin" id="stu_add_btn" data-action="quick-add-stu" onclick="spinAddBtn(this)" style="flex:none;width:38px;height:38px;border-radius:50%;padding:0;display:inline-flex;align-items:center;justify-content:center" aria-label="添加学生">${addIconSvg()}</button>
   </div>
