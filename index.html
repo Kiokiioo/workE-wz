@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1291</title>
+<title>工作E · v20260902-r1293</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -709,7 +709,7 @@ form[data-form="addrule"] .field input{height:38px;border-radius:99px;box-sizing
 form[data-form="addrule"] .field input[name="type"]{padding:0 14px}
 form[data-form="addrule"] .field input[name="points"]{padding:0 6px;text-align:center}
 /* 下拉箭头：带旋转特效，表示展开/收起 */
-.rule-chev{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border:0;transition:transform .25s ease;color:var(--text-2);background:transparent;cursor:pointer;flex-shrink:0}
+.rule-chev{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border:0;appearance:none;-webkit-appearance:none;-webkit-tap-highlight-color:transparent;transition:transform .25s ease;color:var(--text-2);background:transparent;cursor:pointer;flex-shrink:0}
 .rule-chev:hover{color:var(--text)}
 .rule-chev:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 .rule-chev svg{width:14px;height:14px}
@@ -3074,8 +3074,8 @@ function recView(){
     <div class="field" style="flex:1;margin-bottom:0"><label>从</label><input type="date" value="${S._recFrom||''}" onchange="recFromSel(this.value)"></div>
     <div class="field" style="flex:1;margin-bottom:0"><label>到</label><input type="date" value="${S._recTo||''}" onchange="recToSel(this.value)"></div></div>`:'';
   return `<div class="field row stu-act" style="margin-bottom:6px">
+    <div style="flex:1;min-width:0">${selHtml('rec_time', recTimeSummary(), bkOpts(recTimeItems(), S._recTime||tv))}</div><!-- r1292：记录行 时间在班级之前（对齐 r1291 学生行） -->
     <div style="flex:1;min-width:0">${selHtml('rec_cls', recClsSummary(), bkOpts([{k:'all',l:'全部班级',pick:'recClsBk'},...nonArch.filter(c=>c.name!=='全部班级').map(c=>({k:c.id,l:c.name,pick:'recClsBk'}))], S._recCls||'all'))}</div>
-    <div style="flex:1;min-width:0">${selHtml('rec_time', recTimeSummary(), bkOpts(recTimeItems(), S._recTime||tv))}</div>
     <button class="btn primary sm" id="rec_add_btn" data-action="edit-rec" style="flex:none;width:38px;height:38px;border-radius:50%;padding:0;display:inline-flex;align-items:center;justify-content:center" aria-label="新增">${addIconSvg()}</button></div>
   ${customRow}
   <div class="field row stu-act" style="margin-top:6px;margin-bottom:0">
