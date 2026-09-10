@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1289</title>
+<title>工作E · v20260902-r1290</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -738,6 +738,9 @@ form[data-form="addrule"] .field input[name="points"]{padding:0 6px;text-align:c
 .view-settings .field.row.bk-ops{gap:8px}
 .view-settings .bk-ops .btn{flex:1;min-width:0;padding:0 10px;white-space:nowrap;justify-content:center}
 @media(max-width:640px){.view-settings .bk-ops .btn{padding:0 4px}}
+/* r1290：归档备份四键改纵排——图标一排+文字一排，图标/文字间距4px，文字10px */
+.view-settings .bk-ops .btn.bk-v{flex-direction:column;gap:4px;padding:9px 4px 8px}
+.view-settings .bk-ops .btn.bk-v>span{font-size:10px;line-height:1}
 .bk-chip{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:99px;padding:5px 12px;font-size:13px;cursor:pointer;font-family:inherit}
 .bk-chip:hover{border-color:var(--primary)}
 .bk-chip.on{background:var(--primary);border-color:var(--primary);color:#fff}
@@ -5881,10 +5884,10 @@ function viewSettings(){
       </div>
     </div>
     <div class="field row set-act bk-ops" style="margin-bottom:12px">
-      <button class="btn danger" data-action="confirm-reset-all" title="重置" aria-label="重置" style="border-color:var(--danger);background:var(--surface)">${iconSvg('清除',20)}</button><!-- r117a：重置=重置全部数据（不再按时间/班级/范围局限），范围选择器仅供 归档 使用 -->
-      <button class="btn" data-action="do-arc-archive" title="归档" aria-label="归档">${iconSvg('package',20)}</button>
-      <button class="btn" data-action="confirm-export-all" title="全部导出（整个工作台的 JSON 备份）">${iconSvg('upload',18)} 全部导出</button>
-      <button class="btn" data-action="confirm-import-all" title="全部导入（用备份文件覆盖当前全部资料）">${iconSvg('download',18)} 全部导入</button>
+      <button class="btn bk-v danger" data-action="confirm-reset-all" title="重置：清空文件所有数据并恢复示例（不受条件范围限制）" aria-label="重置" style="border-color:var(--danger);background:var(--surface)">${iconSvg('清除',20)}<span>重置</span></button><!-- r117a：重置=清空文件全部资料（不受条件范围局限）；r1290：四键改纵排 图标+文字 -->
+      <button class="btn bk-v" data-action="do-arc-archive" title="归档" aria-label="归档">${iconSvg('package',20)}<span>归档</span></button>
+      <button class="btn bk-v" data-action="confirm-export-all" title="导出：下载整个工作台的 JSON 备份">${iconSvg('upload',20)}<span>导出</span></button>
+      <button class="btn bk-v" data-action="confirm-import-all" title="导入：用备份文件覆盖当前全部资料">${iconSvg('download',20)}<span>导入</span></button>
     </div>
     <div class="collapsible" id="arc_lib" style="margin-top:8px">
       <div class="section-title clickable" onclick="toggleCollapse('arc_lib')" style="font-size:15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin:0"><span style="display:inline-flex;align-items:center;gap:4px">${iconSvg('归档库',22)}归档库</span><span class="chev"></span></div>
@@ -6887,8 +6890,8 @@ document.body.addEventListener('click',e=>{
   if(a==='nav'){location.hash=t.dataset.r;}
   else if(a==='toggle-theme'){toggleTheme();}
   else if(a==='reset-data'){if(confirm('确定重置为示例数据？当前数据将被清空。')){doReset();}}
-  else if(a==='confirm-export-all'){confirmModal('全部导出','将下载当前文件的全部资料（含所有班级、学生、成绩、积分、教学进度、课表、归档等）为一个 JSON 备份文件。','do-export-all');}
-  else if(a==='confirm-import-all'){confirmModal('全部导入','将用选中的备份文件覆盖当前全部资料，覆盖后不可撤销；若当前有未备份的重要资料请先「全部导出」。','do-import-all');}
+  else if(a==='confirm-export-all'){confirmModal('导出','将下载当前文件的全部资料（含所有班级、学生、成绩、积分、教学进度、课表、归档等）为一个 JSON 备份文件。','do-export-all');}
+  else if(a==='confirm-import-all'){confirmModal('导入','将用选中的备份文件覆盖当前全部资料，覆盖后不可撤销；若当前有未备份的重要资料请先「导出」。','do-import-all');}
   else if(a==='confirm-reset-all'){confirmModal('一键重置','此操作将清空当前文件全部资料并恢复为示例数据，且不可撤销！','do-reset-all','danger');}
   else if(a==='do-export-all'){closeModal();exportAll();}
   else if(a==='do-import-all'){closeModal();importAll();}
@@ -8249,7 +8252,7 @@ async function cloudPush(force){
       const payload=JSON.stringify(bizState(S));
       const up=await gzPayload(payload); /* r117b：gzip 压缩上传（带 WBGZ1: 标记，兼容旧端纯 JSON 解析已有合并侧 gzParse） */
       const b64=b64enc(up);
-      if(b64.length>1.4e6){cloudPushing=false;updateCloudStatus('error','数据压缩后仍超过单文件 1MB 上限，无法同步，请用「全部导出」');toast('同步失败：数据过大');return;}
+      if(b64.length>1.4e6){cloudPushing=false;updateCloudStatus('error','数据压缩后仍超过单文件 1MB 上限，无法同步，请用「导出」');toast('同步失败：数据过大');return;}
       const body=JSON.stringify({message:'sync '+new Date().toISOString(),content:b64,branch:c.branch||'main',sha:g.sha||undefined});
       const r=await ghFetch(GH_API+ghContentsPath(c),{method:'PUT',headers:ghHeaders(c.token),body},25000);
       if(r.status===401){lastErr='令牌无效或已过期，请在「设置-云端同步」重新填写 Access Token';break;}
