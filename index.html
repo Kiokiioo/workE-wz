@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1300</title>
+<title>工作E · v20260902-r1301</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -7462,9 +7462,9 @@ function delEnter(key){const cfg=DEL_CFG[key];if(!cfg)return;
   toast('删除模式：点选条目勾选，再次点击删除执行所选（长按要求删除全部）');}
 function delClear(){if(!DEL_MODE)return;
   const b=document.getElementById(DEL_MODE.btnId);if(b)b.classList.remove('active');
-  if(DEL_MODE.itemSel)document.querySelectorAll(DEL_MODE.itemSel+'.pick').forEach(c=>c.classList.remove('pick'));
+  if(DEL_MODE.itemSel)document.querySelectorAll(':is('+DEL_MODE.itemSel+').pick').forEach(c=>c.classList.remove('pick'));
   DEL_MODE=null;}
-function delSelectedIds(){const ids=[];if(DEL_MODE)document.querySelectorAll(DEL_MODE.itemSel+'.pick[data-id]').forEach(c=>ids.push(c.dataset.id));return ids;}
+function delSelectedIds(){const ids=[];if(DEL_MODE)document.querySelectorAll(':is('+DEL_MODE.itemSel+').pick[data-id]').forEach(c=>ids.push(c.dataset.id));return ids;}
 function delConfirmSel(key){const cfg=DEL_CFG[key];if(!cfg)return;const ids=delSelectedIds();delClear();
   if(!ids.length){toast('没有可删除的条目');return;}cfg.del(ids,false);}
 function delAll(key){const cfg=DEL_CFG[key];if(!cfg)return;const ids=cfg.ids();delClear();cfg.del(ids,true);}
@@ -7473,7 +7473,7 @@ function doDelPending(){closeModal();const p=_delPending;_delPending=null;if(p){
 /* 删除模式：点选条目卡片正文 toggle .pick 高亮（长按已触发则跳过；不进入删除模式时本监听直接 return） */
 document.addEventListener('click',e=>{
   if(LP_FIRED)return;if(!DEL_MODE)return;
-  const card=e.target.closest(DEL_MODE.itemSel+'[data-id]');if(!card)return;
+  const card=e.target.closest(':is('+DEL_MODE.itemSel+')[data-id]');if(!card)return;
   e.stopPropagation();card.classList.toggle('pick');
 },true);
 
