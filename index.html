@@ -529,10 +529,11 @@ table.tbl.roster th.sortable{padding:9px 4px}
   *{scrollbar-width:none}
   *::-webkit-scrollbar{display:none}
   /* 手机端：请假时间范围两个 datetime-local 上下排，避免结束时间被截断 */
-  .beh-time-row{flex-direction:column;align-items:stretch;gap:8px}
+  .beh-time-row{flex-direction:column;align-items:stretch;gap:8px;width:100%;padding:0}
   .beh-time-row .muted{align-self:flex-start}
-  .beh-time-row input{width:100%;box-sizing:border-box}
-  /* 手机端弹窗输入框统一高度与内边距 */
+  .beh-time-row input{width:100%;box-sizing:border-box;min-width:0}
+  /* 手机端弹窗更紧凑：内部边距 16px，输入框保持左右 16px 内边距 */
+  .modal{padding:16px}
   .modal .fld{height:36px;padding:16px}
   .modal textarea.fld{height:auto;min-height:80px;padding:12px 16px}
   .modal .combobox .fld{padding-right:34px}
@@ -3204,7 +3205,7 @@ W.renderBehTime=()=>{
   const leave=inp&&isLeaveType(inp.value);
   if(leave){
     wrap.innerHTML=`<label class="lbl">时间范围</label>
-      <div class="row beh-time-row" style="gap:6px;align-items:center">
+      <div class="row beh-time-row" style="gap:8px;align-items:stretch;width:100%">
         <input class="fld" id="m_btStart" type="datetime-local" value="${nowLocal()}">
         <span class="muted">至</span>
         <input class="fld" id="m_btEnd" type="datetime-local" value="${nowLocal()}">
