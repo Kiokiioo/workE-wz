@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1303</title>
+<title>工作E · v20260902-r1304</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -3668,8 +3668,8 @@ function gradeDistHtml(){
   const subList=(!subId)?ev.subjects.slice():[subId];
   if(!subList.length)return `<div class="card"><div class="section-title" style="display:flex;align-items:center;gap:4px"><span style="color:#5b6675;display:inline-flex">${iconSvg('直方图',22)}</span><span>分数段分布（${esc(ev.name)}）</span></div><div class="sub">该考试暂无科目成绩</div></div>`;
   const head='<th style="min-width:80px;width:80px">班级</th>'+subList.map(s=>`<th>${esc(subjName(s))}</th>`).join('');
-  const rows=clsList.map(C=>`<tr><td style="padding-left:4px;padding-right:4px">${esc(C.name)}</td>`+subList.map(s=>distCellHtml(distForClassSubject(ev,C.id,s))).join('')+'</tr>').join('');
-  return `<div class="card"><div class="section-title" style="display:flex;align-items:center;gap:4px"><span style="color:#5b6675;display:inline-flex">${iconSvg('直方图',22)}</span><span>分数段分布（${esc(ev.name)}）</span></div><div style="overflow:auto"><table style="width:100%;border-collapse:collapse"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div><div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--text-2);margin-top:10px;padding-left:2px"><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:#e0533d"></span>不及格</span><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:#e8a33d"></span>60-69</span><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:#4f6bed"></span>70-79</span><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:#11999e"></span>80-89</span><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:#1faa6b"></span>优秀</span></div></div>`;
+  const rows=clsList.map(C=>`<tr><td style="padding-left:4px;padding-right:4px">${esc(C.name)}</td>`+subList.map(s=>{const ex=ev.exams.find(x=>x.subjectId===s&&(!x.classId||x.classId===ALL_CLASS||x.classId===C.id));const avg=ex?examClassAvgOf(ex,C.id):null;const fs=ex?fullScore(examStage(ex),subjName(s)):100;return distCellHtml(distForClassSubject(ev,C.id,s),avg,fs);}).join('')+'</tr>').join('');
+  return `<div class="card"><div class="section-title" style="display:flex;align-items:center;gap:4px"><span style="color:#5b6675;display:inline-flex">${iconSvg('直方图',22)}</span><span>分数段分布（${esc(ev.name)}）</span></div><div style="overflow:auto"><table style="width:100%;border-collapse:collapse"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div><div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--text-2);margin-top:10px;padding-left:2px"><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:#e0533d"></span>不及格</span><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:#e8a33d"></span>60-69</span><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:#4f6bed"></span>70-79</span><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:#11999e"></span>80-89</span><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:#1faa6b"></span>优秀</span><span style="display:inline-flex;align-items:center;gap:4px;margin-left:6px"><span style="width:2px;height:10px;background:#2C2C2A;display:inline-block"></span>均分游标<span style="width:8px;height:8px;border-radius:50%;background:#E24B4A;display:inline-block;margin-left:3px"></span>未及<span style="width:8px;height:8px;border-radius:50%;background:#888780;display:inline-block;margin-left:3px"></span>常态<span style="width:8px;height:8px;border-radius:50%;background:#1faa6b;display:inline-block;margin-left:3px"></span>优</span></div></div>`;
 }
 function distForClassSubject(ev,cid,sid){
   const ex=ev.exams.find(x=>x.subjectId===sid&&(!x.classId||x.classId===ALL_CLASS||x.classId===cid));if(!ex)return null;
@@ -3677,13 +3677,16 @@ function distForClassSubject(ev,cid,sid){
   const names=(ex.classId&&ex.classId!==ALL_CLASS)?Object.keys(ex.scores):Object.keys(ex.scores).filter(n=>cNameSet.has(n));
   if(!names.length)return null;const sc={};names.forEach(n=>sc[n]=ex.scores[n]);return distOf(sc);
 }
-function distCellHtml(dist){
+function distCellHtml(dist,avg,fs){
   if(!dist)return '<td style="color:var(--text-2);text-align:center;vertical-align:middle">—</td>';
   const total=Object.values(dist).reduce((a,b)=>a+b,0);if(!total)return '<td style="color:var(--text-2);text-align:center;vertical-align:middle">—</td>';
+  fs=fs||100;
   const cols={'<60':'#e0533d','60-69':'#e8a33d','70-79':'#4f6bed','80-89':'#11999e','90-100':'#1faa6b'};
   const segKeys=Object.keys(dist).filter(k=>dist[k]>0);
   const segs=segKeys.map((k,i)=>`<span style="flex:${dist[k]};background:${cols[k]}${i<segKeys.length-1?';border-right:2px solid var(--border)':''}" title="${k}分: ${dist[k]}人"></span>`).join('');
-  return `<td style="vertical-align:middle"><div style="display:flex;height:14px;border-radius:4px;overflow:hidden;min-width:96px">${segs}</div><div style="font-size:11px;color:var(--text-2);margin-top:4px">${dist['<60']}人不及格 · 共${total}人</div></td>`;
+  let cursor='';
+  if(avg!=null){const left=Math.max(0,Math.min(100,avg/fs*100));const col=avg<fs*0.6?'#E24B4A':avg<fs*0.8?'#888780':'#1faa6b';cursor=`<div style="position:absolute;left:${left}%;top:0;bottom:0;width:2px;background:#2C2C2A"></div><div style="position:absolute;left:${left}%;top:50%;transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;background:${col};border:2px solid #fff"></div>`;}
+  return `<td style="vertical-align:middle"><div style="position:relative;display:flex;height:14px;border-radius:4px;overflow:hidden;min-width:96px">${segs}${cursor}</div><div style="font-size:11px;color:var(--text-2);margin-top:4px">${dist['<60']}人不及格 · 共${total}人</div></td>`;
 }
 function gradeEventSubjAvg(ev,f){
   const rows=ev.subjects.map(sid=>{const s=subj(sid);const e=ev.exams.find(x=>x.subjectId===sid);if(!e)return '';const vals=Object.keys(e.scores).filter(n=>!f||f.has(n)).map(n=>e.scores[n]);const avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;return `<tr><td>${esc(s?s.name:'?')}</td><td>${avg?avg.toFixed(1):'—'}</td><td>${vals.length}</td></tr>`;}).join('');
