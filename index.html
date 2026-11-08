@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1305</title>
+<title>工作E · v20260902-r1306</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -6543,8 +6543,10 @@ function autoReviewData(wFrom,wTo){
       return ga-gb||String(ca.name||'').localeCompare(String(cb.name||''),'zh');
     }).map(k=>k+'：'+byCls[k].join('、')).join('\n');
   } else tasks='本周暂无完成的进度。';
+  /* r1306：教学进度统计仅含未归档课程——已归档的不计入 */
+  const activeCourses=(S.courses||[]).filter(c=>!c.archived);
   let progress='';
-  if(S.courses&&S.courses.length)progress=S.courses.map(c=>c.name+'（'+(c.cls||'')+'）：'+courseProgress(c)+'%').join('\n');
+  if(activeCourses.length)progress=activeCourses.map(c=>c.name+'（'+(c.cls||'')+'）：'+courseProgress(c)+'%').join('\n');
   else progress='暂无课程进度记录。';
   const doneTodos=(S.todos||[]).filter(t=>t.status==='done'&&inWk(t.doneDate));
   let todos='本周已完成待办 '+doneTodos.length+' 项。';
