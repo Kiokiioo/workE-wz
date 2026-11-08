@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1304</title>
+<title>工作E · v20260902-r1305</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -6497,7 +6497,7 @@ function weekRange(){const now=new Date();const wd=(now.getDay()+6)%7;const mon=
 function reviewWeekSummary(){const {f,t}=weekRange();
   const taught=[...new Set(S.timetable.map(x=>esc(x.subject)+'·'+classNameOf(x.classId)))].filter(Boolean);
   const donePlan=S.plan.filter(p=>p.done&&p.doneDate>=f&&p.doneDate<=t).map(p=>p.title);
-  const doneTasks=S.todos.filter(x=>x.status==='done').map(x=>x.title);
+  const doneTasks=S.todos.filter(x=>x.status==='done'&&x.doneDate>=f&&x.doneDate<=t).map(x=>x.title);
   const exams=S.exams.filter(e=>e.date>=f&&e.date<=t).map(e=>e.name);
   return `本周上课：${taught.length?taught.join('、'):'（课表为空）'}\n完成教学任务：${donePlan.length?donePlan.join('、'):'（本周无标记完成的教学任务）'}\n完成待办：${doneTasks.length?doneTasks.slice(0,20).join('、'):'（本周无已完成待办）'}\n完成考试：${exams.length?exams.join('、'):'（本周无考试）'}`;}
 function weekMondayISO(){return weekRange().f;}
@@ -6546,16 +6546,18 @@ function autoReviewData(wFrom,wTo){
   let progress='';
   if(S.courses&&S.courses.length)progress=S.courses.map(c=>c.name+'（'+(c.cls||'')+'）：'+courseProgress(c)+'%').join('\n');
   else progress='暂无课程进度记录。';
-  const doneTodos=(S.todos||[]).filter(t=>t.status==='done');
+  const doneTodos=(S.todos||[]).filter(t=>t.status==='done'&&inWk(t.doneDate));
   let todos='本周已完成待办 '+doneTodos.length+' 项。';
   if(doneTodos.length)todos+='\n'+doneTodos.map(t=>t.title).join('、');
-  let notes='备课笔记共 '+(S.notes?S.notes.length:0)+' 篇。';
-  if(S.notes&&S.notes.length)notes+='\n'+S.notes.map(n=>n.title).join('、');
+  const wkNotes=(S.notes||[]).filter(n=>n.created&&inWk(isoOf(new Date(n.created))));
+  let notes='本周新增备课笔记 '+wkNotes.length+' 篇。';
+  if(wkNotes.length)notes+='\n'+wkNotes.map(n=>n.title).join('、');
   let exams='';
-  if(S.exams&&S.exams.length){
-    const bySubj={};S.exams.forEach(e=>{const s=subj(e.subjectId);const k=s?s.name:'未命名科目';(bySubj[k]=bySubj[k]||[]).push(e);});
-    exams=Object.keys(bySubj).map(sn=>{const es=bySubj[sn];const latest=es[es.length-1];const vals=Object.values(latest.scores);const avg=vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):0;return sn+'：'+es.length+' 场，最新《'+latest.name+'》平均 '+avg+' 分';}).join('\n');
-  } else exams='暂无考试记录。';
+  const wkExams=(S.exams||[]).filter(e=>inWk(e.date));
+  if(wkExams.length){
+    const bySubj={};wkExams.forEach(e=>{const s=subj(e.subjectId);const k=s?s.name:'未命名科目';(bySubj[k]=bySubj[k]||[]).push(e);});
+    exams=Object.keys(bySubj).map(sn=>{const es=bySubj[sn];const avgs=es.map(e=>{const v=Object.values(e.scores||{});return v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length):0;});const avg=avgs.length?Math.round(avgs.reduce((a,b)=>a+b,0)/avgs.length):0;return sn+'：'+es.length+' 场，平均 '+avg+' 分';}).join('\n');
+  } else exams='本周暂无考试。';
   return {tasks,progress,todos,notes,exams};
 }
 function maybeAutoReview(){
@@ -6569,8 +6571,14 @@ function maybeAutoReview(){
   const d=autoReviewData(pStart,pEnd);
   if(exist){
     if(exist.autoTasks==null){exist.autoTasks=d.tasks;exist.autoProgress=d.progress;exist.autoTodos=d.todos;exist.autoNotes=d.notes;exist.autoExams=d.exams;exist.auto=true;save();}
-    else if(exist.auto){ /* r1215：本周进度字段随最新数据重算（旧卡存的是旧格式/生成时刻快照，永不更新会让新规则永远看不到）；done 等手动栏不动 */
-      if(exist.autoTasks!==d.tasks){exist.autoTasks=d.tasks;save();}
+    else if(exist.auto){ /* r1305：本周口径自动字段（进度/待办/笔记/考试）随最新数据重算，确保本周过滤生效；done 等手动栏不动 */
+      let ch=false;
+      if(exist.autoTasks!==d.tasks){exist.autoTasks=d.tasks;ch=true;}
+      if(exist.autoTodos!==d.todos){exist.autoTodos=d.todos;ch=true;}
+      if(exist.autoNotes!==d.notes){exist.autoNotes=d.notes;ch=true;}
+      if(exist.autoExams!==d.exams){exist.autoExams=d.exams;ch=true;}
+      if(exist.autoProgress!==d.progress){exist.autoProgress=d.progress;ch=true;}
+      if(ch)save();
     }
     S._autoReviewWeek=pStart;save();return;
   }
