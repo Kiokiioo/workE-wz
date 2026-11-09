@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1306</title>
+<title>工作E · v20260902-r1308</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -3583,8 +3583,8 @@ function scrollSubjectRight(){const sc=document.getElementById('subjScroll');if(
 function renderGradesBody(){const b=document.getElementById('grade_body');if(b)b.innerHTML=gradeBodyHtml();const r=document.getElementById('grade_row2');if(r)r.innerHTML=gradeRow2Html(gradeEventById(S._gradeEvent));
   // 成绩趋势：默认横向滚动到最右（最新考试）；切换筛选/视图后保持
   if((S._gradeView||'trend')==='trend')scrollTrendRight();
-  // 成绩分析-科目：默认滚条滚到最近考试（表格最右）
-  if((S._gradeView||'trend')==='subject')scrollSubjectRight();
+  /* r1308：科目视图横向滚动交给进页(viewReload:1848)与切筛选(gradeRefresh:4465)负责；
+     排序走 renderGradesBodyKeepScroll 保持原位置，此处不再 scrollSubjectRight，否则会冲掉保持的位置 */
   /* r77：attach 顶部横滚条（成绩 / 科目 两个表格才有 scroll container） */
   if((S._gradeView||'trend')==='score'){attachTopHScroll('scoreScroll','scoreHScroll');}
   if((S._gradeView||'trend')==='subject'){attachTopHScroll('subjScroll','subjHScroll');}
@@ -3748,7 +3748,10 @@ function renderGradesBodyKeepScroll(){
   const sl=prev?prev.scrollLeft:0;
   renderGradesBody();
   const sc=document.getElementById('scoreScroll')||document.getElementById('subjScroll');
-  if(sc&&sl)sc.scrollLeft=sl;
+  if(!sc)return;
+  sc.scrollLeft=sl;
+  // r1308：下帧再复写一次，确保任何未来可能加回的延迟滚右都不会冲掉保持的位置
+  requestAnimationFrame(()=>{if(sc)sc.scrollLeft=sl;});
 }
 let _lpTimer=null;
 function lpStart(e,sid){_lpTimer=setTimeout(()=>{S._gradeSub=sid;S._gradeView='subject';S._gradeFiltered=true;save();viewReload('grades');toast('进入科目：'+(subj(sid)?subj(sid).name:sid));},500);}
