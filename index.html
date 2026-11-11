@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1308</title>
+<title>工作E · v20260902-r1310</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -674,7 +674,7 @@ input[type="date"]{appearance:none;-webkit-appearance:none;border-radius:99px}
 /* 备课笔记-全屏编辑页（r116：替代原弹窗，转入独立全屏页面） */
 .note-edit-page{position:relative;display:flex;flex-direction:column;height:100vh;height:100dvh;background:var(--surface)}
 /* r116f：进度记录全屏编辑页复用笔记页骨架（bar 沿用 .note-edit-bar/.ne-back/.ne-done） */
-.prog-edit-page{position:relative;display:flex;flex-direction:column;height:100vh;height:100dvh;background:var(--surface)}
+.prog-edit-page,.cp-view-page{position:relative;display:flex;flex-direction:column;height:100vh;height:100dvh;background:var(--surface)}
 .prog-edit-body{padding:16px;overflow:auto;flex:1;-webkit-overflow-scrolling:touch}
 .note-edit-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;flex:none}
 .ne-back{display:inline-flex;align-items:center;gap:2px;border:0;background:transparent;color:var(--primary);font-size:15px;font-weight:600;cursor:pointer;padding:6px 2px;font-family:inherit}
@@ -1810,7 +1810,7 @@ function setActive(r){
 }
 
 /* ============ router ============ */
-const VIEWS={home:viewHome,todos:viewTodos,courses:viewCourses,notes:viewNotes,note:viewNote,prog:viewProgEdit,
+const VIEWS={home:viewHome,todos:viewTodos,courses:viewCourses,notes:viewNotes,note:viewNote,prog:viewProgEdit,cpview:viewCourseProgress,
   students:viewStudents,reviews:viewReviews,grades:viewGrades,settings:viewSettings,teach:viewTeach};
 let _prevRoute='';
 let _editLeaveAt=0; /* r1187：编辑页经应用内路径（返回键/右滑/取消）离开时置位；router 据此跳过绕行拦截，防重复保存 */
@@ -1821,6 +1821,7 @@ function router(){
   if(Date.now()-_editLeaveAt>350){
     if(document.querySelector('.note-edit-page')&&!/^#note(\/|$)/.test(location.hash||''))saveNoteEdit();
     else if(document.querySelector('.prog-edit-page')&&!/^#prog(\/|$)/.test(location.hash||''))progBack();
+    else if(document.querySelector('.cp-view-page')&&!/^#cpview(\/|$)/.test(location.hash||''))cpViewGoBack();
   }
   if(DEL_MODE){const b=document.getElementById(DEL_MODE.btnId);if(b)b.classList.remove('active');DEL_MODE=null;}
   let r=location.hash.slice(1)||'home';let _np='';const _sl=r.indexOf('/');if(_sl>=0){_np=r.slice(_sl+1);r=r.slice(0,_sl);}
@@ -1838,7 +1839,7 @@ function router(){
   if(r!=='grades')cleanupPendingSubs();
   document.getElementById('app').innerHTML=VIEWS[r](_np);setActive(r);closeDrawer();reopenCols();if(!samePage)window.scrollTo(0,0);
   /* r116：进入笔记/进度编辑页时隐藏底部 nav，匹配 iOS 备忘录全屏感 */
-  const bn=document.getElementById('bottomNav');if(bn)bn.style.display=(r==='note'||r==='prog')?'none':'';
+  const bn=document.getElementById('bottomNav');if(bn)bn.style.display=(r==='note'||r==='prog'||r==='cpview')?'none':'';
   if(r==='note'){const _fe=document.getElementById('note_content');if(_fe)_fe.focus();}
   /* r116f：进度编辑页渲染后——绑勾选实时进度条 + 记录初始签名（返回时比对判定「有无操作」） */
   if(r==='prog'){const _pf=document.querySelector('form[data-form="progress"]');
@@ -2376,8 +2377,8 @@ function openClassProgress(clsName){const cl=S.classes.find(c=>c.name===clsName)
     <div class="section-title" style="margin-top:16px;font-size:13px;font-weight:600;color:var(--text-2)">${iconSvg('将进行',18)}<span>将进行</span></div>${upHtml}
     <button class="btn primary block" style="margin-top:16px" onclick="planClassJump('${esc(clsName)}')">去「教学设置」管理该班任务安排</button>`);
 }
-function openCourseProgress(id){
-  const c=course(id); if(!c) return;
+function courseProgressBodyHtml(id){
+  const c=course(id); if(!c) return '';
   S._cpId=id;
   const items=coursePlan(c);
   const done=items.filter(p=>p.done).slice().sort((a,b)=>(b.doneDate||'').localeCompare(a.doneDate||'')), up=items.filter(p=>!p.done);
@@ -2413,12 +2414,42 @@ function openCourseProgress(id){
       <div class="ic" style="background:var(--border);color:var(--text-2);border-radius:50%">•</div>
       <div class="rc-body" style="flex:1;min-width:0"><div class="rc-title">${esc(p.title)}</div></div>
     </div>`).join(''):'<div class="sub">教学任务已全部完成 🎉</div>';
-  openModal('教学进度 · '+esc(c.name)+' '+esc(c.cls||''),`<div style="display:block">
+  return `<div style="display:block">
     <div class="section-title" style="display:flex;width:100%;font-size:13px;font-weight:600;color:var(--ok)">${iconSvg('已完成',18)}<span>已完成</span></div>${doneHtml}
     ${tagItems.length?'<div class="section-title" style="display:flex;width:100%;margin-top:16px;font-size:13px;font-weight:600;color:var(--primary)">'+iconSvg('新增进度',18)+'<span>新增进度安排</span></div>'+newHtml:''}
     <div class="section-title" style="display:flex;width:100%;margin-top:16px;font-size:13px;font-weight:600;color:var(--text-2)">${iconSvg('将进行',18)}<span>将进行</span></div>${upHtml}
-    <button class="btn primary block" style="margin-top:16px;border-radius:99px" onclick="planClassJump('${esc(c.cls||'')}')">管理教学进度</button></div>`);
+    <button class="btn primary block" style="margin-top:16px;border-radius:99px" onclick="planClassJump('${esc(c.cls||'')}')">管理教学进度</button></div>`;
 }
+/* r1309 兼容包装：主入口（课程卡头像/标题）已改全屏页，此弹层函数保留给
+   openProgList 等旧入口与历史回归调用，内容仍与全屏页同源 courseProgressBodyHtml。 */
+function openCourseProgress(id){
+  const c=course(id); if(!c) return;
+  S._cpId=id;
+  openModal('教学进度 · '+esc(c.name)+' '+esc(c.cls||''),courseProgressBodyHtml(id));
+}
+/* r1309：教学进度详情由弹层改为全屏页（点击课程卡头像/标题进入）。
+   顶栏与「记录进度」页 viewProgEdit 完全一致：左「返回」右「取消」；右滑手势同款返回语义（cpViewGoBack）。
+   内容仍由 courseProgressBodyHtml 生成；页内 cp-* 编辑/删除后原地刷新 #cpBody，不再重开弹层。
+   注：外层只用 .cp-view-page（不挂 .prog-edit-page），避免 router 的 r1187 编辑页拦截误触发 progBack。 */
+let _cpFrom='courses';
+function goCourseProgress(id){const f=(location.hash||'').replace(/^#/,'').split('/')[0]||'home';_cpFrom=(f==='cpview'?'courses':f);_editLeaveAt=0;location.hash='cpview/'+id;}
+function cpViewGoBack(){_editLeaveAt=Date.now();location.hash=_cpFrom;}
+function viewCourseProgress(cid){
+  const c=course(cid); if(!c) return viewCourses();
+  S._cpId=cid;
+  return `<div class="cp-view-page">
+    <div class="note-edit-bar">
+      <button type="button" class="ne-back" data-action="cp-view-back" aria-label="返回">${iconSvg('arrow-left',18)}<span>返回</span></button>
+      <div class="ne-right"><button type="button" class="ne-done" data-action="cp-view-cancel">取消</button></div>
+    </div>
+    <div class="prog-edit-body">
+      <div style="font-size:15px;font-weight:600;margin-bottom:2px">${esc(c.name)}</div>
+      <div class="sub" style="margin-bottom:12px">${esc(c.cls||'')}</div>
+      <div id="cpBody">${courseProgressBodyHtml(cid)}</div>
+    </div>
+  </div>`;
+}
+function refreshCourseProgressView(){const b=document.getElementById('cpBody');if(b&&S._cpId){b.innerHTML=courseProgressBodyHtml(S._cpId);return;}const mb=document.getElementById('modalBack');if(S._cpId&&mb&&mb.classList.contains('show'))openCourseProgress(S._cpId);}
 function openProgList(id){const c=course(id);if(!c)return;S._progCourse=id;const log=(c.progressLog||[]).slice().reverse();
   const html=log.length?log.map(r=>`<div class="rec"><div class="ic" style="background:var(--primary)">📌</div>
     <div class="rc-body"><div class="rc-title">${esc(r.date)}${r.time?(' '+esc(r.time)):''} · ${r.progress}%</div>
@@ -2427,7 +2458,7 @@ function openProgList(id){const c=course(id);if(!c)return;S._progCourse=id;const
   openModal('教学进度记录 · '+esc(c.name),`<div class="sub" style="margin-bottom:10px">上方为已完成的教学进度（时间-进度 / 具体完成的教学进度安排），点击「修改」编辑对应记录。</div>${html}
     <button class="btn primary block" style="margin-top:12px" onclick="modalProgress('${id}')">+ 新增进度</button>`);}
 /* r1183：改名「管理教学进度」；跳转设置的教学进度安排同时关闭当前弹窗（modalBack 在 #app 外，hash 路由不会自动关）。 */
-function planClassJump(name){closeModal();const c=S.classes.find(x=>x.name===name);if(c)S._planClass=c.id;location.hash='settings';}
+function planClassJump(name){closeModal();_editLeaveAt=Date.now();/* r1309：应用内主动离开全屏详情页，跳过 router 的右滑兜底拦截 */const c=S.classes.find(x=>x.name===name);if(c)S._planClass=c.id;location.hash='settings';}
 
 /* ============ 日历 / 当日详情（基于 S.todos） ============ */
 let calM=new Date().getMonth(),calY=new Date().getFullYear();
@@ -2563,14 +2594,14 @@ function noteEditDone(){if(document.activeElement&&document.activeElement.blur)d
 function noteEditToggleMenu(){const m=document.getElementById('note_edit_menu');if(m)m.style.display=m.style.display==='none'?'block':'none';}
 function noteEditDelete(id){S.notes=S.notes.filter(y=>y.id!==id);save();location.hash=_noteFrom;toast('已删除');}
 /* r116e：笔记/进度编辑页右滑 = 「返回」键同款语义。
-   仅在 .note-edit-page / .prog-edit-page 内起判；dx>80 / |dy|<60。
+   仅在 .note-edit-page / .prog-edit-page / .cp-view-page 内起判；dx>80 / |dy|<60。
    r1182 失灵修复：①去掉 700ms 时限（慢速滑动被误杀，是「经常失灵」主因）；②选中文本守卫改为
    「本次触摸期间选区发生变化才拦截」——此前只要页面残留任何选区（长按选词后未取消）右滑就永久失效，
    即「时常不保存」；③补 touchcancel 复位。
    笔记页→saveNoteEdit（保存回来源，空白丢弃）；进度页→progBack（脏=保存返回，净=取消）。 */
 (function(){
   let _sx=0,_sy=0,_sel0='',_on=false;
-  const SEL='.note-edit-page,.prog-edit-page';
+  const SEL='.note-edit-page,.prog-edit-page,.cp-view-page';
   const selStr=()=>(window.getSelection&&window.getSelection())?String(window.getSelection()):'';
   document.addEventListener('touchstart',e=>{
     if(!e.target.closest||!e.target.closest(SEL)){_on=false;return;}
@@ -2584,7 +2615,7 @@ function noteEditDelete(id){S.notes=S.notes.filter(y=>y.id!==id);save();location
     if(sel&&sel!==_sel0)return; /* 划选文字不算滑动（仅本次触摸新建/改动的选区才拦截，残留选区不拦截） */
     const dx=e.changedTouches[0].clientX-_sx,dy=e.changedTouches[0].clientY-_sy;
     if(dx>80&&Math.abs(dy)<60){
-      if(document.querySelector('.prog-edit-page'))progBack();else saveNoteEdit();
+      if(document.querySelector('.cp-view-page'))cpViewGoBack();else if(document.querySelector('.prog-edit-page'))progBack();else saveNoteEdit();
     }
   },{passive:true});
 })();
@@ -6903,7 +6934,10 @@ modal.addEventListener('submit',e=>{
     if(f.dataset.id){const p=S.plan.find(x=>x.id===f.dataset.id);if(p){p.classId=rawCls;p.sem=sem;p.subject=subj;p.title=title;
       /* r1239：已完成条目允许编辑 时间/备注：时间回写 doneDate；备注落到 p.note（新字段，老数据无则视为空字符串） */
       if(p.done){const dateV=v('pdate').trim();if(dateV)p.doneDate=dateV;p.note=v('pnote').trim();}
-      touchPlan(p);save();closeModal();viewReload('settings');toast('已保存');return;}}
+      touchPlan(p);save();closeModal();
+      /* r1310：该弹层也可能从「教学进度」全屏页(cpview)打开，保存后原地刷新该页，不跳到设置页 */
+      if(/^#cpview(\/|$)/.test(location.hash||''))refreshCourseProgressView();else viewReload('settings');
+      toast('已保存');return;}}
     const clsIds=rawCls===ALL_CLASS?S.classes.filter(c=>!c.archived).map(c=>c.id):[rawCls];
     clsIds.forEach(cid=>{const order=S.plan.filter(p=>p.classId===cid).length+1;S.plan.push({id:uid(),classId:cid,title,order,done:false,temp:false,subject:subj,sem,_at:Date.now()});});
     S._planClass=rawCls;S._planSem=sem;S._planSubject=subj;save();closeModal();viewReload('settings');toast('已添加');}
@@ -6971,10 +7005,15 @@ document.body.addEventListener('click',e=>{
   else if(a==='prog-cancel'){progGoBack();}
   else if(a==='mod-prog'){openProgList(id);}
   else if(a==='edit-prog-log'){modalProgress(S._progCourse,id);}
-  else if(a==='course-progress'){openCourseProgress(id);}
-  else if(a==='cp-edit'){const pid=t.dataset.pid;const p=S.plan.find(x=>x.id===pid);if(!p)return;const row=t.closest('.rec');if(!row)return;const txt=row.querySelector('.rc-title-text');const inp=row.querySelector('.cp-ed');if(inp.style.display==='none'){inp.style.display='block';if(txt)txt.style.display='none';inp.value=p.title||'';inp.focus();t.innerHTML=iconSvg('保存',12);/* r1238：不保留「保存」文字，只留图标②；title 仍为「保存」作无障碍提示 */t.title='保存';t.dataset.action='cp-save';}else{const v2=inp.value.trim();if(v2&&v2!==p.title){p.title=v2;touchPlan(p);}save();openCourseProgress(S._cpId);toast('已修改');}}
-  else if(a==='cp-save'){const pid=t.dataset.pid;const p=S.plan.find(x=>x.id===pid);if(!p)return;const inp=document.querySelector('input.cp-ed[data-pid="'+pid+'"]');if(inp){const v2=inp.value.trim();if(v2&&v2!==p.title){p.title=v2;touchPlan(p);}}save();openCourseProgress(S._cpId);toast('已修改');}
-  else if(a==='cp-undone'){/* r95：未完成键移除（删除键接管：回到未记录状态并取消本会话新增）；保留以防兼容旧链接 */const pid=t.dataset.pid;const p=S.plan.find(x=>x.id===pid);if(p){p.done=false;p.doneDate='';touchPlan(p);save();openCourseProgress(S._cpId);toast('已标回未完成');}}
+  else if(a==='course-progress'){goCourseProgress(id);}
+  else if(a==='cp-view-back'||a==='cp-view-cancel'){cpViewGoBack();}
+  else if(a==='cp-edit'){const pid=t.dataset.pid;const p=S.plan.find(x=>x.id===pid);if(!p)return;
+    /* r1310：全屏「教学进度」详情页点编辑 → 打开与「教学设置-教学进度安排-编辑」完全一致的「编辑教学进度」弹层；
+       旧详情弹层兼容入口（无 #cpBody）仍保留原行内编辑，不打断历史行为。 */
+    if(document.getElementById('cpBody')){modalPlanAdd(pid);return;}
+    const row=t.closest('.rec');if(!row)return;const txt=row.querySelector('.rc-title-text');const inp=row.querySelector('.cp-ed');if(inp.style.display==='none'){inp.style.display='block';if(txt)txt.style.display='none';inp.value=p.title||'';inp.focus();t.innerHTML=iconSvg('保存',12);/* r1238：不保留「保存」文字，只留图标②；title 仍为「保存」作无障碍提示 */t.title='保存';t.dataset.action='cp-save';}else{const v2=inp.value.trim();if(v2&&v2!==p.title){p.title=v2;touchPlan(p);}save();refreshCourseProgressView();toast('已修改');}}
+  else if(a==='cp-save'){const pid=t.dataset.pid;const p=S.plan.find(x=>x.id===pid);if(!p)return;const inp=document.querySelector('input.cp-ed[data-pid="'+pid+'"]');if(inp){const v2=inp.value.trim();if(v2&&v2!==p.title){p.title=v2;touchPlan(p);}}save();refreshCourseProgressView();toast('已修改');}
+  else if(a==='cp-undone'){/* r95：未完成键移除（删除键接管：回到未记录状态并取消本会话新增）；保留以防兼容旧链接 */const pid=t.dataset.pid;const p=S.plan.find(x=>x.id===pid);if(p){p.done=false;p.doneDate='';touchPlan(p);save();refreshCourseProgressView();toast('已标回未完成');}}
   else if(a==='cp-del'){const pid=t.dataset.pid;const p=S.plan.find(x=>x.id===pid);if(p){_pendingCpDelPid=pid;confirmModal('删除该教学任务','「'+esc(p.title)+'」将回到未记录状态，并取消本次新增的全部安排。此操作不可恢复。','do-cp-del','danger');}}
   else if(a==='del-course'){S.courses=S.courses.filter(y=>y.id!==id);save();reloadCourses();}
   else if(a==='arc-course'){archiveCourse(id);}
@@ -7105,7 +7144,7 @@ document.body.addEventListener('click',e=>{
   /* r107：删除不再全表重编 order（展示按 order 相对排序，留空洞无碍）——旧写法 forEach(p,k)=>p.order=k+1
      会按数组位置改写所有班条目的 order，把其他班 ↑/↓/拖拽造成的排序改动一并打回数组旧序。 */
   else if(a==='do-plan-del'){S.plan=S.plan.filter(x=>x.id!==_pendingPlanDel);_pendingPlanDel='';save();closeModal();planRender();toast('已删除');}
-  else if(a==='do-cp-del'){const pid=_pendingCpDelPid;_pendingCpDelPid='';closeModal();const p0=S.plan.find(x=>x.id===pid);if(!p0){openCourseProgress(S._cpId);return;}const when=p0.doneDate;const cid=p0.classId;const subj=(p0.subject||'');
+  else if(a==='do-cp-del'){const pid=_pendingCpDelPid;_pendingCpDelPid='';closeModal();const p0=S.plan.find(x=>x.id===pid);if(!p0){refreshCourseProgressView();return;}const when=p0.doneDate;const cid=p0.classId;const subj=(p0.subject||'');
     let maxOrd=p0.order;let nRev=0;
     if(when){
       // r95：把同次会话(doneDate 相同、班级/科目相同)的所有已完成条目一并回到「未记录」状态
@@ -7129,7 +7168,7 @@ document.body.addEventListener('click',e=>{
     const list=S.plan.filter(x=>(x.classId===cid||x.classId===ALL_CLASS)&&(!subj||!x.subject||x.subject===subj)).sort((a,b)=>a.order-b.order);
     let i=1;list.forEach(x=>x.order=i++);
     save();
-    openCourseProgress(S._cpId);
+    refreshCourseProgressView();
     toast('已删除该教学任务并取消本次新增');}
   else if(a==='exp-plan'){exportPlan();}
   else if(a==='edit-sem'){modalSemester(id);}
