@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1310</title>
+<title>工作E · v20260902-r1312</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -2830,6 +2830,9 @@ function stuScopedPoints(id,rg){
   (S.examPoints||[]).forEach(r=>{if(r.studentId===id&&inR(r.date))t+=r.delta||0;});
   return t;
 }
+/* r1312：学生列表可见范围 = 归属未归档班级的学生（与成绩分析「全部班级」口径一致，复用 activeClassIds）。
+   班级归档只是给班级打 c.archived=true、学生数据保留可随时恢复，故按所属班级过滤，绝不动 S.students。 */
+function stuVisibleList(){const act=activeClassIds();return S.students.filter(s=>act.has(s.classId));}
 /* r1234：积分范围重算 + 班级内排名（buildStuListInner/stuSearch 共用）；x._pts 供 stuCardHtml 显示 */
 function stuApplyRanking(){
   const rg=stuTimeRange();
@@ -2855,8 +2858,10 @@ function buildStuListInner(){
   const nonArch=S.classes.filter(c=>!c.archived);
   const clsId=(S._stuCls&&(S._stuCls==='all'||nonArch.some(c=>c.id===S._stuCls)))?S._stuCls:'all';
   const q=(S._stuSearch||'').trim().toLowerCase();
-  let list = q ? S.students.filter(s=>s.name.toLowerCase().includes(q))
-               : S.students.filter(s=>clsId==='all'||s.classId===clsId);
+  /* r1312：已归档班级的学生不进入学生列表（含搜索路径）；删除全部口径见 currentStuIds */
+  const scope=stuVisibleList();
+  let list = q ? scope.filter(s=>s.name.toLowerCase().includes(q))
+               : scope.filter(s=>clsId==='all'||s.classId===clsId);
   stuApplyRanking(); /* r1234：积分按时间范围重算 + 班级内排名（默认当前学期） */
   list=list.sort((a,b)=>{const ka=stuIndexKey(a.name),kb=stuIndexKey(b.name);return ka<kb?-1:ka>kb?1:(a.name<b.name?-1:a.name>b.name?1:0);});
   const groups={};
@@ -2871,8 +2876,10 @@ function stuSearch(v){S._stuSearch=v;save();
   const q=v.trim().toLowerCase();
   // 搜索框跨所有班级（不受学生-班级选择限制）；
   // 班级选择仅在无搜索词时用于条件展示学生列表
-  let list = q ? S.students.filter(s=>s.name.toLowerCase().includes(q))
-               : S.students.filter(s=>clsId==='all'||s.classId===clsId);
+  /* r1312：搜索同样排除已归档班级的学生（原注释「跨所有班级」指不受班级筛选限制，非含归档班） */
+  const scope=stuVisibleList();
+  let list = q ? scope.filter(s=>s.name.toLowerCase().includes(q))
+               : scope.filter(s=>clsId==='all'||s.classId===clsId);
   // 班级内积分排名（r1234：按时间范围重算，共用 stuApplyRanking）
   stuApplyRanking();
   list=list.sort((a,b)=>{const ka=stuIndexKey(a.name),kb=stuIndexKey(b.name);return ka<kb?-1:ka>kb?1:(a.name<b.name?-1:a.name>b.name?1:0);});
@@ -6675,7 +6682,10 @@ function modalStu(id){
   const cVal=s.concern?'1':'0';
   const nameField=field('姓名','<input name="name" required value="'+esc(s.name||'')+'">');
   const clsField=field('班级',clsSel);
-  const ptsField=field('当前积分','<input type="number" name="points" value="'+(s.points||0)+'">');
+  /* r1311：与「学生卡片 / 学生详情」的「当前积分」同口径——按当前所选时间范围重算（r1241 铁律），
+     不再显示累计字段 s.points（旧写法在时间筛选不是「全部时间」时与卡片必不一致）。 */
+  const ptsShown=stuScopedPoints(s.id,stuTimeRange());
+  const ptsField=field('当前积分','<input type="number" name="points" value="'+ptsShown+'">');
   const capField=`<div class="field" style="margin-bottom:0"><label>需关注</label><div style="display:flex;align-items:center;gap:8px;min-height:38px"><button type="button" class="stu-cap ${cOn}" onclick="stuCapToggleModal(this)" aria-label="需关注" style="margin:0"></button><span class="stu-cap-txt" style="font-size:12px;color:var(--text-2)">${s.concern?'已标记':'未标记'}</span><input type="hidden" name="concern" value="${cVal}"></div></div>`;
   openModal(id?'编辑学生':'添加学生',`<form data-form="stu" data-id="${id||''}">
   ${warn}
@@ -6846,8 +6856,11 @@ modal.addEventListener('submit',e=>{
     save();closeModal();reloadCur('students');toast('已保存'+(added?('，新增 '+added+' 名学生'):''));}
   else if(form==='bulk-stu'){const cid=f.dataset.id;if(!cls(cid)){toast('班级不存在');return;}
     const added=addStuNames(cid,v('students'));save();closeModal();reloadCur('settings');toast(added?('已新增 '+added+' 名学生'):'没有可新增的姓名');}
-  else if(form==='stu'){const id=f.dataset.id;const cid=v('classId');const o={name:v('name'),classId:cid,points:+v('points')||0,concern:v('concern')==='1'};
-    if(id){Object.assign(stu(id),o);stu(id)._at=Date.now();}else S.students.push({id:uid(),...o,_at:Date.now(),todoItems:[],contactItems:[]});save();closeModal();viewReload('students');toast('已保存');}
+  else if(form==='stu'){const id=f.dataset.id;const cid=v('classId');const o={name:v('name'),classId:cid,concern:v('concern')==='1'};
+    /* r1311：弹层显示的是「范围内积分」，只有用户手动改过该输入框才把新值写回累计字段 s.points；
+       未改动则保留原值，避免把范围值误写进累计积分造成数据被覆盖。 */
+    const pe=f.elements['points'];const pv=pe?pe.value:'';if(pe&&String(pv)!==String(pe.defaultValue))o.points=+pv||0;
+    if(id){Object.assign(stu(id),o);stu(id)._at=Date.now();}else S.students.push({id:uid(),...o,points:o.points!==undefined?o.points:0,_at:Date.now(),todoItems:[],contactItems:[]});save();closeModal();viewReload('students');toast('已保存');}
   else if(form==='qa_stu'){if(!submitQaStu())return;}
   else if(form==='rec'){
     const clsName=v('cls').trim();
@@ -7216,6 +7229,8 @@ function modalFill(id,kind){if(!id)return;const map={todos:S.todos,course:S.cour
   const o=(map[kind]||[]).find(x=>x.id===id);if(!o)return;
   /* r1260：stu 弹窗班级存于 hidden input name=classId（id 值，非 name），concern 同步切胶囊；其余字段原样回填 */
   setTimeout(()=>{for(const k in o){
+    /* r1311：编辑学生弹层「当前积分」是按范围重算的展示值，跳过 points 以免被累计字段 s.points 覆盖 */
+    if(k==='points'&&kind==='stu')continue;
     if(k==='classId'&&kind==='stu'){const cid=o.classId||'';const c=cls(cid);const dirty=c&&looksLikeUid(c.name);const hid=modal.querySelector('[name=classId]');if(hid)hid.value=(c&&!dirty)?cid:'';const t=modal.querySelector('#stu_edit_cls_wrap .bk-trigger-text');if(t)t.textContent=(c&&!dirty)?c.name:'选择班级';continue;}
     const el=modal.querySelector('[name='+k+']');if(el)el.value=o[k];
     if(k==='concern'){const hid=modal.querySelector('[name=concern]');if(hid)hid.value=o.concern?'1':'0';const cap=modal.querySelector('.stu-cap');if(cap)cap.classList.toggle('on',!!o.concern);const tx=modal.querySelector('.stu-cap-txt');if(tx)tx.textContent=o.concern?'已标记':'未标记';}
@@ -7538,7 +7553,8 @@ document.addEventListener('click',e=>{
 function currentNoteIds(){const f=S._noteFilter||'';return (f?S.notes.filter(n=>n.courseId===f):S.notes.slice()).map(n=>n.id);}
 function currentReviewIds(){return S.reviews.map(rv=>rv.id);}
 function currentClassIds(){return S.classes.filter(c=>!c.archived).map(c=>c.id);}
-function currentStuIds(){const nonArch=S.classes.filter(c=>!c.archived);const clsId=(S._stuCls&&(S._stuCls==='all'||nonArch.some(c=>c.id===S._stuCls)))?S._stuCls:'all';const q=(S._stuSearch||'').trim().toLowerCase();let list=q?S.students.filter(s=>s.name.toLowerCase().includes(q)):S.students.filter(s=>clsId==='all'||s.classId===clsId);return list.map(s=>s.id);}
+/* r1312：删除全部=当前可见学生，必须与列表同口径（不含已归档班级学生，避免误删被隐藏的数据） */
+function currentStuIds(){const nonArch=S.classes.filter(c=>!c.archived);const clsId=(S._stuCls&&(S._stuCls==='all'||nonArch.some(c=>c.id===S._stuCls)))?S._stuCls:'all';const q=(S._stuSearch||'').trim().toLowerCase();const scope=stuVisibleList();let list=q?scope.filter(s=>s.name.toLowerCase().includes(q)):scope.filter(s=>clsId==='all'||s.classId===clsId);return list.map(s=>s.id);}
 function currentTtIds(){return ttList().map(t=>t.id);}
 function currentPlanIds(){return planVisibleItems().map(p=>p.id);}
 
