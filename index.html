@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1312</title>
+<title>工作E · v20260902-r1313</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -825,8 +825,11 @@ input.plan-chk:checked::after{content:'';position:absolute;left:0;top:0;right:0;
   .combo-opt:hover{background:var(--surface-2)}
 
 .modal-back{position:fixed;inset:0;background:rgba(15,20,30,.45);z-index:60;display:none;
-  justify-content:center;padding:24px 16px;overflow-y:auto}
+  justify-content:center;padding:24px 16px;overflow-y:auto;overscroll-behavior:contain}
 .modal-back.show{display:flex}
+/* r1313：弹层打开时锁住背景页面滚动。:has 项目内已广泛使用（.modal-body:has(...)），iOS 15.4+/Chrome 105+ 支持；
+   纯 CSS 由 .show 驱动，覆盖 openModal / openStudentDetail / closeModal 全部三条显隐路径，零遗漏、关闭即恢复。 */
+html:has(.modal-back.show),html:has(.modal-back.show) body{overflow:hidden}
 .modal{margin:auto;background:var(--surface);border-radius:var(--radius);width:100%;max-width:540px;box-shadow:var(--shadow);
   border:1px solid var(--border);overflow:hidden}
 .modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px;border-bottom:none}
@@ -6330,6 +6333,37 @@ const modalBack=document.getElementById('modalBack'),modal=document.getElementBy
 function openModal(title,html,w){modal.style.maxWidth=w?w+'px':'';modal.innerHTML=`<div class="modal-head"><h3>${esc(title)}</h3></div><div class="modal-body">${html}</div>`;modalBack.classList.add('show');}
 function closeModal(){modalBack.classList.remove('show');modal.innerHTML='';const ab=document.getElementById('rec_add_btn');if(ab)ab.classList.remove('spin');}
 modalBack.addEventListener('click',e=>{if(e.target===modalBack)closeModal();});
+/* r1313：弹层滚动隔离 —— 手指在弹层上滑动只滚动弹层（或弹层内可滚的下拉/列表），绝不带动背后的页面。
+   ① CSS overscroll-behavior:contain 挡现代浏览器的滚动链；② html:has(.modal-back.show) 锁背景滚动；
+   ③ iOS 旧版 Safari 不支持上述两者时，用 touchmove 边界守卫兜底：只在「最近可滚容器已到边界」时
+   preventDefault，未到边界完全不干预，保证弹层内长列表 / bk-range 下拉照常滚动。 */
+(function(){
+  let sy=0,sx=0;
+  const canScroll=(el,dy)=>{
+    const atTop=el.scrollTop<=0,atBottom=el.scrollTop+el.clientHeight>=el.scrollHeight-1;
+    return dy>0?!atBottom:(dy<0?!atTop:false);
+  };
+  const scrollerOf=(node,mb)=>{
+    let el=node;
+    while(el&&el!==mb){
+      if(el.nodeType===1){
+        const oy=getComputedStyle(el).overflowY;
+        if((oy==='auto'||oy==='scroll')&&el.scrollHeight>el.clientHeight+1)return el;
+      }
+      el=el.parentNode;
+    }
+    return mb;
+  };
+  modalBack.addEventListener('touchstart',e=>{const t=e.touches[0];sy=t?t.clientY:0;sx=t?t.clientX:0;},{passive:true});
+  modalBack.addEventListener('touchmove',e=>{
+    if(!modalBack.classList.contains('show'))return;
+    const t=e.touches[0];if(!t)return;
+    const dy=sy-t.clientY,dx=sx-t.clientX;
+    sy=t.clientY;sx=t.clientX;
+    if(Math.abs(dy)<Math.abs(dx))return;               /* 横向手势不干预 */
+    if(!canScroll(scrollerOf(e.target,modalBack),dy)&&e.cancelable)e.preventDefault();
+  },{passive:false});
+})();
 function field(label,input){return `<div class="field"><label>${label}</label>${input}</div>`;}
 
 function dueAutoCheck(){const cb=document.getElementById('hasDueCb');if(cb&&!cb.checked)cb.checked=true;}
