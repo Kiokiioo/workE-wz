@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1313</title>
+<title>工作E · v20260902-r1314</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -830,6 +830,11 @@ input.plan-chk:checked::after{content:'';position:absolute;left:0;top:0;right:0;
 /* r1313：弹层打开时锁住背景页面滚动。:has 项目内已广泛使用（.modal-body:has(...)），iOS 15.4+/Chrome 105+ 支持；
    纯 CSS 由 .show 驱动，覆盖 openModal / openStudentDetail / closeModal 全部三条显隐路径，零遗漏、关闭即恢复。 */
 html:has(.modal-back.show),html:has(.modal-back.show) body{overflow:hidden}
+/* r1314：iOS Safari 会忽略 html/body 的 overflow:hidden（PWA standalone 尤其明显），iOS<16 亦不支持 overscroll-behavior；
+   且只要第一次 touchmove 未 preventDefault，iOS 就把整个手势交给原生滚动链、后续 preventDefault 全部失效。
+   故弹层打开时另由 JS 固定 body（modalBgLockSync），并对弹层所有后代切断滚动链、禁止 html/body 橡皮筋。 */
+html:has(.modal-back.show),html:has(.modal-back.show) body{overscroll-behavior:none}
+.modal-back *{overscroll-behavior:contain}
 .modal{margin:auto;background:var(--surface);border-radius:var(--radius);width:100%;max-width:540px;box-shadow:var(--shadow);
   border:1px solid var(--border);overflow:hidden}
 .modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px;border-bottom:none}
@@ -3301,6 +3306,7 @@ function openStudentDetail(id){
     <div class="timeline">${timeline}</div>`;
   modal.innerHTML=`<div class="modal-head"><h3>${esc(s.name)} · ${esc(classNameOf(s.classId))}</h3></div><div class="modal-body">${html}</div>`;
   modalBack.classList.add('show');
+  if(window.modalBgLockSync)window.modalBgLockSync();
 }
 /* 学生详情「已处理」列表：已处理（长按移入）的待办/沟通，按处理时间倒序；长按任一条可补备注 */
 function buildProcessedList(id){
@@ -6330,15 +6336,21 @@ function modalSemester(id){const s=id?S.semesters.find(x=>x.id===id):{};
 
 /* ============ modal ============ */
 const modalBack=document.getElementById('modalBack'),modal=document.getElementById('modal');
-function openModal(title,html,w){modal.style.maxWidth=w?w+'px':'';modal.innerHTML=`<div class="modal-head"><h3>${esc(title)}</h3></div><div class="modal-body">${html}</div>`;modalBack.classList.add('show');}
-function closeModal(){modalBack.classList.remove('show');modal.innerHTML='';const ab=document.getElementById('rec_add_btn');if(ab)ab.classList.remove('spin');}
+function openModal(title,html,w){modal.style.maxWidth=w?w+'px':'';modal.innerHTML=`<div class="modal-head"><h3>${esc(title)}</h3></div><div class="modal-body">${html}</div>`;modalBack.classList.add('show');if(window.modalBgLockSync)window.modalBgLockSync();}
+function closeModal(){modalBack.classList.remove('show');modal.innerHTML='';const ab=document.getElementById('rec_add_btn');if(ab)ab.classList.remove('spin');if(window.modalBgLockSync)window.modalBgLockSync();}
 modalBack.addEventListener('click',e=>{if(e.target===modalBack)closeModal();});
-/* r1313：弹层滚动隔离 —— 手指在弹层上滑动只滚动弹层（或弹层内可滚的下拉/列表），绝不带动背后的页面。
-   ① CSS overscroll-behavior:contain 挡现代浏览器的滚动链；② html:has(.modal-back.show) 锁背景滚动；
-   ③ iOS 旧版 Safari 不支持上述两者时，用 touchmove 边界守卫兜底：只在「最近可滚容器已到边界」时
-   preventDefault，未到边界完全不干预，保证弹层内长列表 / bk-range 下拉照常滚动。 */
+/* r1314：弹层滚动隔离（iOS 真机加固）——手指在弹层上滑动只控制弹层，绝不带动背后页面。
+   ① .modal-back + 所有后代 overscroll-behavior:contain 切断滚动链（iOS 16+）；
+   ② html:has(.modal-back.show) 锁 overflow / overscroll-behavior（现代浏览器）；
+   ③ ★ iOS 关键：Safari 忽略 html/body overflow:hidden，且只要某个 touchmove 未 preventDefault，
+      iOS 就把整个手势判给原生滚动链、之后 preventDefault 全部失效 —— 单靠「到边界才拦」挡不住。
+      故弹层打开时把 body 固定（记录 scrollY，top 负偏移保持视觉原位），背景彻底无滚动空间；
+      MutationObserver 监听 .show 自动驱动，覆盖 openModal/openStudentDetail/closeModal 全部路径，
+      三条入口另外同步调用以便状态立即确定。关闭时清样式并原位恢复 scrollY。
+   ④ document 捕获阶段 touchmove 兜底：仅当 target 在弹层内、且「最近可滚容器」还能按方向滚才放行，
+      其余（含手指落在弹层外）一律 preventDefault；横向手势放行，不干扰全屏页右滑返回。 */
 (function(){
-  let sy=0,sx=0;
+  let sy=0,sx=0,savedY=0,locked=false;
   const canScroll=(el,dy)=>{
     const atTop=el.scrollTop<=0,atBottom=el.scrollTop+el.clientHeight>=el.scrollHeight-1;
     return dy>0?!atBottom:(dy<0?!atTop:false);
@@ -6354,15 +6366,39 @@ modalBack.addEventListener('click',e=>{if(e.target===modalBack)closeModal();});
     }
     return mb;
   };
-  modalBack.addEventListener('touchstart',e=>{const t=e.touches[0];sy=t?t.clientY:0;sx=t?t.clientX:0;},{passive:true});
-  modalBack.addEventListener('touchmove',e=>{
+  /* r1314：body 固定锁（iOS 唯一可靠锁背景法）。幂等，由 .show 状态驱动。 */
+  window.modalBgLockSync=function(){
+    const on=modalBack.classList.contains('show');
+    if(on===locked)return;
+    const b=document.body;
+    if(on){
+      savedY=window.pageYOffset||document.documentElement.scrollTop||0;
+      const sw=window.innerWidth-(document.documentElement.clientWidth||window.innerWidth);
+      b.style.position='fixed';b.style.top=(-savedY)+'px';
+      b.style.left='0';b.style.right='0';b.style.width='100%';
+      if(sw>0&&sw<40)b.style.paddingRight=sw+'px';
+      locked=true;
+    }else{
+      b.style.position='';b.style.top='';b.style.left='';b.style.right='';b.style.width='';b.style.paddingRight='';
+      try{window.scrollTo(0,savedY);}catch(_){}
+      locked=false;
+    }
+  };
+  if(typeof MutationObserver==='function')new MutationObserver(window.modalBgLockSync).observe(modalBack,{attributes:true,attributeFilter:['class']});
+  window.modalBgLockSync();
+  document.addEventListener('touchstart',e=>{
+    if(!modalBack.classList.contains('show'))return;
+    const t=e.touches[0];sy=t?t.clientY:0;sx=t?t.clientX:0;
+  },{capture:true,passive:true});
+  document.addEventListener('touchmove',e=>{
     if(!modalBack.classList.contains('show'))return;
     const t=e.touches[0];if(!t)return;
     const dy=sy-t.clientY,dx=sx-t.clientX;
     sy=t.clientY;sx=t.clientX;
     if(Math.abs(dy)<Math.abs(dx))return;               /* 横向手势不干预 */
-    if(!canScroll(scrollerOf(e.target,modalBack),dy)&&e.cancelable)e.preventDefault();
-  },{passive:false});
+    if(modalBack.contains(e.target)&&canScroll(scrollerOf(e.target,modalBack),dy))return;
+    if(e.cancelable)e.preventDefault();
+  },{capture:true,passive:false});
 })();
 function field(label,input){return `<div class="field"><label>${label}</label>${input}</div>`;}
 
