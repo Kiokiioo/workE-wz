@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1328</title>
+<title>工作E · v20260902-r1330</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -701,6 +701,8 @@ input[type="date"]{appearance:none;-webkit-appearance:none;border-radius:99px}
 .cl-tabbar{display:flex;gap:4px;margin-bottom:14px;background:var(--surface-2);border-radius:99px;padding:4px}
 .cl-tab{flex:1;padding:9px 0;border:0;border-radius:99px;background:transparent;color:var(--text-2);font-size:13px;font-family:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;-webkit-tap-highlight-color:transparent}
 .cl-tab.active{background:var(--primary);color:#fff}
+/* r1329 班级详情页四个胶囊 tab 内容区去边框（外层卡片融入页面背景） */
+.cl-view-page #clBody .card{border:0;box-shadow:none}
 .note-edit-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;flex:none}
 .ne-back{display:inline-flex;align-items:center;gap:2px;border:0;background:transparent;color:var(--primary);font-size:15px;font-weight:600;cursor:pointer;padding:6px 2px;font-family:inherit}
 .ne-back svg{width:20px;height:20px}
@@ -1870,14 +1872,16 @@ function router(){
   if(TEACH_ORDER.includes(r)){S._teachTab=r;save();location.hash='teach';return;}
   if(!VIEWS[r]){location.hash='home';return;}
   /* 重新进入成绩页：视图与筛选重置为「趋势」tab 的默认（全部学期/全部考试/全部班级/最近考试科目）；页内切换子视图不受影响 */
-  if(r==='grades'&&_prevRoute!=='grades'){S._gradeView='trend';gradeDefaultFor('trend');S._gradeFiltered=false;S._cmpItems=[];S._stuCmp=[];S._gradeScoreSort=undefined;S._gradeSubjSort=undefined;S._trendNums=false;_gradeThumbPrev=null;}
+  if(r==='grades'&&_prevRoute!=='grades'&&!_gradeFromCl){S._gradeView='trend';gradeDefaultFor('trend');S._gradeFiltered=false;S._cmpItems=[];S._stuCmp=[];S._gradeScoreSort=undefined;S._gradeSubjSort=undefined;S._trendNums=false;_gradeThumbPrev=null;}
   /* 重新进入学情跟进：子标签与筛选恢复默认（班级/记录均默认全部班级）；页内切换子标签不受影响 */
   if(r==='students'&&_prevRoute!=='students'&&!_clBackToClass){stuTab='stu';S._stuCls='all';S._stuSearch='';S._recCls='all';S._recTime=undefined;S._recFrom='';S._recTo='';S._stuTime=undefined;S.draw.cond={type:'none',subjectId:'',min:'',max:''}; /* r1278：从其他页面重新进入学生页，抽签条件恢复默认不限制（页内切 tab 不受影响） */ /* r1234：时间筛选重置回默认当前学期 */save();_stuThumbPrev=null;}
   if(_clBackToClass){_clBackToClass=false;stuTab='class';S._stuCls='all';S._stuSearch='';save();}
+  if(r!=='grades'&&_prevRoute==='grades')_gradeFromCl=''; /* r1330 离开成绩页清来源标记（右滑返回已在 gradeAnalyzeBack 自行清） */
   const samePage=_prevRoute===r;
   _prevRoute=r;
   if(r!=='grades')cleanupPendingSubs();
   document.getElementById('app').innerHTML=VIEWS[r](_np);setActive(r);closeDrawer();reopenCols();if(!samePage)window.scrollTo(0,0);
+  document.getElementById('app').classList.toggle('grade-from-cl-page', r==='grades'&&!!_gradeFromCl); /* r1330 成绩页右滑识别 */
   /* r116：进入笔记/进度编辑页时隐藏底部 nav，匹配 iOS 备忘录全屏感 */
   const bn=document.getElementById('bottomNav');if(bn)bn.style.display=(r==='note'||r==='prog'||r==='cpview'||r==='clview')?'none':'';
   if(r==='note'){const _fe=document.getElementById('note_content');if(_fe)_fe.focus();}
@@ -2641,7 +2645,7 @@ function noteEditDelete(id){S.notes=S.notes.filter(y=>y.id!==id);save();location
    笔记页→saveNoteEdit（保存回来源，空白丢弃）；进度页→progBack（脏=保存返回，净=取消）。 */
 (function(){
   let _sx=0,_sy=0,_sel0='',_on=false;
-  const SEL='.note-edit-page,.prog-edit-page,.cp-view-page,.cl-view-page';
+  const SEL='.note-edit-page,.prog-edit-page,.cp-view-page,.cl-view-page,.grade-from-cl-page'; /* r1330 纳入从班级页进入的成绩页 */
   const selStr=()=>(window.getSelection&&window.getSelection())?String(window.getSelection()):'';
   document.addEventListener('touchstart',e=>{
     if(!e.target.closest||!e.target.closest(SEL)){_on=false;return;}
@@ -2655,7 +2659,8 @@ function noteEditDelete(id){S.notes=S.notes.filter(y=>y.id!==id);save();location
     if(sel&&sel!==_sel0)return; /* 划选文字不算滑动（仅本次触摸新建/改动的选区才拦截，残留选区不拦截） */
     const dx=e.changedTouches[0].clientX-_sx,dy=e.changedTouches[0].clientY-_sy;
     if(dx>80&&Math.abs(dy)<60){
-      if(document.querySelector('.cl-view-page'))clViewGoBack();else if(document.querySelector('.cp-view-page'))cpViewGoBack();else if(document.querySelector('.prog-edit-page'))progBack();else saveNoteEdit();
+      if(_gradeFromCl&&(location.hash||'').replace(/^#/,'').split('/')[0]==='grades')gradeAnalyzeBack();
+      else if(document.querySelector('.cl-view-page'))clViewGoBack();else if(document.querySelector('.cp-view-page'))cpViewGoBack();else if(document.querySelector('.prog-edit-page'))progBack();else saveNoteEdit();
     }
   },{passive:true});
 })();
@@ -2715,6 +2720,7 @@ function clsGradeSel(v){const inp=document.querySelector('[data-form="class"] in
    不重走 router（无 hash 变化、无滚动重置）。返回走 clViewGoBack 落到学情跟进-班级 tab。 */
 let _clTab='prog';
 let _clFrom='students';
+let _gradeFromCl=''; /* r1330 从班级详情页「查看成绩分析」进入成绩页的来源班级 id；非空=该次进入需特定筛选+右滑返回班级页 */
 let _clBackToClass=false;
 function goClassDetail(cid){
   if(!cls(cid))return;
@@ -2732,6 +2738,20 @@ function clTabTo(t){
   _clTab=t;
   document.querySelectorAll('.cl-tab').forEach(b=>b.classList.toggle('active',b.dataset.t===t));
   const b=document.getElementById('clBody');if(b)b.innerHTML=clBodyHtml(S._clId,t);
+}
+/* r1330 班级详情页「查看成绩分析」→ 成绩-趋势，筛选：全部学期/全部考试/该班级/全部科目 */
+function clGradeAnalyze(){
+  const cid=S._clId;if(!cid||!cls(cid))return;
+  _gradeFromCl=cid;
+  S._gradeView='trend';S._gradeSem='';S._gradeEvent='';S._gradeClass=cid;S._gradeSubCol='';S._gradeSub='';
+  S._gradeFiltered=false;S._cmpItems=[];S._stuCmp=[];S._gradeScoreSort=undefined;S._gradeSubjSort=undefined;S._trendNums=false;_gradeThumbPrev=null;
+  _editLeaveAt=Date.now();save();location.hash='grades';
+}
+/* r1330 成绩页右滑返回：从班级页进来的回到该班级详情页成绩 tab，并清掉来源标记 */
+function gradeAnalyzeBack(){
+  const cid=_gradeFromCl;_gradeFromCl='';_editLeaveAt=Date.now();
+  if(cid&&cls(cid)){S._clId=cid;_clTab='grade';_clFrom='students';_clBackToClass=false;location.hash='clview/'+cid;}
+  else location.hash='students';
 }
 function clStudentsOf(cid){return S.students.filter(s=>s.classId===cid);}
 function clPlanStat(cid){const items=classPlan(cid),done=items.filter(p=>p.done).length;
@@ -2792,7 +2812,7 @@ function clGradeHtml(cid){
   const C={hi:'#4f6bed',pass:'#A9BBF5',fail:'#DDE4FA'};
   const seg=(v,c,b)=>`<span style="flex:${v};background:${c}${b?';border-right:2px solid var(--border)':''}"></span>`;
   const dot=(c)=>`<i style="display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle;background:${c}"></i>`;
-  const btn=`<button class="btn primary block" style="margin:10px 0;border-radius:99px" data-action="nav" data-r="grades">查看成绩分析</button>`;
+  const btn=`<button class="btn primary block" style="margin:10px 0;border-radius:99px" data-action="cl-grade-analyze">查看成绩分析</button>`;
   if(!exs.length)return `<div class="card" style="padding:8px 14px">${emptyState('📊','暂无该班成绩')}${btn}</div>`;
   const top=exs[0];
   const cp=Math.max(0,Math.min(100,top.avg==null?0:top.avg/(top.full||100)*100));
@@ -7240,6 +7260,7 @@ document.body.addEventListener('click',e=>{
   /* 短按「蓝闪」：每周复盘-导入/导出 按下即实色蓝闪一下（约 400ms，与长按触发蓝闪同款），不常驻 */
   else if(LP_FLASH.includes(a)){t.classList.add('active');setTimeout(function(){if(t)t.classList.remove('active');},400);}
   if(a==='nav'){location.hash=t.dataset.r;}
+  else if(a==='cl-grade-analyze'){clGradeAnalyze();}
   else if(a==='toggle-theme'){toggleTheme();}
   else if(a==='reset-data'){if(confirm('确定重置为示例数据？当前数据将被清空。')){doReset();}}
   else if(a==='confirm-export-all'){confirmModal('导出','将下载当前文件的全部资料（含所有班级、学生、成绩、积分、教学进度、课表、归档等）为一个 JSON 备份文件。','do-export-all');}
