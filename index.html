@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1325</title>
+<title>工作E · v20260902-r1326</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -2739,9 +2739,24 @@ function clPlanStat(cid){const items=classPlan(cid),done=items.filter(p=>p.done)
 function clExamStat(cid){
   const names=new Set(clStudentsOf(cid).map(s=>s.name));
   const evs=examEvents().filter(e=>e.classIds.indexOf(cid)>=0);
-  return evs.slice(0,6).map(e=>{let sum=0,n=0;
-    e.exams.forEach(x=>{Object.keys(x.scores||{}).forEach(nm=>{const v=x.scores[nm];if(names.has(nm)&&v!=null&&v!==''&&isFinite(+v)){sum+=+v;n++;}});});
-    return {name:e.name,date:e.date,avg:n?Math.round(sum/n*10)/10:null,subjects:e.subjects.length};});
+  const st=(cls(cid)||{}).stage||'小学';
+  /* r1326：按成绩条目统计优秀/及格；优生线=该科满分80%，及格线=该科满分60%（fullScore 与成绩页同口径） */
+  return evs.slice(0,6).map(e=>{let sum=0,n=0,hiN=0,passN=0;
+    e.exams.forEach(x=>{
+      const full=fullScore((x.classId&&cls(x.classId)&&cls(x.classId).stage)||st,subjName(x.subjectId));
+      const hi=Math.round(full*0.8),lo=Math.round(full*0.6);
+      Object.keys(x.scores||{}).forEach(nm=>{const v=x.scores[nm];
+        if(names.has(nm)&&v!=null&&v!==''&&isFinite(+v)){
+          sum+=+v;n++;
+          if(+v>=hi)hiN++;
+          if(+v>=lo)passN++;
+        }});
+    });
+    const hiPct=n?Math.round(hiN/n*100):0,passPct=n?Math.round(passN/n*100):0;
+    const full=e.exams.length?fullScore(examStage(e.exams[0]),subjName(e.exams[0].subjectId)):100;
+    return {name:e.name,date:e.date,avg:n?Math.round(sum/n*10)/10:null,subjects:e.subjects.length,full:full,
+      subjNames:e.subjects.map(sid=>subjName(sid)).filter(Boolean),
+      hi:hiN,pass:passN,total:n,hiPct:hiPct,passPct:passPct,failPct:100-passPct};});
 }
 function clRecCount(cid){
   const ids=new Set(clStudentsOf(cid).map(s=>s.id));
@@ -2773,8 +2788,22 @@ function clProgHtml(cid){
 }
 function clGradeHtml(cid){
   const exs=clExamStat(cid);
-  const html=exs.length?exs.map(e=>`<div class="rec" style="align-items:center"><div class="ic" style="background:var(--primary-soft);color:var(--primary)">\u5206</div><div class="rc-body"><div class="rc-title">${esc(e.name)}</div><div class="rc-sub">${esc(e.date)} \u00b7 ${e.subjects} \u79d1</div></div><div style="font-size:15px;font-weight:600">${e.avg==null?'\u2014':e.avg}</div></div>`).join(''):emptyState('\ud83d\udcca','\u6682\u65e0\u8be5\u73ed\u6210\u7ee9');
-  return `<div class="card" style="padding:8px 14px">${html}<button class="btn primary block" style="margin:10px 0;border-radius:99px" data-action="nav" data-r="grades">\u67e5\u770b\u6210\u7ee9\u5206\u6790</button></div>`;
+  const C={hi:'#378ADD',pass:'#B5D4F4',fail:'#D3D1C7'};
+  const seg=(v,c,b)=>`<span style="flex:${v};background:${c}${b?';border-right:2px solid var(--border)':''}"></span>`;
+  const dot=(c)=>`<i style="display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle;background:${c}"></i>`;
+  const btn=`<button class="btn primary block" style="margin:10px 0;border-radius:99px" data-action="nav" data-r="grades">查看成绩分析</button>`;
+  if(!exs.length)return `<div class="card" style="padding:8px 14px">${emptyState('📊','暂无该班成绩')}${btn}</div>`;
+  const top=exs[0];
+  const cp=Math.max(0,Math.min(100,top.avg==null?0:top.avg/(top.full||100)*100));
+  const topSegs=seg(top.hiPct,C.hi,top.hiPct>0&&top.passPct>top.hiPct)+seg(top.passPct-top.hiPct,C.pass,top.passPct>top.hiPct&&top.failPct>0)+seg(top.failPct,C.fail,false);
+  const cursor=top.total?`<div style="position:absolute;left:${cp}%;top:0;bottom:0;width:2px;background:#2C2C2A"></div><div style="position:absolute;left:${cp}%;top:50%;transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;background:#888780;border:2px solid #fff"></div>`:'';
+  const legend=`<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--text-2);margin-top:8px"><span>${dot(C.hi)}优秀 ${top.hiPct}%</span><span>${dot(C.pass)}及格 ${top.passPct-top.hiPct}%</span><span>${dot(C.fail)}待及格 ${top.failPct}%</span></div>`;
+  const summary=`<div style="border-bottom:0.5px solid var(--border);padding-bottom:12px;margin-bottom:2px">
+    <div style="font-size:12px;color:var(--text-2);margin-bottom:8px">最近考试 · ${esc(top.name)} · ${esc(top.date)}</div>
+    <div style="display:flex;gap:18px;margin-bottom:9px"><div><span style="font-size:12px;color:var(--text-2);margin-right:5px">平均分</span><b style="font-size:17px;font-weight:500">${top.avg==null?'—':top.avg}</b></div><div><span style="font-size:12px;color:var(--text-2);margin-right:5px">优生率</span><b style="font-size:17px;font-weight:500">${top.hiPct}%</b></div><div><span style="font-size:12px;color:var(--text-2);margin-right:5px">及格率</span><b style="font-size:17px;font-weight:500">${top.passPct}%</b></div></div>
+    <div style="position:relative;display:flex;height:14px;border-radius:4px;overflow:hidden;min-width:96px">${topSegs}${cursor}</div>${top.total?legend:''}</div>`;
+  const rows=exs.slice(1).map(e=>`<div class="rec" style="align-items:center"><div class="ic" style="background:var(--primary-soft);color:var(--primary)">分</div><div class="rc-body"><div class="rc-title">${esc(e.name)}</div><div class="rc-sub">${esc(e.date)} · ${esc(e.subjNames.join(' / '))}</div><div style="display:flex;align-items:center;gap:6px;margin-top:4px"><i style="display:flex;width:110px;height:6px;border-radius:3px;overflow:hidden;gap:2px;flex:none">${seg(e.hiPct,C.hi,false)}${seg(e.passPct-e.hiPct,C.pass,false)}${seg(e.failPct,C.fail,false)}</i><span style="font-size:11px;color:var(--text-2);white-space:nowrap">优 ${e.hiPct}% · 及 ${e.passPct}%</span></div></div><div style="font-size:15px;font-weight:600">${e.avg==null?'—':e.avg}</div></div>`).join('');
+  return `<div class="card" style="padding:8px 14px">${summary}${rows}${btn}</div>`;
 }
 function clRecordsHtml(cid){
   const sv=S._recCls,st=S._recTime,sq=S._stuSearch;
