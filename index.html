@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1319</title>
+<title>工作E · v20260902-r1325</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -690,6 +690,17 @@ input[type="date"]{appearance:none;-webkit-appearance:none;border-radius:99px}
 /* r116f：进度记录全屏编辑页复用笔记页骨架（bar 沿用 .note-edit-bar/.ne-back/.ne-done） */
 .prog-edit-page,.cp-view-page{position:relative;display:flex;flex-direction:column;height:100vh;height:100dvh;background:var(--surface)}
 .prog-edit-body{padding:16px;overflow:auto;flex:1;-webkit-overflow-scrolling:touch}
+/* r1320 班级详情页：复用全屏编辑页骨架，外层独立 class 避免触发 router 的 cpview/prog 兜底拦截 */
+.cl-view-page{position:relative;display:flex;flex-direction:column;height:100vh;height:100dvh;background:var(--surface)}
+/* r1322 班级详情页顶部上边距归零（其他 prog-edit-body 复用页不受影响） */
+.cl-view-page .prog-edit-body{padding-top:0}
+.cl-overview{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;margin-bottom:14px}
+.cl-metric{background:var(--surface-2);border-radius:10px;padding:10px 4px;text-align:center}
+.cl-metric-n{font-size:19px;font-weight:600;line-height:1.2;color:var(--text)}
+.cl-metric-l{font-size:11px;color:var(--text-2);margin-top:2px}
+.cl-tabbar{display:flex;gap:4px;margin-bottom:14px;background:var(--surface-2);border-radius:99px;padding:4px}
+.cl-tab{flex:1;padding:9px 0;border:0;border-radius:99px;background:transparent;color:var(--text-2);font-size:13px;font-family:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;-webkit-tap-highlight-color:transparent}
+.cl-tab.active{background:var(--primary);color:#fff}
 .note-edit-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;flex:none}
 .ne-back{display:inline-flex;align-items:center;gap:2px;border:0;background:transparent;color:var(--primary);font-size:15px;font-weight:600;cursor:pointer;padding:6px 2px;font-family:inherit}
 .ne-back svg{width:20px;height:20px}
@@ -1104,6 +1115,11 @@ form[data-form="rec"] .field.row input[type="text"]{width:100%;min-width:0}
   form[data-form="todo"] input[type="number"]{font-size:16px!important;transform:scale(0.8125);transform-origin:left top;
     width:73.85px!important;flex:0 0 auto;height:46.77px!important;min-height:46.77px!important;
     margin-top:0!important;margin-bottom:-8.77px!important}
+  /* r1325 记录进度全屏页-完成时间：日期框 + 时间框手机端两等分一排、间距 12。
+     date 全局 16px+scale(0.8125)+width:123% 在 grid item 上视觉恰好填满本格，时间框 width:100% 填满另一格。 */
+  form[data-form="progress"] .prog-when-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  form[data-form="progress"] .prog-when-row input[type="date"]{width:123.08%!important;flex:none}
+  form[data-form="progress"] .prog-when-row .bk-range-wrap{width:100%;min-width:0}
 }
 .cmp-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .cmp-card{border:0.5px solid var(--border);border-radius:12px;padding:12px;background:var(--surface)}
@@ -1833,7 +1849,7 @@ function setActive(r){
 
 /* ============ router ============ */
 const VIEWS={home:viewHome,todos:viewTodos,courses:viewCourses,notes:viewNotes,note:viewNote,prog:viewProgEdit,cpview:viewCourseProgress,
-  students:viewStudents,reviews:viewReviews,grades:viewGrades,settings:viewSettings,teach:viewTeach};
+  students:viewStudents,reviews:viewReviews,grades:viewGrades,settings:viewSettings,teach:viewTeach,clview:viewClassDetail};
 let _prevRoute='';
 let _editLeaveAt=0; /* r1187：编辑页经应用内路径（返回键/右滑/取消）离开时置位；router 据此跳过绕行拦截，防重复保存 */
 function router(){
@@ -1844,6 +1860,7 @@ function router(){
     if(document.querySelector('.note-edit-page')&&!/^#note(\/|$)/.test(location.hash||''))saveNoteEdit();
     else if(document.querySelector('.prog-edit-page')&&!/^#prog(\/|$)/.test(location.hash||''))progBack();
     else if(document.querySelector('.cp-view-page')&&!/^#cpview(\/|$)/.test(location.hash||''))cpViewGoBack();
+    else if(document.querySelector('.cl-view-page')&&!/^#clview(\/|$)/.test(location.hash||''))clViewGoBack();
   }
   if(DEL_MODE){const b=document.getElementById(DEL_MODE.btnId);if(b)b.classList.remove('active');DEL_MODE=null;}
   let r=location.hash.slice(1)||'home';let _np='';const _sl=r.indexOf('/');if(_sl>=0){_np=r.slice(_sl+1);r=r.slice(0,_sl);}
@@ -1855,13 +1872,14 @@ function router(){
   /* 重新进入成绩页：视图与筛选重置为「趋势」tab 的默认（全部学期/全部考试/全部班级/最近考试科目）；页内切换子视图不受影响 */
   if(r==='grades'&&_prevRoute!=='grades'){S._gradeView='trend';gradeDefaultFor('trend');S._gradeFiltered=false;S._cmpItems=[];S._stuCmp=[];S._gradeScoreSort=undefined;S._gradeSubjSort=undefined;S._trendNums=false;_gradeThumbPrev=null;}
   /* 重新进入学情跟进：子标签与筛选恢复默认（班级/记录均默认全部班级）；页内切换子标签不受影响 */
-  if(r==='students'&&_prevRoute!=='students'){stuTab='stu';S._stuCls='all';S._stuSearch='';S._recCls='all';S._recTime=undefined;S._recFrom='';S._recTo='';S._stuTime=undefined;S.draw.cond={type:'none',subjectId:'',min:'',max:''}; /* r1278：从其他页面重新进入学生页，抽签条件恢复默认不限制（页内切 tab 不受影响） */ /* r1234：时间筛选重置回默认当前学期 */save();_stuThumbPrev=null;}
+  if(r==='students'&&_prevRoute!=='students'&&!_clBackToClass){stuTab='stu';S._stuCls='all';S._stuSearch='';S._recCls='all';S._recTime=undefined;S._recFrom='';S._recTo='';S._stuTime=undefined;S.draw.cond={type:'none',subjectId:'',min:'',max:''}; /* r1278：从其他页面重新进入学生页，抽签条件恢复默认不限制（页内切 tab 不受影响） */ /* r1234：时间筛选重置回默认当前学期 */save();_stuThumbPrev=null;}
+  if(_clBackToClass){_clBackToClass=false;stuTab='class';S._stuCls='all';S._stuSearch='';save();}
   const samePage=_prevRoute===r;
   _prevRoute=r;
   if(r!=='grades')cleanupPendingSubs();
   document.getElementById('app').innerHTML=VIEWS[r](_np);setActive(r);closeDrawer();reopenCols();if(!samePage)window.scrollTo(0,0);
   /* r116：进入笔记/进度编辑页时隐藏底部 nav，匹配 iOS 备忘录全屏感 */
-  const bn=document.getElementById('bottomNav');if(bn)bn.style.display=(r==='note'||r==='prog'||r==='cpview')?'none':'';
+  const bn=document.getElementById('bottomNav');if(bn)bn.style.display=(r==='note'||r==='prog'||r==='cpview'||r==='clview')?'none':'';
   if(r==='note'){const _fe=document.getElementById('note_content');if(_fe)_fe.focus();}
   /* r116f：进度编辑页渲染后——绑勾选实时进度条 + 记录初始签名（返回时比对判定「有无操作」） */
   if(r==='prog'){const _pf=document.querySelector('form[data-form="progress"]');
@@ -2623,7 +2641,7 @@ function noteEditDelete(id){S.notes=S.notes.filter(y=>y.id!==id);save();location
    笔记页→saveNoteEdit（保存回来源，空白丢弃）；进度页→progBack（脏=保存返回，净=取消）。 */
 (function(){
   let _sx=0,_sy=0,_sel0='',_on=false;
-  const SEL='.note-edit-page,.prog-edit-page,.cp-view-page';
+  const SEL='.note-edit-page,.prog-edit-page,.cp-view-page,.cl-view-page';
   const selStr=()=>(window.getSelection&&window.getSelection())?String(window.getSelection()):'';
   document.addEventListener('touchstart',e=>{
     if(!e.target.closest||!e.target.closest(SEL)){_on=false;return;}
@@ -2637,7 +2655,7 @@ function noteEditDelete(id){S.notes=S.notes.filter(y=>y.id!==id);save();location
     if(sel&&sel!==_sel0)return; /* 划选文字不算滑动（仅本次触摸新建/改动的选区才拦截，残留选区不拦截） */
     const dx=e.changedTouches[0].clientX-_sx,dy=e.changedTouches[0].clientY-_sy;
     if(dx>80&&Math.abs(dy)<60){
-      if(document.querySelector('.cp-view-page'))cpViewGoBack();else if(document.querySelector('.prog-edit-page'))progBack();else saveNoteEdit();
+      if(document.querySelector('.cl-view-page'))clViewGoBack();else if(document.querySelector('.cp-view-page'))cpViewGoBack();else if(document.querySelector('.prog-edit-page'))progBack();else saveNoteEdit();
     }
   },{passive:true});
 })();
@@ -2691,6 +2709,114 @@ function clsStageSel(v){S._newClsStage=v;const inp=document.querySelector('[data
 function clsGradeFromStage(st){const arr=st==='小学'?['一','二','三','四','五','六']:['一','二','三'];return arr[0];}
 function clsGradeBkHtml(gv){const st=S._newClsStage||'小学';return selHtml('cls_grade_bk',gv+'年级',bkOpts(clsStageGradeOpts(st),gv));}
 function clsGradeSel(v){const inp=document.querySelector('[data-form="class"] input[name="grade"]');if(inp)inp.value=v;const t=document.querySelector('#cls_grade_bk_wrap .bk-trigger-text');if(t)t.textContent=v+'年级';closeAllBkPops();/* r1185 */}
+
+/* ============ r1320 班级详情页（点击班级头像/名称进入，#clview/<cid>） ============
+   B 方案：顶部四项概览固定 + 进度/成绩/记录/学生四个胶囊 tab；切 tab 原地刷新 #clBody，
+   不重走 router（无 hash 变化、无滚动重置）。返回走 clViewGoBack 落到学情跟进-班级 tab。 */
+let _clTab='prog';
+let _clFrom='students';
+let _clBackToClass=false;
+function goClassDetail(cid){
+  if(!cls(cid))return;
+  const f=(location.hash||'').replace(/^#/,'').split('/')[0]||'students';
+  _clFrom=(f==='clview'?'students':f);
+  _editLeaveAt=0;_clBackToClass=false;S._clId=cid;_clTab='prog';
+  location.hash='clview/'+cid;
+}
+function clViewGoBack(){
+  if(_clFrom==='students')_clBackToClass=true;
+  _editLeaveAt=Date.now();
+  location.hash=_clFrom;
+}
+function clTabTo(t){
+  _clTab=t;
+  document.querySelectorAll('.cl-tab').forEach(b=>b.classList.toggle('active',b.dataset.t===t));
+  const b=document.getElementById('clBody');if(b)b.innerHTML=clBodyHtml(S._clId,t);
+}
+function clStudentsOf(cid){return S.students.filter(s=>s.classId===cid);}
+function clPlanStat(cid){const items=classPlan(cid),done=items.filter(p=>p.done).length;
+  return {total:items.length,done:done,pct:items.length?Math.round(done/items.length*100):0};}
+function clExamStat(cid){
+  const names=new Set(clStudentsOf(cid).map(s=>s.name));
+  const evs=examEvents().filter(e=>e.classIds.indexOf(cid)>=0);
+  return evs.slice(0,6).map(e=>{let sum=0,n=0;
+    e.exams.forEach(x=>{Object.keys(x.scores||{}).forEach(nm=>{const v=x.scores[nm];if(names.has(nm)&&v!=null&&v!==''&&isFinite(+v)){sum+=+v;n++;}});});
+    return {name:e.name,date:e.date,avg:n?Math.round(sum/n*10)/10:null,subjects:e.subjects.length};});
+}
+function clRecCount(cid){
+  const ids=new Set(clStudentsOf(cid).map(s=>s.id));
+  return (S.violations||[]).filter(r=>ids.has(r.studentId)).length
+    +(S.homeworks||[]).filter(r=>ids.has(r.studentId)).length
+    +(S.examPoints||[]).filter(r=>ids.has(r.studentId)).length
+    +(S.answers||[]).filter(r=>ids.has(r.studentId)).length;
+}
+function clBodyHtml(cid,tab){
+  if(tab==='grade')return clGradeHtml(cid);
+  if(tab==='rec')return clRecordsHtml(cid);
+  if(tab==='stu')return clStudentsHtml(cid);
+  return clProgHtml(cid);
+}
+function clProgHtml(cid){
+  const items=classPlan(cid);
+  const done=items.filter(p=>p.done).slice().sort((a,b)=>(b.doneDate||'').localeCompare(a.doneDate||''));
+  const up=items.filter(p=>!p.done);
+  const pct=items.length?Math.round(done.length/items.length*100):0;
+  const row=p=>`<div class="rec" style="align-items:center;border-bottom:none"><div class="ic" style="background:${p.done?'var(--ok)':'var(--border)'};color:${p.done?'#fff':'var(--text-2)'};border-radius:50%">${p.done?'\u2713':'\u2022'}</div><div class="rc-body"><div class="rc-title">${esc(p.title)}</div><div class="rc-sub">${p.done?('\u5b8c\u6210\u4e8e '+esc(p.doneDate||'\u2014')):esc(p.subject||'')}</div></div></div>`;
+  return `<div class="card" style="padding:12px 14px">
+    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span>\u5b8c\u6210\u8fdb\u5ea6</span><span>${done.length}/${items.length}</span></div>
+    <div style="height:8px;background:var(--surface-2);border-radius:99px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--primary);border-radius:99px"></div></div>
+    ${done.length?'<div class="section-title" style="margin-top:14px;font-size:13px;color:var(--ok)">\u5df2\u5b8c\u6210</div>'+done.map(row).join(''):''}
+    ${up.length?'<div class="section-title" style="margin-top:14px;font-size:13px;color:var(--text-2)">\u5c06\u8fdb\u884c</div>'+up.map(row).join(''):''}
+    ${!items.length?emptyState('\ud83d\udcda','\u6682\u65e0\u6559\u5b66\u4efb\u52a1'):''}
+    <button class="btn primary block" style="margin-top:14px;border-radius:99px" data-action="cl-plan-jump">\u7ba1\u7406\u6559\u5b66\u8fdb\u5ea6</button>
+  </div>`;
+}
+function clGradeHtml(cid){
+  const exs=clExamStat(cid);
+  const html=exs.length?exs.map(e=>`<div class="rec" style="align-items:center"><div class="ic" style="background:var(--primary-soft);color:var(--primary)">\u5206</div><div class="rc-body"><div class="rc-title">${esc(e.name)}</div><div class="rc-sub">${esc(e.date)} \u00b7 ${e.subjects} \u79d1</div></div><div style="font-size:15px;font-weight:600">${e.avg==null?'\u2014':e.avg}</div></div>`).join(''):emptyState('\ud83d\udcca','\u6682\u65e0\u8be5\u73ed\u6210\u7ee9');
+  return `<div class="card" style="padding:8px 14px">${html}<button class="btn primary block" style="margin:10px 0;border-radius:99px" data-action="nav" data-r="grades">\u67e5\u770b\u6210\u7ee9\u5206\u6790</button></div>`;
+}
+function clRecordsHtml(cid){
+  const sv=S._recCls,st=S._recTime,sq=S._stuSearch;
+  S._recCls=cid;S._recTime='all';S._stuSearch='';
+  const h=buildRecTable();
+  S._recCls=sv;S._recTime=st;S._stuSearch=sq;
+  return h;
+}
+function clStudentsHtml(cid){
+  const stus=clStudentsOf(cid).slice().sort((a,b)=>{const ka=stuIndexKey(a.name),kb=stuIndexKey(b.name);return ka<kb?-1:ka>kb?1:(a.name<b.name?-1:1);});
+  if(!stus.length)return emptyState('\ud83d\udc65','\u8be5\u73ed\u8fd8\u6ca1\u6709\u5b66\u751f');
+  const rg=stuTimeRange();
+  return `<div class="card" style="padding:6px 10px">${stus.map(s=>`<div style="display:flex;gap:10px;align-items:center;padding:8px 2px;border-bottom:0.5px solid var(--border)">
+    <div class="avatar" style="width:26px;height:26px;font-size:12px;background:${AV[S.students.indexOf(s)%AV.length]}" data-action="stu-detail" data-id="${s.id}">${esc(stuIndexKey(s.name))}</div>
+    <div class="s-name" style="flex:1;font-size:14px" data-action="stu-detail" data-id="${s.id}">${esc(s.name)}</div>
+    <span class="tag points" style="color:#4F6BED;background:#4F6BED1F;width:48px;min-width:48px;padding:2px 0;display:inline-block;text-align:center;font-size:12px">${stuScopedPoints(s.id,rg)} \u5206</span>
+  </div>`).join('')}</div>`;
+}
+function viewClassDetail(cid){
+  const c=cls(cid);if(!c)return viewStudents();
+  const stus=clStudentsOf(cid),ps=clPlanStat(cid),exs=clExamStat(cid),recN=clRecCount(cid);
+  const avg=exs.length&&exs[0].avg!=null?exs[0].avg:null;
+  const tabs=[['stu','\u5b66\u751f'],['prog','\u8fdb\u5ea6'],['grade','\u6210\u7ee9'],['rec','\u8bb0\u5f55']];
+  return `<div class="cl-view-page">
+    <div class="note-edit-bar">
+      <button type="button" class="ne-back" data-action="cl-view-back" aria-label="\u8fd4\u56de">${iconSvg('arrow-left',18)}<span>\u8fd4\u56de</span></button>
+      <div class="ne-right"><span style="font-size:13px;color:var(--text-2)">\u73ed\u7ea7\u8be6\u60c5</span></div>
+    </div>
+    <div class="prog-edit-body">
+      <div style="font-size:15px;font-weight:600">${esc(c.name)}</div>
+      ${(c.stage||c.grade)?`<div class="sub" style="margin:2px 0 12px">${esc((c.stage||'')+(c.grade||'')+'\u5e74\u7ea7')}</div>`:''}
+      <div class="cl-overview">
+        <div class="cl-metric"><div class="cl-metric-n">${stus.length}</div><div class="cl-metric-l">\u73ed\u7ea7\u4eba\u6570</div></div>
+        <div class="cl-metric"><div class="cl-metric-n">${ps.pct}<span style="font-size:12px">%</span></div><div class="cl-metric-l">\u6559\u5b66\u8fdb\u5ea6</div></div>
+        <div class="cl-metric"><div class="cl-metric-n">${avg==null?'\u2014':avg}</div><div class="cl-metric-l">\u6700\u8fd1\u5747\u5206</div></div>
+        <div class="cl-metric"><div class="cl-metric-n">${recN}</div><div class="cl-metric-l">\u8bb0\u5f55\u6761\u6570</div></div>
+      </div>
+      <div class="cl-tabbar">${tabs.map(t=>`<button type="button" class="cl-tab ${_clTab===t[0]?'active':''}" data-action="cl-tab" data-t="${t[0]}">${t[1]}</button>`).join('')}</div>
+      <div id="clBody">${clBodyHtml(cid,_clTab)}</div>
+    </div>
+  </div>`;
+}
 
 /* ============ STUDENTS ============ */
 let stuTab='stu';
@@ -2746,8 +2872,8 @@ function stuClassView(){
   <div class="card" data-cls="${c.id}" data-id="${c.id}" style="padding:0;overflow:hidden">
     <div style="height:4px;background:var(--primary)"></div>
     <div style="padding:14px;text-align:center">
-        <span class="avatar" style="background:${classAvatarColor(c)};margin:0 auto 8px;overflow:hidden">${classAvatarSvg(c.id,classIconOf(c))}</span>
-        <p style="margin:0;font-weight:500;font-size:15px;line-height:1.3;cursor:pointer" data-action="stu-tab" data-t="rec" data-cls="${c.id}">${esc(c.name)}</p>
+        <span class="avatar" style="background:${classAvatarColor(c)};margin:0 auto 8px;overflow:hidden;cursor:pointer" data-action="cl-view" data-id="${c.id}">${classAvatarSvg(c.id,classIconOf(c))}</span>
+        <p style="margin:0;font-weight:500;font-size:15px;line-height:1.3;cursor:pointer" data-action="cl-view" data-id="${c.id}">${esc(c.name)}</p>
         ${gradeText?`<p style="margin:2px 0 0;font-size:13px;color:var(--text-2)">${esc(gradeText)}年级</p>`:''}
         <div style="display:flex;gap:12px;margin-top:12px;justify-content:center">
         <button class="ic-btn" type="button" data-action="arc-class" data-id="${c.id}" title="归档" aria-label="归档">${iconSvg('archive',10)}</button>
@@ -6608,7 +6734,7 @@ function viewProgEdit(cid){
       <div class="sub" id="prog_progress_bar" style="margin-bottom:10px">完成进度：<strong style="color:var(--primary);font-size:18px">${auto}%</strong>　已完成 ${doneN}/${total}。</div>
       <form data-form="progress" data-id="${cid}">
         <div class="field"><label>完成时间</label>
-          <div class="field row" style="margin-top:4px;gap:8px"><input type="date" name="whenDate" value="${todayISO()}" style="flex:1;min-width:0">${selHtml('prog_whenTime', defTime||'选择时间', bkOpts(progTimeOpts(cl).map(t=>({k:t.k,l:t.l,pick:'progWhenTimePick'})), defTime))}<input type="hidden" name="whenTime" value="${defTime}"></div></div>
+          <div class="field row prog-when-row" style="margin-top:4px"><input type="date" name="whenDate" value="${todayISO()}" style="flex:1;min-width:0">${selHtml('prog_whenTime', defTime||'选择时间', bkOpts(progTimeOpts(cl).map(t=>({k:t.k,l:t.l,pick:'progWhenTimePick'})), defTime))}<input type="hidden" name="whenTime" value="${defTime}"></div></div>
         <div class="field"><label>今日任务</label><div id="prog_today_wrap" style="max-height:200px;overflow:auto">${planChecks}</div></div>
         <div class="field"><label>超额完成</label><textarea name="extraDone" class="prog-ta" placeholder="每行一项，自动同步"></textarea></div>
         <div class="field"><label>待完成</label><textarea name="nextTask" class="prog-ta" placeholder="每行一项，自动同步">${esc(c.nextTask||'')}</textarea></div>
@@ -7182,6 +7308,10 @@ document.body.addEventListener('click',e=>{
   else if(a==='exp-note'){exportNotes();}
   else if(a==='imp-review'){importReviews();}
   else if(a==='exp-review-all'){exportAllReviews();}
+  else if(a==='cl-view'){goClassDetail(id);}
+  else if(a==='cl-view-back'){clViewGoBack();}
+  else if(a==='cl-tab'){clTabTo(t.dataset.t);}
+  else if(a==='cl-plan-jump'){closeModal();_editLeaveAt=Date.now();const _c=cls(S._clId);if(_c)S._planClass=_c.id;location.hash='settings';}
   else if(a==='stu-tab'){const wrap=document.querySelector('.view-students .grade-tabs');const old=wrap&&wrap.querySelector('.tab.active');if(old){const wr=wrap.getBoundingClientRect();const or=old.getBoundingClientRect();_stuThumbPrev={left:or.left-wr.left,width:or.width};}stuTab=t.dataset.t;if(t.dataset.cls){if(t.dataset.t==='rec')S._recCls=t.dataset.cls;else S._stuCls=t.dataset.cls;}if(stuTab==='draw'){S._drawDrawn=[];S._drawBatch=null;S._drawGroups=null;save();}viewReload('students');}
   else if(a==='edit-class'){modalClass(id);}
   else if(a==='del-class'){S.classes=S.classes.filter(y=>y.id!==id);S.students=S.students.filter(y=>y.classId!==id);
