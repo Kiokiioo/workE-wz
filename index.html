@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1314</title>
+<title>工作E · v20260902-r1319</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -458,13 +458,26 @@ th{color:var(--text-2);font-weight:600;font-size:13px}
 /* 课表行分隔线改虚线 */
 .tt-table th,.tt-table td{border-bottom:1px dashed var(--border)}
 tbody tr:hover{background:var(--surface-2)}
-/* r1243：记录表 班级/积分 列固定 60px（桌面 auto 布局下作为宽度基准，手机 fixed 布局 media 内同样 60） */
-/* r1249-1254：桌面端版式——姓名90/班级90/积分60 固定宽（班级 nowrap 单行）；居中/13px表头/间距4/时间70 只作用于手机端 media */
+/* r1243：记录表 班级/积分 列固定宽（桌面 auto 布局下作为宽度基准，手机 fixed 布局 media 内另设） */
+/* r1249-1254：桌面端版式——姓名90/班级90 固定宽（班级 nowrap 单行）；居中/13px表头/间距4/时间70 只作用于手机端 media */
 .rec-table col.rec-c1,.rec-table th.rec-c1,.rec-table td.rec-c1,.rec-table col.rec-c2,.rec-table th.rec-c2,.rec-table td.rec-c2{width:90px}
-.rec-table col.rec-c5,.rec-table th.rec-c5,.rec-table td.rec-c5{width:60px}
-.rec-table td.rec-c2{white-space:nowrap}
-.rec-table th.rec-c5,.rec-table td.rec-c5{width:60px}
 .rec-table td.rec-c2{white-space:nowrap} /* r1250：桌面班级列禁折行（60px 下「高一(3)班」原折两行，nowrap 后单行、列宽自然撑到 ~66px） */
+/* r1316：桌面端积分列 88px + nowrap + 居中 —— 旧 60px 配桌面 12px 左右 padding 只剩 36px 内容区，
+   「+100 分」「-1000 分」被折成两行（行高 63px vs 正常 47px）。手机端 media 内仍独立用 60px + 4px padding。 */
+.rec-table col.rec-c5,.rec-table th.rec-c5,.rec-table td.rec-c5{width:88px}
+.rec-table th.rec-c5,.rec-table td.rec-c5{white-space:nowrap;text-align:center}
+/* r1318：桌面列宽重排 —— 时间/积分各 100px 且右对齐，删除列维持 304px；
+   表格改 fixed 布局，让唯一无固定宽的「类型」列吃掉剩余（实测约 558px，用户要求「多的给类型」）。
+   用 min-width 限定，手机 max-width media 完全不沾。 */
+@media(min-width:641px){
+  .rec-table{table-layout:fixed}
+  .rec-table col.rec-c4,.rec-table th.rec-c4,.rec-table td.rec-c4{width:100px}
+  .rec-table th.rec-c4,.rec-table td.rec-c4{text-align:right}
+  .rec-table col.rec-c5,.rec-table th.rec-c5,.rec-table td.rec-c5{width:100px}
+  .rec-table th.rec-c5,.rec-table td.rec-c5{text-align:right}
+  .rec-table col.rec-c6,.rec-table th.rec-c6,.rec-table td.rec-c6{width:40px}
+  .rec-table col.rec-c3,.rec-table th.rec-c3,.rec-table td.rec-c3{width:auto}
+}
 /* 手机端（≤640px）：积分流水表列宽固定（table-layout:fixed 保证不被内容撑开） */
 @media(max-width:640px){
   .rec-table{table-layout:fixed}
@@ -474,6 +487,7 @@ tbody tr:hover{background:var(--surface-2)}
   .rec-table th:nth-child(3),.rec-table td:nth-child(3){text-align:center} /* r1247：类型列居中 */
   .rec-table col.rec-c1{width:65px}
   .rec-table col.rec-c2{width:65px}
+  .rec-table col.rec-c3,.rec-table th.rec-c3,.rec-table td.rec-c3{width:auto} /* r1317：桌面 180px 不落到手机 */
   .rec-table col.rec-c4{width:70px}
   .rec-table col.rec-c5{width:60px}
   .rec-table col.rec-c6{width:32px}
@@ -2916,12 +2930,12 @@ function buildRecTable(){
     return r.date>=rg.from&&r.date<=rg.to;
   }).sort((a,b)=>b.date.localeCompare(a.date));
   const rows=recs.length?recs.map(r=>{const s=stu(r.studentId);return `
-  <tr><td class="rec-c1"><span class="s-name" data-action="stu-detail" data-id="${r.studentId}">${esc(s.name)}</span></td><td class="rec-c2">${esc(classNameOf(s.classId))}</td><td>${esc(r.type)}${r.examName?`<div style="font-size:11px;color:var(--text-2);margin-top:0">${esc(r.examName)}</div>`:''}</td>
+  <tr><td class="rec-c1"><span class="s-name" data-action="stu-detail" data-id="${r.studentId}">${esc(s.name)}</span></td><td class="rec-c2">${esc(classNameOf(s.classId))}</td><td class="rec-c3">${esc(r.type)}${r.examName?`<div style="font-size:11px;color:var(--text-2);margin-top:0">${esc(r.examName)}</div>`:''}</td>
   <td class="rec-c5" style="color:${r.delta>=0?'var(--ok)':'var(--danger)'}">${r.delta>0?'+':''}${r.delta} 分</td>
   <td class="rec-c4">${esc(r.date.slice(2))}</td>
   <td>${r.src==='ep'||r.src==='ans'?'':`<button class="rec-del" data-action="${r.src==='viol'?'del-viol':'del-hw'}" data-id="${r.id}" aria-label="删除" title="删除">✕</button>`}</td></tr>`;}).join(''):
   `<tr><td colspan="6">${emptyState('🗒','暂无记录')}</td></tr>`;
-  return `<div class="card rec-card" style="padding:0;overflow:hidden"><table class="rec-table"><colgroup><col class="rec-c1"><col class="rec-c2"><col><col class="rec-c5"><col class="rec-c4"><col class="rec-c6"></colgroup><thead><tr><th class="rec-c1">学生</th><th class="rec-c2">班级</th><th>类型</th><th class="rec-c5">积分</th><th class="rec-c4">时间</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  return `<div class="card rec-card" style="padding:0;overflow:hidden"><table class="rec-table"><colgroup><col class="rec-c1"><col class="rec-c2"><col class="rec-c3"><col class="rec-c5"><col class="rec-c4"><col class="rec-c6"></colgroup><thead><tr><th class="rec-c1">学生</th><th class="rec-c2">班级</th><th class="rec-c3">类型</th><th class="rec-c5">积分</th><th class="rec-c4">时间</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function addIconSvg(){return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>';}
 /* G 风格线性图标字典：viewBox 0 0 24 24、stroke 2 圆角端点，currentColor 继承
@@ -3433,14 +3447,36 @@ function inRange(d,range){return !range||(d>=range.from&&d<=range.to);}
 let REV_RECENT_OPEN=new Set();
 function reviewDate(rv){const m=(rv.week||'').match(/(\d{4}-\d{2}-\d{2})/);return m?m[1]:'';}
 function weeksAgoBetween(nowMon,d){if(!d)return null;const a=new Date(nowMon+'T00:00:00'),b=new Date(d+'T00:00:00');if(isNaN(a)||isNaN(b))return null;return Math.round((a-b)/604800000);}
-/* 同一周若同时有 自动复盘(auto:true) 与 手动复盘，把自动汇总字段并入手动复盘并删除自动复盘，保证每周期末只留一张卡 */
+/* r1315：复盘按「自然周（周一）」归一，替代 week 字符串前缀匹配——
+   手改周次加前缀、学期首周从周中开始等情况都不会再漏判。 */
+function reviewWeekKey(r){const d=reviewDate(r);if(!d)return '';const x=new Date(d+'T00:00:00');return isNaN(x)?'':isoOf(startOfWeek(x));}
+/* r1315：纯自动生成、且用户没写过内容（done/stuck/next/highlight 全空）的卡才是可安全收敛的 */
+function reviewIsAutoBlank(r){return !!r.auto&&!['done','stuck','next','highlight'].some(k=>String(r[k]||'').trim());}
+/* r1315：把同一自然周里多余的自动空卡收敛掉，删除写墓碑以便跨端同步；
+   有手写内容的卡一律保留，绝不删用户写的东西。返回是否发生删除。 */
+function collapseAutoReviews(){
+  const byWk={};S.reviews.forEach(r=>{const k=reviewWeekKey(r);if(!k)return;(byWk[k]=byWk[k]||[]).push(r);});
+  let dead=[];
+  Object.keys(byWk).forEach(k=>{
+    const g=byWk[k];if(g.length<2)return;
+    const blanks=g.filter(reviewIsAutoBlank);if(!blanks.length)return;
+    const keep=g.find(r=>!reviewIsAutoBlank(r))||g.find(r=>r.id==='auto-'+k)||blanks[0];
+    const drop=g.filter(r=>r!==keep&&reviewIsAutoBlank(r));
+    if(!drop.length)return;
+    const src=drop.find(r=>r.autoTasks!=null)||blanks.find(r=>r.autoTasks!=null);
+    if(src&&keep.autoTasks==null){keep.autoTasks=src.autoTasks;keep.autoProgress=src.autoProgress;keep.autoTodos=src.autoTodos;keep.autoNotes=src.autoNotes;keep.autoExams=src.autoExams;keep.auto=true;keep._at=Date.now();}
+    dead=dead.concat(drop);
+  });
+  if(!dead.length)return false;
+  S.reviews=S.reviews.filter(r=>dead.indexOf(r)<0);
+  S._tomb=S._tomb||{};S._tomb.reviews=[...new Set((S._tomb.reviews||[]).concat(dead.map(r=>r.id)))];
+  save();return true;
+}
+/* 手动复盘保存后按自然周收敛自动空卡（r1315：统一走 collapseAutoReviews，
+   旧的 reviewDate 全等匹配会漏掉「带前缀周次」「学期首周周中起始」两类）。 */
 function foldAutoIntoManual(week){
   if(!week)return false;
-  const m=S.reviews.find(r=>reviewDate(r)===week && !r.auto);
-  const a=S.reviews.find(r=>reviewDate(r)===week && r.auto);
-  if(!m||!a)return false;
-  m.autoTasks=a.autoTasks;m.autoProgress=a.autoProgress;m.autoTodos=a.autoTodos;m.autoNotes=a.autoNotes;m.autoExams=a.autoExams;m.auto=true;
-  S.reviews=S.reviews.filter(r=>r!==a);save();return true;
+  return collapseAutoReviews();
 }
 function autoItems(text, kind){
   const out=[];
@@ -6680,10 +6716,14 @@ function maybeAutoReview(){
   if(!wk)return; // 不在学期内则不自动生成
   const {pStart,pEnd}=wk;
   const label=pStart+' ~ '+pEnd.slice(5);
-  const exist=S.reviews.find(r=>(r.week||'').indexOf(pStart)===0);
+  const wkMon=reviewWeekKey({week:pStart});
+  /* r1315：① 去重按自然周，替代脆弱的 week 字符串前缀匹配（带前缀/学期首周周中起始都能命中）；
+     ② 自动复盘用确定性 id，多端同周各生成一条时 merge-by-id 天然收敛；
+     ③ 末尾统一收敛历史与跨端合并进来的同周重复自动卡。_autoReviewWeek 是写了从不读的死变量，已移除。 */
+  const exist=S.reviews.find(r=>reviewWeekKey(r)===wkMon);
   const d=autoReviewData(pStart,pEnd);
   if(exist){
-    if(exist.autoTasks==null){exist.autoTasks=d.tasks;exist.autoProgress=d.progress;exist.autoTodos=d.todos;exist.autoNotes=d.notes;exist.autoExams=d.exams;exist.auto=true;save();}
+    if(exist.autoTasks==null){exist.autoTasks=d.tasks;exist.autoProgress=d.progress;exist.autoTodos=d.todos;exist.autoNotes=d.notes;exist.autoExams=d.exams;exist.auto=true;exist._at=Date.now();save();}
     else if(exist.auto){ /* r1305：本周口径自动字段（进度/待办/笔记/考试）随最新数据重算，确保本周过滤生效；done 等手动栏不动 */
       let ch=false;
       if(exist.autoTasks!==d.tasks){exist.autoTasks=d.tasks;ch=true;}
@@ -6691,12 +6731,16 @@ function maybeAutoReview(){
       if(exist.autoNotes!==d.notes){exist.autoNotes=d.notes;ch=true;}
       if(exist.autoExams!==d.exams){exist.autoExams=d.exams;ch=true;}
       if(exist.autoProgress!==d.progress){exist.autoProgress=d.progress;ch=true;}
-      if(ch)save();
+      if(ch){exist._at=Date.now();save();}
     }
-    S._autoReviewWeek=pStart;save();return;
+  } else {
+    const cid='auto-'+wkMon;
+    /* r1315：确定性 id 若已在墓碑里，说明用户主动删过本周自动复盘——不再补生成，
+       既尊重删除意图，也避免复活的同 id 被云端墓碑在下次合并时再次抹掉。 */
+    const deleted=((S._tomb&&S._tomb.reviews)||[]).indexOf(cid)>=0;
+    if(!deleted){S.reviews.push({id:cid,week:label,done:'',stuck:'',next:'',highlight:'',autoTasks:d.tasks,autoProgress:d.progress,autoTodos:d.todos,autoNotes:d.notes,autoExams:d.exams,auto:true,_at:Date.now()});save();}
   }
-  S.reviews.push({id:uid(),week:label,done:'',stuck:'',next:'',highlight:'',autoTasks:d.tasks,autoProgress:d.progress,autoTodos:d.todos,autoNotes:d.notes,autoExams:d.exams,auto:true});
-  S._autoReviewWeek=pStart;save();
+  collapseAutoReviews();
 }
 function modalReview(id){const r=id?S.reviews.find(x=>x.id===id):{};
   const autoDone=id? (r.done||'') : reviewWeekSummary();
