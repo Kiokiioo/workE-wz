@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1330</title>
+<title>工作E · v20260902-r1332</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -2796,7 +2796,8 @@ function clProgHtml(cid){
   const done=items.filter(p=>p.done).slice().sort((a,b)=>(b.doneDate||'').localeCompare(a.doneDate||''));
   const up=items.filter(p=>!p.done);
   const pct=items.length?Math.round(done.length/items.length*100):0;
-  const row=p=>`<div class="rec" style="align-items:center;border-bottom:none"><div class="ic" style="background:${p.done?'var(--ok)':'var(--border)'};color:${p.done?'#fff':'var(--text-2)'};border-radius:50%">${p.done?'\u2713':'\u2022'}</div><div class="rc-body"><div class="rc-title">${esc(p.title)}</div><div class="rc-sub">${p.done?('\u5b8c\u6210\u4e8e '+esc(p.doneDate||'\u2014')):esc(p.subject||'')}</div></div></div>`;
+  const doneIcon='<span style="flex:none;display:inline-flex;align-items:center;justify-content:center;color:var(--ok)">'+iconSvg('\u5df2\u5b8c\u6210',18)+'</span>';
+  const row=p=>`<div class="rec" style="align-items:center;border-bottom:none">${p.done?doneIcon:'<div class="ic" style="background:var(--border);color:var(--text-2);border-radius:50%">\u2022</div>'}<div class="rc-body"><div class="rc-title">${esc(p.title)}</div><div class="rc-sub">${p.done?('\u5b8c\u6210\u4e8e '+esc(p.doneDate||'\u2014')):esc(p.subject||'')}</div></div></div>`;
   return `<div class="card" style="padding:12px 14px">
     <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span>\u5b8c\u6210\u8fdb\u5ea6</span><span>${done.length}/${items.length}</span></div>
     <div style="height:8px;background:var(--surface-2);border-radius:99px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--primary);border-radius:99px"></div></div>
