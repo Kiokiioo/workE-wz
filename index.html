@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" data-page-node-id="HH2T9uQDlfyym3H3HuMkwA">
 <meta http-equiv="Pragma" content="no-cache" data-page-node-id="qrpGfy6nezyVDbfEPyTGUh">
 <meta http-equiv="Expires" content="0" data-page-node-id="sEvOoLW66fTONwLbnDeKce">
-<title>工作E · v20260902-r1332</title>
+<title>工作E · v20260902-r1333</title>
 <meta name="apple-mobile-web-app-capable" content="yes" data-page-node-id="ay7Um0j99Yv18BeVSAprc4">
 <meta name="mobile-web-app-capable" content="yes" data-page-node-id="ZbYHVLxFeO6rUcUqHAt5Dh">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" data-page-node-id="JK4JLfMCDV3TIuX6wRWFcI">
@@ -6710,9 +6710,9 @@ function modalProgress(id,pid){const c=course(id);if(!c)return;S._progCourse=id;
     <div class="field"><label>完成时间</label>
       <div class="field row" style="margin-top:4px;gap:8px"><input type="date" name="whenDate" value="${whenDateV}" style="flex:1;min-width:0">${selHtml('prog_whenTime', whenTimeV||'选择时间', bkOpts(progTimeOpts(cl).map(t=>({k:t.k,l:t.l,pick:'progWhenTimePick'})), whenTimeV))}<input type="hidden" name="whenTime" value="${whenTimeV}"></div></div>
     <div class="field"><label>今日任务</label><div id="prog_today_wrap" style="max-height:200px;overflow:auto">${planChecks}</div></div>
+    <div class="field"><label>备注</label><textarea name="note" class="prog-ta" placeholder="写下本节课的备注，关联本次勾选的教学进度">${esc(noteV)}</textarea></div>
     <div class="field"><label>超额完成</label><textarea name="extraDone" class="prog-ta" placeholder="每行一项，自动同步">${esc(extraV)}</textarea></div>
     <div class="field"><label>待完成</label><textarea name="nextTask" class="prog-ta" placeholder="每行一项，自动同步">${esc(ntV)}</textarea></div>
-    <div class="field"><label>备注</label><textarea name="note" class="prog-ta" placeholder="写下本节课的备注，关联本次勾选的教学进度">${esc(noteV)}</textarea></div>
     <div class="modal-foot"><button type="button" class="btn" onclick="closeModal()">取消</button><button type="submit" class="btn primary">${pid?'保存修改':'保存'}</button></div></form>`);
   setTimeout(()=>{
     const form=document.querySelector('form[data-form="progress"]');if(!form)return;
@@ -6787,9 +6787,9 @@ function viewProgEdit(cid){
         <div class="field"><label>完成时间</label>
           <div class="field row prog-when-row" style="margin-top:4px"><input type="date" name="whenDate" value="${todayISO()}" style="flex:1;min-width:0">${selHtml('prog_whenTime', defTime||'选择时间', bkOpts(progTimeOpts(cl).map(t=>({k:t.k,l:t.l,pick:'progWhenTimePick'})), defTime))}<input type="hidden" name="whenTime" value="${defTime}"></div></div>
         <div class="field"><label>今日任务</label><div id="prog_today_wrap" style="max-height:200px;overflow:auto">${planChecks}</div></div>
+        <div class="field"><label>备注</label><textarea name="note" class="prog-ta" placeholder="写下本节课的备注，关联本次勾选的教学进度"></textarea></div>
         <div class="field"><label>超额完成</label><textarea name="extraDone" class="prog-ta" placeholder="每行一项，自动同步"></textarea></div>
         <div class="field"><label>待完成</label><textarea name="nextTask" class="prog-ta" placeholder="每行一项，自动同步">${esc(c.nextTask||'')}</textarea></div>
-        <div class="field"><label>备注</label><textarea name="note" class="prog-ta" placeholder="写下本节课的备注，关联本次勾选的教学进度"></textarea></div>
       </form>
     </div>
   </div>`;
